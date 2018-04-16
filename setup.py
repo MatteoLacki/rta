@@ -19,44 +19,26 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='MassTodonPy',
+    name='rta',
     packages=find_packages(),
-    version='0.3.7',
-    description='Estimate the products of Electron Transfer Dissociation in \
-    Mass Spectrometry for a given biological substance and \
-    the chemical reaction probabilities that lead to these products.',
+    version='0.0.1',
+    description='Retention Time Alignment for LC-IM-MS.',
     author=u'Mateusz Krzysztof Łącki',
     author_email='matteo.lacki@gmail.com',
-    url='https://github.com/MatteoLacki/MassTodonPy',
-    download_url='https://github.com/MatteoLacki/MassTodonPy/tree/GutenTag',
+    url='https://github.com/MatteoLacki/rta',
+    # download_url='https://github.com/MatteoLacki/MassTodonPy/tree/GutenTag',
     keywords=[
+        'Analitical Chemistry',
         'Mass Spectrometry',
-        'ETD',
-        'Electron Transfer Dissociation',
-        'Fragmentation'],
+        'Retention Time Alignment'],
     classifiers=[
-        'Development Status :: 4 - Beta',
-        'License :: OSI Approved :: GNU Affero General Public License v3',
+        'Development Status :: 1 - Planning',
+        'License :: OSI Approved :: BSD License',
         'Intended Audience :: Science/Research',
         'Topic :: Scientific/Engineering :: Chemistry',
         'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.4'],
-    install_requires=[
-        'cffi',
-        'numpy',
-        'pyteomics>=3.4.1',
-        'lxml',
-        'cvxopt',
-        'IsoSpecPy<2.0',
-        'networkx>=2.0',
-        'future',
-        'six',
-        'bokeh'],
-    scripts=[
-        'bin/masstodon',
-        'bin/masstodon_example_call',
-        'bin/plot_mass_spectrum',
-        'bin/json2masstodon']
+        'Programming Language :: Python :: 3.6']
+    # install_requires=[],
+    # scripts=[
+    #     'bin/rta']
 )
