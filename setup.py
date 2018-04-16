@@ -1,21 +1,3 @@
-# -*- coding: utf-8 -*-
-#
-#   Copyright (C) 2016 Mateusz Krzysztof Łącki and Michał Startek.
-#
-#   This file is part of MassTodon.
-#
-#   MassTodon is free software: you can redistribute it and/or modify
-#   it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
-#   Version 3.
-#
-#   MassTodon is distributed in the hope that it will be useful,
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
-#   You should have received a copy of the GNU AFFERO GENERAL PUBLIC LICENSE
-#   Version 3 along with MassTodon.  If not, see
-#   <https://www.gnu.org/licenses/agpl-3.0.en.html>.
-
 from setuptools import setup, find_packages
 
 setup(
@@ -23,6 +5,7 @@ setup(
     packages=find_packages(),
     version='0.0.1',
     description='Retention Time Alignment for LC-IM-MS.',
+    long_description='The project implements advanced algorithms for the alignement of the retention times in the LC-IM-MS experiments.',
     author=u'Mateusz Krzysztof Łącki',
     author_email='matteo.lacki@gmail.com',
     url='https://github.com/MatteoLacki/rta',
