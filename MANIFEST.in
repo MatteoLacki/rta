@@ -1,0 +1,5 @@
+# data
+include MassTodonPy/Data/isotopes.json
+include MassTodonPy/Data/amino_acids.json
+include MassTodonPy/Data/substanceP.json
+include MassTodonPy/Data/ubiquitin.json

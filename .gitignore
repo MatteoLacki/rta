@@ -1,0 +1,17 @@
+# Byte-compiled / optimized / DLL files
+*.py[cod]
+__pycache__
+
+#R
+.Rhistory
+.Rproj.user
+*.Rproj
+
+#Python
+build
+dist
+*.egg-info
+*.swp
+
+# VIM
+*.swo
