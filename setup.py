@@ -20,8 +20,12 @@ setup(
         'Intended Audience :: Science/Research',
         'Topic :: Scientific/Engineering :: Chemistry',
         'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.6']
-    # install_requires=[],
+        'Programming Language :: Python :: 3.6'],
+    install_requires=[
+        'numpy',
+        'sklearn',
+        'pandas'
+    ]
     # scripts=[
     #     'bin/rta']
 )

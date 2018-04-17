@@ -11,6 +11,8 @@ from sklearn.model_selection import GroupKFold
 from collections import namedtuple
 
 DT = pandas.read_csv('rta/data/pure_data.csv')
+
+
 LearnPair = namedtuple('LearnPair', 'training test')
 
 def x_validate(X, folds=10, id = ['id']):
