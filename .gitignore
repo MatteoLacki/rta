@@ -15,3 +15,7 @@ dist
 
 # VIM
 *.swo
+
+# Other's projects
+rta/linear-regressions-mixture
+
