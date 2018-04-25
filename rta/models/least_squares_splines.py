@@ -6,12 +6,14 @@ from rta.models.spline_regression import SplineRegression
 
 class LeastSquareSpline(SplineRegression):
     """Least squares splines."""
-    def fit(self, formula):
+    def fit(self, formula, **kwds):
+        if 'rcond' not in kwds:
+            kwds['rcond'] = None
         self.dmatrices(formula)
-        b, self.res, self.pred_rank, self.svals = np.linalg.lstsq(self.X,
-                                                                  self.y,
-                                                                  None)
-        self.coef = b.ravel()
+        self.fit_out = np.linalg.lstsq(a=self.X,
+                                       b=self.y,
+                                       **kwds)
+        self.coef = self.fit_out[0].ravel()
 
     def __repr__(self):
         return "This is a least squares spline regression."

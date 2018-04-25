@@ -1,4 +1,6 @@
+import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from patsy import dmatrices, dmatrix
 
 from rta.models.base_model import Model
