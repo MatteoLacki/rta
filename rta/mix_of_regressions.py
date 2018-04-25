@@ -6,46 +6,12 @@ from patsy import dmatrices, dmatrix, build_design_matrices
 from patsy import bs, cr, cc
 import matplotlib.pyplot as plt
 import seaborn as sns
-
+from rta.LGM.src.linear_regression_mixtures import LinearRegressionsMixture as LRM
 
 D = preprocess(D)
 for g, data in D.groupby('run'):
     pass
 
-
-def fit(data, formula):
-    outcome, predictors = dmatrices(formula, data)
-    coef, residuals, predictors_rank, svals = np.linalg.lstsq(predictors,
-                                                              outcome,
-                                                              rcond=None)
-    coef = coef.ravel()
-    return coef, residuals, predictors_rank, svals
-
-
-coef, res, pred_rank, svals = fit(data, "rt_median_distance ~ rt")
-coef, res, pred_rank, svals = fit(data,
-    "rt_median_distance ~ bs(rt, df=20, degree=2, include_intercept=True) - 1")
-
-formula = "rt_median_distance ~ bs(rt, df=20, degree=2, include_intercept=True) - 1"
-outcome, predictors = dmatrices(formula, data)
-coef, residuals, predictors_rank, svals = np.linalg.lstsq(predictors,
-                                                          outcome,
-                                                          rcond=None)
-coef = coef.ravel()
-help(np.linspace)
-new_data = pd.DataFrame({'rt': np.linspace(min(data.rt),
-                                           max(data.rt),
-                                           num=1000)})
-build_design_matrices()
-
-dmatrix(predictors.design_info, data=new_data, return_type='dataframe')
-
-
-# Write a class for the SplineRegression:
-#   must take in data
-#   fit in the model
-#   make it possible to fit it
-#   plot the data
 
 class SplineRegression(object):
     def __init__(self, data):
@@ -53,8 +19,11 @@ class SplineRegression(object):
         self.min_rt = min(data.rt)
         self.max_rt = max(data.rt)
 
-    def fit(self, formula):
+    def dmatrices(self, formula):
         self.y, self.X = dmatrices(formula, self.data)
+
+    def least_squares(self, formula):
+        self.dmatrices(formula)
         b, self.res, self.pred_rank, self.svals = np.linalg.lstsq(self.X,
                                                                   self.y,
                                                                   None)
@@ -82,47 +51,41 @@ class SplineRegression(object):
         plt.plot(prediction.rt, prediction.prediction, c='red')
 
 
-sreg = SplineRegression(data)
-sreg.fit("rt_median_distance ~ bs(rt, df=20, degree=2, include_intercept=True) - 1")
-sreg.plot()
-
-sreg.fit("rt_median_distance ~ bs(rt, df=40, degree=2, include_intercept=True) - 1")
-sreg.plot()
-
-sreg.fit("rt_median_distance ~ bs(rt, df=100, degree=4, include_intercept=True) - 1")
-sreg.plot()
-
-sreg.fit("rt_median_distance ~ cr(rt, df=100, degree=4, include_intercept=True) - 1")
-sreg.plot()
-
-
-
-
-# import statsmodels.api as sm
-# import statsmodels.formula.api as smf
+sr = SplineRegression(data)
+# sr.least_squares("rt_median_distance ~ bs(rt, df=20, degree=2, include_intercept=True) - 1")
+# sr.plot()
 #
-# # ols = smf.ols("rt_median_distance ~ rt", data=data).fit()
-# # ols.summary()
+# sr.least_squares("rt_median_distance ~ bs(rt, df=40, degree=2, include_intercept=True) - 1")
+# sr.plot()
+#
+# sr.least_squares("rt_median_distance ~ bs(rt, df=100, degree=4, include_intercept=True) - 1")
+# sr.plot()
+#
+# sr.least_squares("rt_median_distance ~ cr(rt, df=20)")
+# sr.plot()
+#
+sr.least_squares("rt_median_distance ~ cc(rt, df=20)")
+sr.plot()
 
 
+sr.dmatrices("rt_median_distance ~ bs(rt, df=20, include_intercept=True) - 1")
+np.asarray(sr.X)
 
+# Model parameters
+K = 2
+epsilon = 1e-4
+lam = 0.1
+iterations = 50
+random_restarts = 20
 
+model = LRM(sr.X, sr.y, K=K)
+model.train(epsilon=epsilon,
+            lam=lam,
+            iterations=iterations,
+            random_restarts=random_restarts,
+            verbose=True)
 
+print(model)
 
-def plot(data, plot_data):
-    %matplotlib
-    plt.scatter(data.rt, data.rt_median_distance, marker='.')
-    plt.plot(plot_data.rt, plot_data.prediction, c='red')
-
-
-
-plot(data, plot_data)
-
-
-
-
-dmatrix("rt + np.log(pep_mass)", X)
-dmatrix("bs(rt, df=10)", X)
-
-
-help(np.linalg.lstsq)
+from rta.regression_mixtures.linear_regression_mixtures import fit_with_restarts
+results = fit_with_restarts

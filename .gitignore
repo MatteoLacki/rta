@@ -17,5 +17,5 @@ dist
 *.swo
 
 # Other's projects
-rta/linear-regressions-mixture
-
+rta/LGM
+rta/regression_mixtures
