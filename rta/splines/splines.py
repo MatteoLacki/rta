@@ -14,12 +14,32 @@ from rta.models.huber import huber_spline
 from rta.models.quantile import quantile_spline
 from rta.models.plot import plot
 
+from rta.models.sklearn_regressors import sklearnRegression, sklearn_spline
+from rta.models.RANSAC import RANSAC_spline
+from rta.models.theil_sen import theil_sen_spline
+from rta.models.huber import huber_spline
+
 %matplotlib
 
 D = preprocess(D)
 for g, data in D.groupby('run'):
     pass
 formula = "rt_median_distance ~ bs(rt, df=40, degree=2, include_intercept=True) - 1"
+
+
+# sklearn regression: long and inaccurate
+sk_spline = sklearn_spline(data, formula, 'Theil-Sen')
+plot(sk_spline)
+coef(sk_spline)
+
+# Huber regression
+hspline = huber_spline(data, formula)
+plot(hspline)
+
+# RANSAC regression
+# WARNING: have to watch for the terms here!
+RANSACspline = RANSAC_spline(data, "rt_median_distance ~ bs(rt, df=40, degree=2)")
+plot(RANSACspline)
 
 
 # Quantile regression
@@ -38,45 +58,12 @@ y_range_90 = predict(qspline_90, rt = x_range)
 plt.plot(x_range, y_range_90, c='blue')
 
 
-
-# Huber regression
-hspline = huber_spline(data, formula)
-coef(hspline)
-%matplotlib
-plot(hspline)
-
-
 # least squares spline regression
-l2_spline = least_squares_spline(data, formula)
-predict(l2_spline, rt=[10, 25])
+l2_spline = least_squares_spline(data, "rt_median_distance ~ bs(rt, df=40, degree=2)")
+predict(l2_spline, rt=[134, 140, 180])
 fitted(l2_spline)
 coef(l2_spline)
-
-
-
-
-
-RLM = sm.RLM(y, X)
-results = RLM.fit()
-
-results.params
-
-QR = sm.QuantReg(y, X)
-help(QR)
-results = QR.fit(q=.5)
-
-help(results)
-results.params
-
-
-
-import statsmodels.formula.api as smf
-from statsmodels.regression.quantile_regression import QuantReg
-
-QuantReg
-
-HuberRegressor()
-
+plot(l2_spline)
 
 
 # sr.least_squares()
@@ -91,4 +78,3 @@ HuberRegressor()
 # sr.least_squares("rt_median_distance ~ cr(rt, df=20)")
 # sr.plot()
 #
-sr.least_squares("rt_median_distance ~ cc(rt, df=20)")
