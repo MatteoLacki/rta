@@ -14,13 +14,14 @@ class Model(object):
     def coefficients(self):
         return self.coef
 
+    @property
     def res(self):
         """Get residuals."""
         raise NotImplementedError
 
     def residuals(self):
         """Get residuals: syntactic sugar for 'res'."""
-        return self.res()
+        return self.res
 
     def __repr__(self):
         return 'This is the logic for all models.'
@@ -42,4 +43,7 @@ def coefficients(model):
     return model.coefficients
 
 def residuals(model):
-    return model.residuals
+    return model.residuals()
+
+def res(model):
+    return model.res
