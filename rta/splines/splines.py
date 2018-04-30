@@ -2,6 +2,7 @@
 %autoreload 2
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 from rta.models.base_model import predict, fitted, coef, residuals
 from rta.models.plot import plot
@@ -23,6 +24,7 @@ for g, data in DF.groupby('run'):
 formula = "rt_median_distance ~ bs(rt, df=40, degree=2, lower_bound=0, upper_bound=200, include_intercept=True) - 1"
 # Huber regression
 hspline = huber_spline(data, formula)
+
 %matplotlib
 plot(hspline)
 # coef(hspline)
@@ -37,14 +39,14 @@ plt.plot(x_pred_range,
          c = 'gold')
 
 
-# RANSAC regression
-# WARNING: have to watch for the terms here!
-RANSACspline = RANSAC_spline(data, "rt_median_distance ~ bs(rt, df=40, degree=3, lower_bound=0, upper_bound=200)")
-
-plt.plot(x_pred_range,
-         predict(RANSACspline, rt = x_pred_range),
-         c = 'green')
-
+# # RANSAC regression
+# # WARNING: have to watch for the terms here!
+# RANSACspline = RANSAC_spline(data, "rt_median_distance ~ bs(rt, df=40, degree=3, lower_bound=0, upper_bound=200)")
+#
+# plt.plot(x_pred_range,
+#          predict(RANSACspline, rt = x_pred_range),
+#          c = 'green')
+#
 
 # Quantile regression: slowest
 qspline = quantile_spline(data, formula)

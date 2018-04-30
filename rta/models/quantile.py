@@ -1,4 +1,6 @@
 from patsy import dmatrices
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
 import statsmodels.api as sm
 from rta.models.spline_regression import SplineRegression
 

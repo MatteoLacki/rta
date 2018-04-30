@@ -3,6 +3,7 @@
 import numpy as np
 from sklearn import mixture
 
+import matplotlib.pyplot as plt
 import plotly.graph_objs as go
 from plotly.offline import iplot
 
@@ -20,8 +21,9 @@ hspline = huber_spline(data, formula)
 res = residuals(hspline)
 
 
-plot_data = [go.Histogram(x=res)]
-iplot(data, filename='basic histogram')
+# plot_data = [go.Histogram(x=res)]
+# iplot(data, filename='basic histogram')
+
 
 
 X = np.asarray(res).reshape((len(res),1))
@@ -36,8 +38,9 @@ gmm.predict(X_new)
 gmm.predict_proba(X_new)
 
 
-
+%matplotlib
 plt.scatter(hspline.data.rt,
             hspline.data.rt_median_distance,
             c = gmm.predict(X),
             s=.4)
+            
