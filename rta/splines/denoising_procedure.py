@@ -69,6 +69,8 @@ models = list(denoise_and_align(runs, formula))
 d = models[0][1]
 m = models[0][0]
 
+DF_2 = pd.concat(d for m, d in models)
+
 %matplotlib
 plt.plot(d[d.signal == 'signal'].rt, d[d.signal == 'signal'].rt_aligned)
 plt.hist(residuals(m))
@@ -79,20 +81,58 @@ plt.scatter(d.rt,
             d.rt_median_distance,
             c=[{'signal': 'red', 'noise': 'grey'}[s] for s in d.signal])
 plot_curve(m, c='blue', linewidth=4)
+
+
+
+# Trying out the clustering
+from sklearn import cluster
+
+def max_space(x):
+    if len(x) == 1:
+        return 0
+    return np.diff(np.sort(x)).max()
+
+DF_2_signal = DF_2[DF_2.signal == 'signal']
+X = DF_2_signal.groupby('id')
+D_stats = pd.DataFrame(dict(runs_no_aligned = X.rt.count(),
+                            rt_aligned_median = X.rt.median(),
+                            rt_aligned_max_space = X.rt_aligned.aggregate(max_space)))
+X = D_stats[D_stats.runs_no_aligned > 2]
+
+DF_2_signal = pd.merge(DF_2_signal,
+                       D_stats,
+                       left_on='id',
+                       right_index=True)
+
 %matplotlib
-plot(models[1][0])
+plt.scatter(X.rt_aligned_median,
+            X.rt_aligned_max_space,
+            marker = '.')
+plt.axes().set_aspect('equal', 'datalim')
+
+diecintili = np.percentile(X.rt_aligned_max_space, q = range(0,110,10))
+
+median_space = diecintili[5]
+DBSCAN = cluster.DBSCAN(eps = median_space,
+                        min_samples = 5)
+
+DF_2_signal[['pep_mass', 'rt_aligned', 'dt']]
+
+DBSCAN.fit()
 
 
 
+%matplotlib
+plt.scatter(DF_2_signal.rt,
+            DF_2_signal.rt_aligned_max_space,
+            marker = '.'
+            )
+plt.axes().set_aspect('equal', 'datalim')
+cluster.DBSCAN().
 
 
+%matplotlib
+plt.hist(DF_2_signal.rt_aligned_max_space)
 
-# %matplotlib
-# divmod(6,5)
-# for g, model in models.items():
-#     div, mod = divmod(g, 5)
-#     plt.subplot(2, div + 1, mod)
-#     plot(model)
-#
-# plt.subplot(2, 2, 2)
-# plot(models[2])
+
+spline(data = )
