@@ -10,26 +10,10 @@ from rta.read_in_data import DT as D
 from rta.preprocessing import preprocess
 from rta.models.base_model import predict, fitted, coef, residuals
 from rta.models import spline
-from rta.models.plot import plot
-
-
-# Patsy tests ##################################
-from patsy import demo_data
-from patsy import dmatrices, build_design_matrices, dmatrix
-
-data = demo_data('x', 'y', 'a')
-X = np.column_stack(([1] * len(data["y"]), data["x"]))
-dmatrices((data['y'], X), data=None)
-dmatrices('y ~ x', data=data)
-help(dmatrix)
-
-build_design_matrices((data['y'], X), data=None)
-
-################################################
+from rta.models.plot import plot, plot_curve
 
 
 formula = "rt_median_distance ~ bs(rt, df=40, degree=2, lower_bound=0, upper_bound=200, include_intercept=True) - 1"
-
 DF = preprocess(D, min_runs_no = 2)
 
 # Removing the peptides that have their RT equal to the median.
@@ -39,22 +23,18 @@ DF = DF[DF.rt_median_distance != 0]
 DF['signal'] = 'signal' # guardian
 runs = list(data for _, data in DF.groupby('run'))
 
-data = runs[0]
-data.loc[data.run == 1, 'pep_mass'] = 10
-
-T = pd.DataFrame(dict(a=['a','a','b'], x=[2.1, 1.0, 9.0]))
-T.loc[T.a == 'a', 'x'] = 10
 
 
-
-def denoise(runs, filter_noise=False):
+def denoise(runs, formula):
     """Remove noise in grouped data.
 
     Updates the 'signal' column in the original data chunks.
     """
+    assert all('signal' in run for run in runs)
     for data in runs:
         # Fitting the spline
-        model = spline(data, formula)
+        signal_indices = data.signal == 'signal'
+        model = spline(data[signal_indices], formula)
         # Fitting the Gaussian mixture model
         res = residuals(model).reshape((-1,1))
         gmm = mixture.GaussianMixture(n_components=2,
@@ -62,20 +42,23 @@ def denoise(runs, filter_noise=False):
         signal_idx, noise_idx = np.argsort(gmm.covariances_.ravel())
         sn = {signal_idx: 'signal', noise_idx: 'noise'}
         # appending to the data set
-        data.signal = [ sn[i] for i in gmm.predict(res)]
-        yield data
+        data.loc[signal_indices, 'signal'] = [ sn[i] for i in gmm.predict(res)]
+        model = spline(data[data.signal == 'signal'], formula)
+        yield model, data
+
 
 %%time
-runs1 = list(denoise(runs))
-
-Counter(s for run in runs1 for s in run.signal)
-
-
-
-
+models = list(denoise(runs, formula))
+d = models[0][1]
+m = models[0][0]
 
 %matplotlib
-plot(models[1])
+plt.scatter(d.rt,
+            d.rt_median_distance,
+            c=[{'signal': 'red', 'noise': 'grey'}[s] for s in d.signal])
+plot_curve(m, c='blue', linewidth=4)
+%matplotlib
+plot(models[1][0])
 
 
 
