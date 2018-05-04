@@ -6,6 +6,16 @@ import networkx as nx
 from sklearn.datasets import make_blobs
 import pickle
 
+D = pd.read_csv('rta/data/denoised_data.csv')
+D_signal = D[D.signal == 'signal']
+peptide_grouping = D_signal.groupby('id')
+signal_runs_no = peptide_grouping.rt.count()
+
+min_runs_no = 2
+D_signal_min_cnts = D_signal[D_signal.id.isin(signal_runs_no[signal_runs_no >= min_runs_no].index)]
+eps = np.finfo(float).eps
+
+
 class Multivariate_Tree(object):
     def __init__(self, data, id_column_name, column_names,
                  stats = (np.mean, np.median),
@@ -31,19 +41,19 @@ class Multivariate_Tree(object):
         return {n : self.peps[n][x] for n in self.names}
 
 
-X, y = make_blobs(n_samples = 3000,
-                  n_features = 3,
-                  centers = 30)
+# X, y = make_blobs(n_samples = 3000,
+#                   n_features = 3,
+#                   centers = 30)
+# X = pd.DataFrame(X)
+# X.columns = ['rt_aligned', 'dt', 'le_mass']
+# X['id'] = y
+# MT = Multivariate_Tree(X, 'id', ('rt_aligned', 'dt', 'le_mass'))
+# peptides = set(X.id)
 
-X = pd.DataFrame(X)
-X.columns = ['rt_aligned', 'dt', 'le_mass']
-X['id'] = y
+MT = Multivariate_Tree(D_signal_min_cnts, 'id', ('rt_aligned', 'dt', 'le_mass'))
+peptides = set(D_signal_min_cnts.id)
 
-MT = Multivariate_Tree(X, 'id', ('rt_aligned', 'dt', 'le_mass'))
-
-peptides = set(X.id)
 G = nx.Graph()
-
 while len(peptides) > 0:
     pep = peptides.pop()
     G.add_node(pep)
@@ -55,3 +65,4 @@ while len(peptides) > 0:
 
 with open('rta/data/graph.pickle', 'wb') as h:
     pickle.dump(G, h)
+print('Done.')
