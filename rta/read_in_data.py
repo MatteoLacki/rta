@@ -10,16 +10,11 @@ from sklearn.model_selection import KFold
 from sklearn.model_selection import GroupKFold
 from collections import namedtuple
 
-DT = pandas.read_csv('rta/data/pure_data.csv')
+DT = pandas.read_csv('rta/data/pure_data_ext.csv')
+# DT = pandas.read_csv('rta/data/pure_data.csv')
 
-
-LearnPair = namedtuple('LearnPair', 'training test')
-
-def x_validate(X, folds=10, id = ['id']):
-    gkf = GroupKFold(n_splits=folds)
-    for train, test in gkf.split(X, groups=X[id]):
-        yield LearnPair(X.iloc[train], X.iloc[test])
-
-# Y = list(x_validate(DT))
-# len(Y)
-# Y[0].test
+# LearnPair = namedtuple('LearnPair', 'training test')
+# def x_validate(X, folds=10, id = ['id']):
+#     gkf = GroupKFold(n_splits=folds)
+#     for train, test in gkf.split(X, groups=X[id]):
+#         yield LearnPair(X.iloc[train], X.iloc[test])

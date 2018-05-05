@@ -29,8 +29,7 @@ class SplineRegression(Model):
         return predictions
 
     def fitted(self):
-        spine_base_times_coefs = np.dot(self.X,
-                                        self.coef)
+        spine_base_times_coefs = np.dot(self.X, self.coef)
         return spine_base_times_coefs
 
     @property

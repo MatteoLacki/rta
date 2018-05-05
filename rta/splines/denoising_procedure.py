@@ -10,82 +10,193 @@ from rta.read_in_data import DT as D
 from rta.preprocessing import preprocess
 from rta.models.base_model import predict, fitted, coef, residuals
 from rta.models import spline
-from rta.models.plot import plot
+from rta.models.plot import plot, plot_curve
 
-
-# Patsy tests ##################################
-from patsy import demo_data
-from patsy import dmatrices, build_design_matrices, dmatrix
-
-data = demo_data('x', 'y', 'a')
-X = np.column_stack(([1] * len(data["y"]), data["x"]))
-dmatrices((data['y'], X), data=None)
-dmatrices('y ~ x', data=data)
-help(dmatrix)
-
-build_design_matrices((data['y'], X), data=None)
-
-################################################
-
-
+# better use natural splines
 formula = "rt_median_distance ~ bs(rt, df=40, degree=2, lower_bound=0, upper_bound=200, include_intercept=True) - 1"
-
 DF = preprocess(D, min_runs_no = 2)
+
+# pep_mass is the theoretical mass
+# print( "{:16f}".format(DF.loc[1, 'pep_mass']))
 
 # Removing the peptides that have their RT equal to the median.
 # TODO: think if these points cannot be directly modelled.
 # and what if we start moving them around?
-DF = DF[DF.rt_median_distance != 0]
-DF['signal'] = 'signal' # guardian
+# WARNING: skipping this for now.
+# DF = DF[DF.rt_median_distance != 0]
+
+# All points are 'signal' before denoising: guardians
+DF['signal'] = 'signal'
+
+# Division by run number
 runs = list(data for _, data in DF.groupby('run'))
 
-data = runs[0]
-data.loc[data.run == 1, 'pep_mass'] = 10
-
-T = pd.DataFrame(dict(a=['a','a','b'], x=[2.1, 1.0, 9.0]))
-T.loc[T.a == 'a', 'x'] = 10
-
-
-
-def denoise(runs, filter_noise=False):
-    """Remove noise in grouped data.
+# data = runs[0]
+def denoise_and_align(runs, formula, refit=True):
+    """Remove noise in grouped data and align the retention times.
 
     Updates the 'signal' column in the original data chunks.
     """
+    assert all('signal' in run for run in runs)
     for data in runs:
         # Fitting the spline
-        model = spline(data, formula)
+        signal_indices = data.signal == 'signal'
+        model = spline(data[signal_indices], formula)
+
         # Fitting the Gaussian mixture model
         res = residuals(model).reshape((-1,1))
         gmm = mixture.GaussianMixture(n_components=2,
                                       covariance_type='full').fit(res)
+
+        # The signal is the cluster with smaller variance
         signal_idx, noise_idx = np.argsort(gmm.covariances_.ravel())
         sn = {signal_idx: 'signal', noise_idx: 'noise'}
-        # appending to the data set
-        data.signal = [ sn[i] for i in gmm.predict(res)]
-        yield data
+
+        # Retaggin some signal tags to noise tags
+        data.loc[signal_indices, 'signal'] = [ sn[i] for i in gmm.predict(res)]
+
+        # Refitting the spline only to the signal peptides
+        if refit:
+            model = spline(data[data.signal == 'signal'], formula)
+
+        # Calculating the new retention times
+        data.loc[signal_indices, 'rt_aligned'] = data[data.signal == 'signal'].rt - fitted(model)
+
+        # Coup de grace!
+        yield model, data
+
 
 %%time
-runs1 = list(denoise(runs))
+models = list(denoise_and_align(runs, formula))
 
-Counter(s for run in runs1 for s in run.signal)
 
+d = models[0][1]
+m = models[0][0]
+
+%matplotlib
+plt.scatter(d.dt, d.dt_median_distance, marker = '.')
+plt.scatter(d.le_mass, d.le_mass_median_distance, marker = '.')
+
+
+
+# resemble all the data sets
+DF_2 = pd.concat(d for m, d in models)
+
+import pickle
+with open('rta/data/denoised_data.pickle3', 'wb') as h:
+    pickle.dump(DF_2, h)
+
+DF_2.to_csv('rta/data/denoised_data.csv', index = False)
 
 
 
 
 %matplotlib
-plot(models[1])
+plt.plot(d[d.signal == 'signal'].rt, d[d.signal == 'signal'].rt_aligned)
+plt.hist(residuals(m))
+
+
+%matplotlib
+plt.scatter(d.rt,
+            d.rt_median_distance,
+            c=[{'signal': 'red', 'noise': 'grey'}[s] for s in d.signal])
+plot_curve(m, c='blue', linewidth=4)
 
 
 
+# Trying out the clustering
+from sklearn import cluster
+from collections import Counter
 
-# %matplotlib
-# divmod(6,5)
-# for g, model in models.items():
-#     div, mod = divmod(g, 5)
-#     plt.subplot(2, div + 1, mod)
-#     plot(model)
-#
-# plt.subplot(2, 2, 2)
-# plot(models[2])
+
+def max_space(x):
+    """Calculate the maximal space between a set of 1D points.
+
+    If there is only one point, return 0.
+    """
+    if len(x) == 1:
+        return 0
+    return np.diff(np.sort(x)).max()
+
+
+# Calculate the spaces in different directions for signal points
+DF_2_signal = DF_2[DF_2.signal == 'signal']
+X = DF_2_signal.groupby('id')
+D_stats = pd.DataFrame(dict(runs_no_aligned         = X.rt.count(),
+                            rt_aligned_median       = X.rt.median(),
+                            rt_aligned_max_space    = X.rt_aligned.aggregate(max_space),
+                            pep_mass_max__space     = X.pep_mass.aggregate(max_space),
+                            le_mass_max_space       = X.le_mass.aggregate(max_space),
+                            dt_max_space            = X.dt.aggregate(max_space)
+                            ))
+# Maybe instead we could simply calculate the min-max span of feature values.
+
+
+# this goes towards setting one single value for each cluster.
+S = D_stats[D_stats.runs_no_aligned > 2]
+S = S.assign(mass2rt = S.le_mass_max_space / S.rt_aligned_max_space,
+             dt2rt   = S.dt_max_space      / S.rt_aligned_max_space)
+
+np.percentile(S.mass2rt, q=range(0,110,10))
+np.percentile(S.dt2rt, q=range(0,110,10))
+
+
+DF_2_signal = pd.merge(DF_2_signal,
+                       D_stats,
+                       left_on='id',
+                       right_index=True)
+
+%matplotlib
+plt.scatter(X.rt_aligned_median,
+            X.rt_aligned_max_space,
+            marker = '.')
+plt.axes().set_aspect('equal', 'datalim')
+
+diecintili = np.percentile(X.rt_aligned_max_space, q = range(0,110,10))
+
+median_space = diecintili[5]
+
+def brick_metric(x, y):
+    return np.linalg.norm(x-y)
+
+DBSCAN = cluster.DBSCAN(eps = median_space,
+                        min_samples = 5,
+                        metric = brick_metric)
+XX = DF_2_signal[['pep_mass', 'rt_aligned', 'dt']]
+
+
+DBSCAN = cluster.DBSCAN(eps = median_space,
+                        min_samples = 5)
+XX = DF_2_signal[['rt_aligned']]
+
+dbscan_res = DBSCAN.fit(XX)
+
+
+%matplotlib
+plt.scatter(DF_2_signal.rt,
+            DF_2_signal.rt_aligned_max_space,
+            marker = '.',
+            c = dbscan_res.labels_)
+w = Counter(list(dbscan_res.labels_))
+
+del w[-1]
+plt.hist(w.values())
+
+
+dbscan_res.labels_
+
+
+%matplotlib
+plt.scatter(DF_2_signal.rt,
+            DF_2_signal.rt_aligned_max_space,
+            marker = '.'
+            )
+plt.axes().set_aspect('equal', 'datalim')
+cluster.DBSCAN().
+
+
+%matplotlib
+plt.hist(DF_2_signal.rt_aligned_max_space)
+
+
+spline(data = )
