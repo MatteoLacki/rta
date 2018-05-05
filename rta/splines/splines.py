@@ -22,8 +22,11 @@ for g, data in DF.groupby('run'):
 
 
 formula = "rt_median_distance ~ bs(rt, df=40, degree=2, lower_bound=0, upper_bound=200, include_intercept=True) - 1"
+formula = "rt_median_distance ~ cr(rt, df=20)"
 # Huber regression
 hspline = huber_spline(data, formula)
+np.linalg.cond(hspline.X)
+
 
 %matplotlib
 plot(hspline)
