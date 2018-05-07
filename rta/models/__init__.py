@@ -3,6 +3,7 @@ from rta.models.huber import huber_spline
 from rta.models.RANSAC import RANSAC_spline
 from rta.models.theil_sen import theil_sen_spline
 from rta.models.quantile import quantile_spline
+from rta.models.base_model import predict, fitted, coef, residuals
 
 def spline(data, formula, model='Huber', **kwds):
     """Make spline regression.

@@ -11,14 +11,13 @@ from rta.preprocessing import preprocess
 from rta.models.base_model import predict, fitted, coef, residuals
 from rta.models import spline
 from rta.models.plot import plot, plot_curve
+from rta.splines.denoising import denoise_and_align
+from rta.misc import max_space
+
 
 # better use natural splines
 formula = "rt_median_distance ~ bs(rt, df=40, degree=2, lower_bound=0, upper_bound=200, include_intercept=True) - 1"
 DF = preprocess(D, min_runs_no = 2)
-
-# pep_mass is the theoretical mass
-# print( "{:16f}".format(DF.loc[1, 'pep_mass']))
-
 # Removing the peptides that have their RT equal to the median.
 # TODO: think if these points cannot be directly modelled.
 # and what if we start moving them around?
@@ -27,45 +26,8 @@ DF = preprocess(D, min_runs_no = 2)
 
 # All points are 'signal' before denoising: guardians
 DF['signal'] = 'signal'
-
 # Division by run number
 runs = list(data for _, data in DF.groupby('run'))
-
-# data = runs[0]
-def denoise_and_align(runs, formula, refit=True):
-    """Remove noise in grouped data and align the retention times.
-
-    Updates the 'signal' column in the original data chunks.
-    """
-    assert all('signal' in run for run in runs)
-    for data in runs:
-        # Fitting the spline
-        signal_indices = data.signal == 'signal'
-        model = spline(data[signal_indices], formula)
-
-        # Fitting the Gaussian mixture model
-        res = residuals(model).reshape((-1,1))
-        gmm = mixture.GaussianMixture(n_components=2,
-                                      covariance_type='full').fit(res)
-
-        # The signal is the cluster with smaller variance
-        signal_idx, noise_idx = np.argsort(gmm.covariances_.ravel())
-        sn = {signal_idx: 'signal', noise_idx: 'noise'}
-
-        # Retaggin some signal tags to noise tags
-        data.loc[signal_indices, 'signal'] = [ sn[i] for i in gmm.predict(res)]
-
-        # Refitting the spline only to the signal peptides
-        if refit:
-            model = spline(data[data.signal == 'signal'], formula)
-
-        # Calculating the new retention times
-        data.loc[signal_indices, 'rt_aligned'] = data[data.signal == 'signal'].rt - fitted(model)
-
-        # Coup de grace!
-        yield model, data
-
-
 %%time
 models = list(denoise_and_align(runs, formula))
 
@@ -85,17 +47,12 @@ DF_2 = pd.concat(d for m, d in models)
 import pickle
 with open('rta/data/denoised_data.pickle3', 'wb') as h:
     pickle.dump(DF_2, h)
-
 DF_2.to_csv('rta/data/denoised_data.csv', index = False)
-
-
 
 
 %matplotlib
 plt.plot(d[d.signal == 'signal'].rt, d[d.signal == 'signal'].rt_aligned)
 plt.hist(residuals(m))
-
-
 %matplotlib
 plt.scatter(d.rt,
             d.rt_median_distance,
@@ -103,20 +60,11 @@ plt.scatter(d.rt,
 plot_curve(m, c='blue', linewidth=4)
 
 
-
 # Trying out the clustering
 from sklearn import cluster
 from collections import Counter
 
 
-def max_space(x):
-    """Calculate the maximal space between a set of 1D points.
-
-    If there is only one point, return 0.
-    """
-    if len(x) == 1:
-        return 0
-    return np.diff(np.sort(x)).max()
 
 
 # Calculate the spaces in different directions for signal points
