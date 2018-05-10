@@ -6,7 +6,7 @@ from rta.misc import max_space
 from rta.preprocessing import preprocess
 from rta.read_in_data import DT as D
 from rta.splines.denoising import denoise_and_align
-
+from rta.kd_tree.kd_tree_nice import build_kdtree
 
 formula = "rt_median_distance ~ bs(rt, df=40, degree=2, lower_bound=0, upper_bound=200, include_intercept=True) - 1"
 DF = preprocess(D, min_runs_no = 2)
@@ -53,4 +53,8 @@ D_stats = pd.DataFrame(dict(runs_no_aligned         = X.rt.count(),
                             dt_aligned_min          = X.dt.min(),
                             dt_aligned_max          = X.dt.max()))
 
-D_stats
+DF_2_signal
+
+points = np.asarray(DF_2_signal[['le_mass', 'rt_aligned', 'dt']])
+tree = build_kdtree(points)
+tree['point']
