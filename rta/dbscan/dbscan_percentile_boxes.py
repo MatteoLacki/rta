@@ -1,3 +1,4 @@
+from collections import Counter
 import numpy as np
 import pandas as pd
 from sklearn import cluster
@@ -16,10 +17,14 @@ DF = preprocess(D, min_runs_no = 2)
 # WARNING: skipping this for now.
 # DF = DF[DF.rt_median_distance != 0]
 
+
+len(set(DF.id))
+
 # All points are 'signal' before denoising: guardians
 DF['signal'] = 'signal'
 # Division by run number
 runs = list(data for _, data in DF.groupby('run'))
+# assembling the models
 models = list(denoise_and_align(runs, formula))
 
 # resemble all the data sets
@@ -53,4 +58,39 @@ D_stats = pd.DataFrame(dict(runs_no_aligned         = X.rt.count(),
                             dt_aligned_min          = X.dt.min(),
                             dt_aligned_max          = X.dt.max()))
 
-D_stats
+# Getting the percentiles of selected features
+percentiles = {}
+for col in ['dt_max_space', 'le_mass_max_space', 'rt_aligned_max_space']:
+    percentiles[col] = np.percentile(D_stats[col],
+                                     np.arange(10,101,10))
+
+
+# box_distance = lambda x, y: np.max(np.abs(x-y)) # this is defined as Chebyshev
+DBSCAN = cluster.DBSCAN(eps = 1.0,
+                        min_samples = 3,
+                        metric = 'chebyshev')
+
+CLUST_ME = DF_2_signal[['le_mass', 'rt_aligned', 'dt']]
+
+
+def cluster(data, percentiles):
+
+
+CLUST_ME_NORMALIZED = data.copy()
+for col in ['le_mass', 'rt_aligned', 'dt']:
+    col_max_space = col + '_max_space'
+    CLUST_ME_NORMALIZED[col] = (CLUST_ME[col] - CLUST_ME[col].min()) / percentiles[col_max_space][5]
+
+
+dbscan_res = DBSCAN.fit(CLUST_ME_NORMALIZED)
+dbscan_stats = Counter(dbscan_res.labels_)
+
+
+# how many points to cluster?
+len(dbscan_res.labels_)
+
+# how many clusters
+len(set(dbscan_stats))
+
+# how many points per cluster in different clusters in general?
+len(set(dbscan_stats.values()))
