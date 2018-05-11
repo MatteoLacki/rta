@@ -74,12 +74,10 @@ CLUST_ME = DF_2_signal[['le_mass', 'rt_aligned', 'dt']]
 
 
 def cluster(data, percentiles):
-
-
-CLUST_ME_NORMALIZED = data.copy()
-for col in ['le_mass', 'rt_aligned', 'dt']:
-    col_max_space = col + '_max_space'
-    CLUST_ME_NORMALIZED[col] = (CLUST_ME[col] - CLUST_ME[col].min()) / percentiles[col_max_space][5]
+    CLUST_ME_NORMALIZED = data.copy()
+    for col in ['le_mass', 'rt_aligned', 'dt']:
+        col_max_space = col + '_max_space'
+        CLUST_ME_NORMALIZED[col] = (CLUST_ME[col] - CLUST_ME[col].min()) / percentiles[col_max_space][5]
 
 
 dbscan_res = DBSCAN.fit(CLUST_ME_NORMALIZED)
