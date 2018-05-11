@@ -95,7 +95,7 @@ def cluster_percentile_test(data,
     return dbscans
 
 
-dbscans[0].labels_
+Counter(dbscans[0].labels_)
 
 
 
