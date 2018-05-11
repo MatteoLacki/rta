@@ -1,4 +1,6 @@
 from collections import Counter
+from itertools import islice, product, repeat
+from multiprocessing import Pool
 import numpy as np
 import pandas as pd
 from sklearn import cluster
@@ -44,43 +46,59 @@ DF_2 = pd.concat(d for m, d in models)
 
 # Calculate the spaces in different directions for signal points
 DF_2_signal = DF_2[DF_2.signal == 'signal']
-X = DF_2_signal.groupby('id')
-D_stats = pd.DataFrame(dict(runs_no_aligned         = X.rt.count(),
-                            rt_aligned_median       = X.rt.median(),
-                            rt_aligned_min          = X.rt.min(),
-                            rt_aligned_max          = X.rt.max(),
-                            rt_aligned_max_space    = X.rt_aligned.aggregate(max_space),
-                            pep_mass_max__space     = X.pep_mass.aggregate(max_space),
-                            le_mass_max_space       = X.le_mass.aggregate(max_space),
-                            le_mass_aligned_min     = X.le_mass.min(),
-                            le_mass_aligned_max     = X.le_mass.max(),
-                            dt_max_space            = X.dt.aggregate(max_space),
-                            dt_aligned_min          = X.dt.min(),
-                            dt_aligned_max          = X.dt.max()))
-
-# Getting the percentiles of selected features
-percentiles = {}
-for col in ['dt_max_space', 'le_mass_max_space', 'rt_aligned_max_space']:
-    percentiles[col] = np.percentile(D_stats[col],
-                                     np.arange(10,101,10))
+data = DF_2_signal
 
 
-# box_distance = lambda x, y: np.max(np.abs(x-y)) # this is defined as Chebyshev
-DBSCAN = cluster.DBSCAN(eps = 1.0,
-                        min_samples = 3,
-                        metric = 'chebyshev')
+def cluster_percentile_test(data,
+                            percentiles = np.arange(10,101,10),
+                            colnames = ['le_mass', 'rt_aligned', 'dt'],
+                            workers_cnt = 15,
+                            DBSCAN_args**):
+    """Run the test of percentile clustering."""
+    X = data.groupby('id')
+    D_stats = pd.DataFrame(dict(runs_no_aligned         = X.rt.count(),
+                                rt_aligned_median       = X.rt.median(),
+                                rt_aligned_min          = X.rt.min(),
+                                rt_aligned_max          = X.rt.max(),
+                                rt_aligned_max_space    = X.rt_aligned.aggregate(max_space),
+                                pep_mass_max__space     = X.pep_mass.aggregate(max_space),
+                                le_mass_max_space       = X.le_mass.aggregate(max_space),
+                                le_mass_aligned_min     = X.le_mass.min(),
+                                le_mass_aligned_max     = X.le_mass.max(),
+                                dt_max_space            = X.dt.aggregate(max_space),
+                                dt_aligned_min          = X.dt.min(),
+                                dt_aligned_max          = X.dt.max()))
 
-CLUST_ME = DF_2_signal[['le_mass', 'rt_aligned', 'dt']]
+    # Getting the percentiles of selected features
+    percentiles = {col: np.percentile(D_stats[col + '_max_space'], percentiles)
+                   for col in colnames}
+
+    DBSCAN = cluster.DBSCAN(**DBSCAN_args)
+    CLUST_ME = DF_2_signal[colnames]
+
+    def __normalize_and_cluster(data_and_percentiles):
+        percentiles, data = data_and_percentiles
+        NORMALIZED = data.copy()
+        for col, percentile in zip(['le_mass', 'rt_aligned', 'dt'],
+                                   percentiles):
+            NORMALIZED[col] = (data[col] - data[col].min()) / percentile
+        dbscan_res = DBSCAN.fit(NORMALIZED)
+        return dbscan_res
+
+    data_and_percentiles = zip(product(*[percentiles[name] for name in colnames]),
+                               repeat(CLUST_ME))
+
+    with Pool(workers_cnt) as workers:
+        dbscans = workers.map(__normalize_and_cluster,
+                              data_and_percentiles)
+
+    return dbscans
 
 
-def cluster(data, percentiles):
-    CLUST_ME_NORMALIZED = data.copy()
-    for col in ['le_mass', 'rt_aligned', 'dt']:
-        col_max_space = col + '_max_space'
-        CLUST_ME_NORMALIZED[col] = (CLUST_ME[col] - CLUST_ME[col].min()) / percentiles[col_max_space][5]
+dbscans[0].labels_
 
 
-dbscan_res = DBSCAN.fit(CLUST_ME_NORMALIZED)
+
 dbscan_stats = Counter(dbscan_res.labels_)
 
 
@@ -92,3 +110,9 @@ len(set(dbscan_stats))
 
 # how many points per cluster in different clusters in general?
 len(set(dbscan_stats.values()))
+
+# run tests
+cluster_percentile_test(DF_2_signal,
+                        eps = 1.0,
+                        min_samples = 3,
+                        metric = 'chebyshev')

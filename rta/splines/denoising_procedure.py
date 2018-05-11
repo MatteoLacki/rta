@@ -60,6 +60,7 @@ plt.scatter(d.rt,
 plot_curve(m, c='blue', linewidth=4)
 
 
+
 # Trying out the clustering
 from sklearn import cluster
 from collections import Counter
