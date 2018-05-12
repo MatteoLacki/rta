@@ -1,6 +1,8 @@
+from collections import Counter
 import numpy as np
 import pandas as pd
 from sklearn import cluster
+import networkx as nx
 
 from rta.misc import max_space
 from rta.preprocessing import preprocess
@@ -24,7 +26,7 @@ models = list(denoise_and_align(runs, formula))
 
 # resemble all the data sets
 DF_2 = pd.concat(d for m, d in models)
-
+DF_2.head()
 
 # The noise seems to be confirmed by the analysis of the drift times.
 [{g: np.median(np.abs(x.dt_median_distance))
@@ -52,9 +54,26 @@ D_stats = pd.DataFrame(dict(runs_no_aligned         = X.rt.count(),
                             dt_max_space            = X.dt.aggregate(max_space),
                             dt_aligned_min          = X.dt.min(),
                             dt_aligned_max          = X.dt.max()))
+points = [((r.rt_aligned, r['dt'], r.le_mass), r.id) for _, r in DF_2_signal.iterrows()]
+tree = kdtree(points)
+# # Testing the search.
+# box = np.array([[30,    40],
+#                 [25,    27],
+#                 [600, 1000]])
+# proteins_in_box = tree.box_search(box)
 
-DF_2_signal
 
-points = np.asarray(DF_2_signal[['le_mass', 'rt_aligned', 'dt']])
-tree = build_kdtree(points)
-tree['point']
+# Making the neighbourhood graph.
+G = nx.Graph()
+for idx1, r in D_stats.iterrows():
+    box = np.array([[r.rt_aligned_min,      r.rt_aligned_max],
+                    [r.le_mass_aligned_min, r.le_mass_aligned_max],
+                    [r.dt_aligned_min,      r.dt_aligned_max]])
+    G.add_node(idx1)
+    for idx2 in tree.box_search(box):
+        G.add_node(idx2)
+        G.add_edge(idx1, idx2)
+
+# %^&!#@$@# SOO FUCKING FAST!!!!
+cc_len = [len(cc) for cc in nx.connected_components(G)]
+Counter(cc_len)
