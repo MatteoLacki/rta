@@ -56,7 +56,8 @@ def normalize_and_cluster(data_and_percentiles):
     dbscan_res = DBSCAN.fit(NORMALIZED)
     return dbscan_res
 
-
+# data = DF_2_signal
+# DBSCAN_args = {}
 def cluster_percentile_test(data,
                             percentiles     = np.arange(10,101,10),
                             colnames        = ['le_mass', 'rt_aligned', 'dt'],
@@ -95,28 +96,12 @@ def cluster_percentile_test(data,
         dbscans = workers.map(normalize_and_cluster,
                               data_and_percentiles)
 
-    return dbscans
+    return zip(product(*[percentiles[name] for name in colnames]),
+               dbscans)
 
-dbscans = cluster_percentile_test(DF_2_signal)
+dbscans = list(cluster_percentile_test(DF_2_signal))
 
+import pickle
 
-
-# Deriving the criterion for the
-dbscan = dbscans[100]
-DF_2_signal = DF_2_signal.assign(clustering_label = dbscan.labels_)
-
-X = DF_2_signal.groupby('id')
-X.clustering_label.transform(lambda x: np.sum(x==-1))
-X.clustering_label.apply(lambda x: np.sum(x==-1))
-
-
-clustering_stats = pd.DataFrame(dict(noise_cnt = X.))
-
-
-
-DF_2_signal.noise_points
-
-(DF_2_signal.clustering_label == -1).group_by('idx')
-.sum()
-
-X.clustering_label
+with open('rta/data/dbscans.pickle', 'wb') as h:
+    pickle.dump(dbscans, h)
