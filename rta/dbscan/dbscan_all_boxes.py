@@ -66,18 +66,44 @@ tree = kdtree(points)
 #                 [600, 1000]])
 # proteins_in_box = tree.box_search(box)
 
+def get_box_size(box):
+	size = 1.0
+	for s, e in box:
+		size *= (e-s)
+	return size
 
 # Making the neighbourhood graph.
 G = nx.Graph()
+tenants_no = []
+boxes_sizes = []
+
 for idx1, r in D_stats.iterrows():
     box = np.array([[r.rt_aligned_min,      r.rt_aligned_max],
                     [r.le_mass_aligned_min, r.le_mass_aligned_max],
                     [r.dt_aligned_min,      r.dt_aligned_max]])
+    box_size = get_box_size(box)
+    boxes_sizes.append(box_size)
     G.add_node(idx1)
-    for idx2 in tree.box_search(box):
+    box_tenants = tree.box_search(box)
+    tenants_no.append(len(box_tenants))
+    for idx2 in box_tenants:
         G.add_node(idx2)
         G.add_edge(idx1, idx2)
 
+# Only 2845 empty boxes
+Counter(boxes_sizes)[0.0]
+Counter(tenants_no)
+
 # %^&!#@$@# SOO FUCKING FAST!!!!
 cc_len = [len(cc) for cc in nx.connected_components(G)]
-Counter(cc_len)
+Counter(cc_len) # this means, that all the boxes are separate
+
+
+centers = np.apply_along_axis(np.mean, axis=1, arr=box)
+np.subtract(box, centers)
+box - centers
+
+
+def enlarge(box, epsilon=):
+	centers = 
+	box
