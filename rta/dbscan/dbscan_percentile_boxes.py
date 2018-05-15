@@ -99,9 +99,76 @@ def cluster_percentile_test(data,
     return zip(product(*[percentiles[name] for name in colnames]),
                dbscans)
 
+
 dbscans = list(cluster_percentile_test(DF_2_signal))
 
-import pickle
+## This roughly corresponds to the Purity index
+# def grouped_ness(d):
+#     if any(d.signal):
+#         x = Counter(d.cluster[d.signal])
+#         return x[max(x)] / len(d.signal)
+#     else:
+#         return 0
+# def get_distribution_of_groupedness_index(x):
+#     labels, ids = x
+#     small_df = pd.DataFrame({'id': ids, 'cluster': labels})
+#     small_df = small_df.assign(signal = small_df.cluster != -1)
+#     grouped_ness_idx = [(id, grouped_ness(d)) for id, d in small_df.groupby('id')]
+#     return np.histogram(list(b for a, b in grouped_ness_idx),
+#                         bins = np.arange(0,1.1,.1))[0]
+#
+#
+#
+# get_distribution_of_groupedness_index((dbscans[0][1].labels_, DF_2_signal.id))
+# # how can this take sooo much time????
+# workers_cnt = 15
+# with Pool(workers_cnt) as workers:
+#     groupedness = workers.map(get_distribution_of_groupedness_index,
+#                               zip((dbscan.labels_ for p, dbscan in dbscans),
+#                                   repeat(DF_2_signal.id)))
+# groupedness_arr = np.asarray(groupedness)
+# percentiles = np.asarray([p for p, d in dbscans])
+#
+# groupedness_df = pd.DataFrame(np.concatenate((percentiles, groupedness_arr), axis=1))
+# groupedness_df.columns = ['le_mass', 'rt_aligned', 'dt'] + list(np.arange(0, 1, .1))
+# groupedness_df.to_csv('rta/data/groupedness.csv', index=False)
 
-with open('rta/data/dbscans.pickle', 'wb') as h:
-    pickle.dump(dbscans, h)
+# getting some proper measures of clustering efficiency:
+# the completeness_score and the homogeneity_scores!!!
+
+
+
+
+from sklearn.metrics import completeness_score, homogeneity_score
+
+## anything iterable is accepted
+# completeness_score(labels_true = ['1', 'b', 'b', 2],
+#                    labels_pred = [1, 2, 2, 3] )
+
+
+dbscan_labels = dbscans[0][1].labels_
+completeness_score(labels_true = DF_2_signal.id,
+                   labels_pred = dbscan_labels )
+
+homogeneity_score(labels_true = DF_2_signal.id,
+                   labels_pred = dbscan_labels )
+
+prot_ids = DF_2_signal.id
+
+# slow version: one process
+scores = pd.DataFrame([p + (completeness_score(prot_ids, d.labels_),
+                            homogeneity_score(prot_ids,  d.labels_))
+                       for p, d in dbscans])
+
+# multiprocess version
+workers_cnt = 15
+
+def get_scores(arg):
+    p, d, real_labels = arg
+    return p + (completeness_score(real_labels, d.labels_,
+                homogeneity_score(real_labels,  d.labels_))
+
+with Pool(workers_cnt) as workers:
+    scores_multi = workers.map(get_scores,
+                               ((p,d,r) for (p,d), r in zip(dbscans,
+                                                            repeat(prot_ids))))
