@@ -102,6 +102,16 @@ def cluster_percentile_test(data,
 
 dbscans = list(cluster_percentile_test(DF_2_signal))
 
+def relabel_noise(labels):
+    label = -1
+    for i in range(len(labels)):
+        if labels[i] == -1:
+            labels[i] = label
+            label -= 1
+    return labels
+
+params_and_labels = [(p, relabel_noise(d.labels_)) for p, d in dbscans]
+
 ## This roughly corresponds to the Purity index
 # def grouped_ness(d):
 #     if any(d.signal):
@@ -137,8 +147,6 @@ dbscans = list(cluster_percentile_test(DF_2_signal))
 # the completeness_score and the homogeneity_scores!!!
 
 
-
-
 from sklearn.metrics import completeness_score, homogeneity_score
 
 ## anything iterable is accepted
@@ -153,22 +161,67 @@ completeness_score(labels_true = DF_2_signal.id,
 homogeneity_score(labels_true = DF_2_signal.id,
                    labels_pred = dbscan_labels )
 
-prot_ids = DF_2_signal.id
+homogeneity_score(labels_true = [-1, -2, -3, -4],
+                  labels_pred = [1 , 1, 1, 1])
+
+
+def simplify_indices(prot_ids):
+    classes = [0] * len(prot_ids)
+    used_names = set()
+    label = 0
+    for i, p in enumerate(prot_ids):
+        if p not in used_names:
+            used_names.add(p)
+            label += 1
+        classes[i] = label
+    return classes
+
+classes = simplify_indices(DF_2_signal.id)
 
 # slow version: one process
-scores = pd.DataFrame([p + (completeness_score(prot_ids, d.labels_),
-                            homogeneity_score(prot_ids,  d.labels_))
-                       for p, d in dbscans])
+# scores = pd.DataFrame([p + (completeness_score(prot_ids, d.labels_),
+#                             homogeneity_score(prot_ids,  d.labels_))
+#                        for p, d in dbscans])
 
 # multiprocess version
 workers_cnt = 15
 
 def get_scores(arg):
-    p, d, real_labels = arg
-    return p + (completeness_score(real_labels, d.labels_,
-                homogeneity_score(real_labels,  d.labels_))
+    p, l, real_l = arg
+    return p + (completeness_score(real_l, l), homogeneity_score(real_l, l))
 
 with Pool(workers_cnt) as workers:
-    scores_multi = workers.map(get_scores,
-                               ((p,d,r) for (p,d), r in zip(dbscans,
-                                                            repeat(prot_ids))))
+    scores = workers.map(get_scores,
+                       ((p,d,r) for (p,d), r in zip(params_and_labels,
+                                                    repeat(classes))))
+scores = pd.DataFrame(scores)
+
+
+scores.columns = ('le_mass', 'rt_aligned', 'dt', 'completeness', 'homogeneity')
+scores.head()
+
+scores.to_csv('rta/data/completeness_homogeneity.csv', index=False)
+
+
+# Investigating alternative definitions of errors:
+p, clusters = params_and_labels[0]
+clusterings = [l for d, l in params_and_labels]
+
+# contingency_table = Counter(zip(l, classes))
+
+
+
+def Stefan_metrics(classes_clusters):
+    classes, clusters = classes_clusters
+    X = pd.DataFrame(dict(classes = classes, clusters = clusters))
+    c_Stefan = X.groupby('classes')['clusters'].apply(lambda x: len(np.unique(x)))
+    c_Stefan = sum(c_Stefan == 1) / len(h_Stefan)
+    h_Stefan = X.groupby('clusters')['classes'].apply(lambda x: len(np.unique(x)))
+    h_Stefan = sum(h_Stefan == 1) / len(h_Stefan)
+    return c_Stefan, h_Stefan
+
+workers_cnt = 15
+
+with Pool(workers_cnt) as workers:
+    scores = workers.map(Stefan_metrics,
+                         zip(repeat(classes), clusterings))
