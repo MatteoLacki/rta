@@ -229,9 +229,18 @@ with Pool(workers_cnt) as workers:
 
 
 ## Full Ron Swanson
+classes_clusters = simple_classes, clusters
+
 def Swanson_metrics(classes_clusters):
     """This is a unidimensional metric: just find all crosses"""
-    classes, clusters = classes_clusters
-    X = pd.DataFrame(dict(classes = classes, clusters = clusters))
-    Swanson = X.groupby('classes').filter(lambda x: x.shape[0] == 1)
-    return len(Swanson), sum(Swanson['clusters'])
+    X = Counter(zip(*classes_clusters))
+    classes_cnt, clusters_cnt = [len(np.unique(x)) for x in classes_clusters]
+    X = pd.DataFrame(((cs, cr, n) for (cs, cr), n in X.items()))
+    X.columns = ('class', 'cluster', 'cnt')
+    N = X.cnt.sum()
+    classes_clusters_pairs_cnt = len(X)
+    X = X.groupby('class').filter(lambda x: x.shape[0]==1)
+    X = X.groupby('cluster').filter(lambda x: x.shape[0]==1)
+    swanson = len(X) / classes_clusters_pairs_cnt
+    swanson_weighted = sum(X.cnt) / N
+    return swanson, swanson_weighted
