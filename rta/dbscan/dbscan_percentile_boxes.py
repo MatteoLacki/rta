@@ -200,7 +200,8 @@ classes = np.array(DF_2_signal.id.copy())
 
 ## The Stefan's indices.
 
-p, clusters = params_and_labels[950]
+p, clusters = params_and_labels[999]
+
 clusterings = [l for d, l in params_and_labels]
 
 
@@ -226,9 +227,22 @@ with Pool(workers_cnt) as workers:
     scores = workers.map(Stefan_metrics,
                          zip(repeat(classes), clusterings))
 
+# TODO:  write them down to csv
+scores = pd.DataFrame(scores)
+scores.columns = ('c_Stefan', 'h_Stefan', 'c_weighted', 'h_weighted')
 
+params = pd.DataFrame([p for p, l in params_and_labels])
+params.columns = ('le_mass', 'rt_aligned', 'dt')
+scores = pd.concat([params, scores], axis=1)
+scores.to_csv('rta/data/completeness_homogeneity_stefan.csv', index=False)
+
+
+# params.le_mass.max()
+# params.rt_aligned.max()
+# params.dt.max()
 
 ## Full Ron Swanson
+[l for d, l in params_and_labels]
 classes_clusters = simple_classes, clusters
 
 def Swanson_metrics(classes_clusters):
@@ -244,3 +258,22 @@ def Swanson_metrics(classes_clusters):
     swanson = len(X) / classes_clusters_pairs_cnt
     swanson_weighted = sum(X.cnt) / N
     return swanson, swanson_weighted
+
+
+workers_cnt = 15
+with Pool(workers_cnt) as workers:
+    swansons = workers.map(Swanson_metrics,
+                           zip(repeat(simple_classes), clusterings))
+
+# TODO:  write them down to csv
+swansons = pd.DataFrame(swansons)
+swansons.columns = ('swanson', 'swanson_weighted')
+
+swansons = pd.concat([params, swansons], axis=1)
+swansons.to_csv('rta/data/swansons_clustering_metrics.csv', index=False)
+
+# validation
+p, clusters = params_and_labels[998]
+
+params_and_labels[998][0]
+params_and_labels[999][0]
