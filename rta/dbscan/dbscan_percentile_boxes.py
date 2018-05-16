@@ -175,7 +175,8 @@ def simplify_indices(prot_ids):
         classes[i] = used_names[p]
     return classes
 
-classes = simplify_indices(DF_2_signal.id)
+simple_classes = simplify_indices(DF_2_signal.id)
+classes = np.array(DF_2_signal.id.copy())
 
 # multiprocess version
 # workers_cnt = 15
@@ -198,27 +199,26 @@ classes = simplify_indices(DF_2_signal.id)
 
 
 ## The Stefan's indices.
+
 p, clusters = params_and_labels[950]
 clusterings = [l for d, l in params_and_labels]
 
-sorted(list(Counter(Counter(classes).values())))
-classes_clusters = classes, clusters
+
+classes_clusters = simple_classes, clusters
 
 def Stefan_metrics(classes_clusters):
     X = Counter(zip(*classes_clusters))
-    N = len(X)
     classes_cnt, clusters_cnt = [len(np.unique(x)) for x in classes_clusters]
     X = pd.DataFrame(((cs, cr, n) for (cs, cr), n in X.items()))
     X.columns = ('class', 'cluster', 'cnt')
-    X.loc[X.cnt > 1,]
+    N = X.cnt.sum()
     C = X.groupby('class').filter(lambda x: x.shape[0]==1)
     c_Stefan = len(C) / classes_cnt
     c_weighted = sum(C.cnt) / N
-    C.head()
-    c_Stefan = sum(c_Stefan == 1) / len(c_Stefan)
-    h_Stefan = X.groupby('cluster')['class'].apply(lambda x: len(np.unique(x)))
-    h_Stefan = sum(h_Stefan == 1) / len(h_Stefan)
-    return c_Stefan, h_Stefan
+    H = X.groupby('cluster').filter(lambda x: x.shape[0]==1)
+    h_Stefan = len(H) / clusters_cnt
+    h_weighted = sum(H.cnt) / N
+    return c_Stefan, h_Stefan, c_weighted, h_weighted
 
 workers_cnt = 15
 
