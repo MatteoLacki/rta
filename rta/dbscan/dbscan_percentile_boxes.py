@@ -156,67 +156,67 @@ from sklearn.metrics import completeness_score, homogeneity_score
 
 dbscan_labels = dbscans[0][1].labels_
 completeness_score(labels_true = DF_2_signal.id,
-                   labels_pred = dbscan_labels )
+                   labels_pred = dbscan_labels)
 
-homogeneity_score(labels_true = DF_2_signal.id,
-                   labels_pred = dbscan_labels )
-
-homogeneity_score(labels_true = [-1, -2, -3, -4],
-                  labels_pred = [1 , 1, 1, 1])
-
+# homogeneity_score(labels_true = DF_2_signal.id,
+#                    labels_pred = dbscan_labels )
+#
+# homogeneity_score(labels_true = [-1, -2, -3, -4],
+                  # labels_pred = [1 , 1, 1, 1])
 
 def simplify_indices(prot_ids):
     classes = [0] * len(prot_ids)
-    used_names = set()
-    label = 0
+    used_names = {}
+    free_label = 0
     for i, p in enumerate(prot_ids):
         if p not in used_names:
-            used_names.add(p)
-            label += 1
-        classes[i] = label
+            used_names[p] = free_label
+            free_label += 1
+        classes[i] = used_names[p]
     return classes
 
 classes = simplify_indices(DF_2_signal.id)
 
-# slow version: one process
-# scores = pd.DataFrame([p + (completeness_score(prot_ids, d.labels_),
-#                             homogeneity_score(prot_ids,  d.labels_))
-#                        for p, d in dbscans])
-
 # multiprocess version
-workers_cnt = 15
+# workers_cnt = 15
+#
+# def get_scores(arg):
+#     p, l, real_l = arg
+#     return p + (completeness_score(real_l, l), homogeneity_score(real_l, l))
+#
+# with Pool(workers_cnt) as workers:
+#     scores = workers.map(get_scores,
+#                        ((p,d,r) for (p,d), r in zip(params_and_labels,
+#                                                     repeat(classes))))
+# scores = pd.DataFrame(scores)
+#
+#
+# scores.columns = ('le_mass', 'rt_aligned', 'dt', 'completeness', 'homogeneity')
+# scores.head()
+#
+# scores.to_csv('rta/data/completeness_homogeneity.csv', index=False)
 
-def get_scores(arg):
-    p, l, real_l = arg
-    return p + (completeness_score(real_l, l), homogeneity_score(real_l, l))
 
-with Pool(workers_cnt) as workers:
-    scores = workers.map(get_scores,
-                       ((p,d,r) for (p,d), r in zip(params_and_labels,
-                                                    repeat(classes))))
-scores = pd.DataFrame(scores)
-
-
-scores.columns = ('le_mass', 'rt_aligned', 'dt', 'completeness', 'homogeneity')
-scores.head()
-
-scores.to_csv('rta/data/completeness_homogeneity.csv', index=False)
-
-
-# Investigating alternative definitions of errors:
-p, clusters = params_and_labels[0]
+## The Stefan's indices.
+p, clusters = params_and_labels[950]
 clusterings = [l for d, l in params_and_labels]
 
-# contingency_table = Counter(zip(l, classes))
-
-
+sorted(list(Counter(Counter(classes).values())))
+classes_clusters = classes, clusters
 
 def Stefan_metrics(classes_clusters):
-    classes, clusters = classes_clusters
-    X = pd.DataFrame(dict(classes = classes, clusters = clusters))
-    c_Stefan = X.groupby('classes')['clusters'].apply(lambda x: len(np.unique(x)))
-    c_Stefan = sum(c_Stefan == 1) / len(h_Stefan)
-    h_Stefan = X.groupby('clusters')['classes'].apply(lambda x: len(np.unique(x)))
+    X = Counter(zip(*classes_clusters))
+    N = len(X)
+    classes_cnt, clusters_cnt = [len(np.unique(x)) for x in classes_clusters]
+    X = pd.DataFrame(((cs, cr, n) for (cs, cr), n in X.items()))
+    X.columns = ('class', 'cluster', 'cnt')
+    X.loc[X.cnt > 1,]
+    C = X.groupby('class').filter(lambda x: x.shape[0]==1)
+    c_Stefan = len(C) / classes_cnt
+    c_weighted = sum(C.cnt) / N
+    C.head()
+    c_Stefan = sum(c_Stefan == 1) / len(c_Stefan)
+    h_Stefan = X.groupby('cluster')['class'].apply(lambda x: len(np.unique(x)))
     h_Stefan = sum(h_Stefan == 1) / len(h_Stefan)
     return c_Stefan, h_Stefan
 
@@ -225,3 +225,13 @@ workers_cnt = 15
 with Pool(workers_cnt) as workers:
     scores = workers.map(Stefan_metrics,
                          zip(repeat(classes), clusterings))
+
+
+
+## Full Ron Swanson
+def Swanson_metrics(classes_clusters):
+    """This is a unidimensional metric: just find all crosses"""
+    classes, clusters = classes_clusters
+    X = pd.DataFrame(dict(classes = classes, clusters = clusters))
+    Swanson = X.groupby('classes').filter(lambda x: x.shape[0] == 1)
+    return len(Swanson), sum(Swanson['clusters'])
