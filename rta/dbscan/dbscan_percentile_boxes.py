@@ -8,12 +8,13 @@ import networkx as nx
 
 from rta.misc import max_space
 from rta.preprocessing import preprocess
-from rta.read_in_data import DT as D
+from rta.read_in_data import big_data
 from rta.splines.denoising import denoise_and_align
 
+annotated_DT, unlabelled_DT = big_data()
+DF, Dstats = preprocess(, min_runs_no = 2)
 
 formula = "rt_median_distance ~ bs(rt, df=40, degree=2, lower_bound=0, upper_bound=200, include_intercept=True) - 1"
-DF = preprocess(D, min_runs_no = 2)
 # Removing the peptides that have their RT equal to the median.
 # TODO: think if these points cannot be directly modelled.
 # and what if we start moving them around?

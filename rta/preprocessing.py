@@ -15,4 +15,4 @@ def preprocess(D, min_runs_no = 5):
     D = D.assign(le_mass_median_distance = D.le_mass - D.median_le_mass)
     D = D.assign(pep_mass_median_distance = D.pep_mass - D.median_pep_mass)
     D = D.assign(dt_median_distance = D.dt - D.median_dt)
-    return D
+    return D, D_stats

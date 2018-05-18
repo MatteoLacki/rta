@@ -10,8 +10,13 @@ from sklearn.model_selection import KFold
 from sklearn.model_selection import GroupKFold
 from collections import namedtuple
 
-DT = pandas.read_csv('rta/data/pure_data_ext.csv')
+# DT = pandas.read_csv('rta/data/pure_data_ext.csv')
 # DT = pandas.read_csv('rta/data/pure_data.csv')
+
+def big_data():
+    annotated_DT = pandas.read_csv('rta/data/annotated_data.csv')
+    unlabelled_DT = pandas.read_csv('rta/data/unannotated_data.csv')
+    return annotated_DT, unlabelled_DT
 
 # LearnPair = namedtuple('LearnPair', 'training test')
 # def x_validate(X, folds=10, id = ['id']):
