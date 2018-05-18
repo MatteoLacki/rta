@@ -4,37 +4,64 @@ from sklearn import mixture
 from rta.models import spline
 from rta.models import predict, fitted, coef, residuals
 
-def denoise_and_align(runs, formula,
-                      model='Huber',
-                      refit=True):
-    """Remove noise in grouped data and align the retention times.
+
+def denoise_and_align_run(annotated,
+                          unlabelled,
+                          formula,
+                          model = 'Huber',
+                          refit = True):
+    """Remove noise in grouped data and align the retention times in a run.
 
     Updates the 'signal' column in the original data chunks.
     """
-    assert all('signal' in run for run in runs)
-    for data in runs:
-        # Fitting the spline
-        signal_indices = data.signal == 'signal'
-        model = spline(data[signal_indices], formula)
+    # Fitting the spline
+    model = spline(annotated, formula)
 
-        # Fitting the Gaussian mixture model
-        res = residuals(model).reshape((-1,1))
-        gmm = mixture.GaussianMixture(n_components=2,
-                                      covariance_type='full').fit(res)
+    # Fitting the Gaussian mixture model
+    res = residuals(model).reshape((-1,1))
+    gmm = mixture.GaussianMixture(n_components=2,
+                                  covariance_type='full').fit(res)
 
-        # The signal is the cluster with smaller variance
-        signal_idx, noise_idx = np.argsort(gmm.covariances_.ravel())
-        sn = {signal_idx: 'signal', noise_idx: 'noise'}
+    # The signal is the cluster with smaller variance
+    signal_idx, noise_idx = np.argsort(gmm.covariances_.ravel())
+    signal_indices = np.array([sn[i]== signal_idx for i in gmm.predict(res)])
 
-        # Retaggin some signal tags to noise tags
-        data.loc[signal_indices, 'signal'] = [ sn[i] for i in gmm.predict(res)]
+    # Refitting the spline only to the signal peptides
+    if refit:
+        model = spline(annotated[signal_indices], formula)
 
-        # Refitting the spline only to the signal peptides
-        if refit:
-            model = spline(data[data.signal == 'signal'], formula)
+    # Calculating the new retention times
+    annotated.loc[signal_indices, 'rt_aligned'] = \
+        annotated[annotated.signal == 'signal'].rt - fitted(model)
 
-        # Calculating the new retention times
-        data.loc[signal_indices, 'rt_aligned'] = data[data.signal == 'signal'].rt - fitted(model)
+    # Aligning the unlabelled data
+    # unlabelled.loc[:,'rt_aligned'] =
+    unlabelled['rt_aligned'] = unlabelled.rt - predict(model, rt = unlabelled.rt)
 
-        # Coup de grace!
-        yield model, data
+    # Coup de grace!
+    return annotated, unlabelled, model
+
+
+def denoise_and_align(annotated_DT,
+                      unlabelled_DT,
+                      formula,
+                      model         ='Huber',
+                      refit         = True):
+    """Remove noise in grouped data and align the retention times in a run.
+
+    Updates the 'signal' column in the original data chunks.
+    """
+    # All points are 'signal' before denoising: guardians
+    annotated_DT['signal'] = 'signal'
+    for run, annotated in annotated_DT.groupby('run'):
+        unlabelled = unlabelled_DT[unlabelled_DT.run == run]
+        yield   annotated,
+                unlabelled,
+                formula,
+                model,
+                refit
+        # yield denoise_and_align_run(annotated,
+        #                             unlabelled,
+        #                             formula,
+        #                             model,
+        #                             refit)
