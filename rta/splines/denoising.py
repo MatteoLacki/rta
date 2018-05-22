@@ -1,3 +1,4 @@
+from multiprocessing import Pool
 import numpy as np
 from sklearn import mixture
 
@@ -5,63 +6,67 @@ from rta.models import spline
 from rta.models import predict, fitted, coef, residuals
 
 
-def denoise_and_align_run(annotated,
-                          unlabelled,
+def denoise_and_align_run(annotated_run,
+                          unlabelled_run,
                           formula,
                           model = 'Huber',
-                          refit = True):
-    """Remove noise in grouped data and align the retention times in a run.
+                          refit = True,
+                          return_model = False):
+    """Remove noise and align the retention times in a run."""
+    a, u = annotated_run, unlabelled_run
 
-    Updates the 'signal' column in the original data chunks.
-    """
-    # Fitting the spline
-    model = spline(annotated, formula)
+    # fit the spline
+    model = spline(a, formula)
 
-    # Fitting the Gaussian mixture model
+    # fit the Gaussian mixture
     res = residuals(model).reshape((-1,1))
-    gmm = mixture.GaussianMixture(n_components=2,
+    gmm = mixture.GaussianMixture(n_components=2, # only 2: noise & signal
                                   covariance_type='full').fit(res)
 
-    # The signal is the cluster with smaller variance
+    # signal has smaller variance
     signal_idx, noise_idx = np.argsort(gmm.covariances_.ravel())
-    signal_indices = np.array([sn[i]== signal_idx for i in gmm.predict(res)])
+    signal = np.array([signal_idx == i for i in gmm.predict(res)])
 
-    # Refitting the spline only to the signal peptides
+    # refit the spline on the "signal" peptides
     if refit:
-        model = spline(annotated[signal_indices], formula)
+        model = spline(a[signal], formula)
 
-    # Calculating the new retention times
-    annotated.loc[signal_indices, 'rt_aligned'] = \
-        annotated[annotated.signal == 'signal'].rt - fitted(model)
+    # calculate new retention times
+    o1 = pd.concat((a.reset_index(drop=True),
+                    DF({'rt_aligned': np.array(a.rt) - predict(model, rt=a.rt),
+                        'status': list(map(lambda x: 'signal' if x else 'noise',
+                                           signal))})),
+                   axis=1)
 
-    # Aligning the unlabelled data
-    # unlabelled.loc[:,'rt_aligned'] =
-    unlabelled['rt_aligned'] = unlabelled.rt - predict(model, rt = unlabelled.rt)
+    o2 = pd.concat((u.reset_index(drop=True),
+                    DF({'rt_aligned': np.array(u.rt) - predict(model, rt=u.rt),
+                        'status': 'unlabelled'})),
+                   axis=1)
 
-    # Coup de grace!
-    return annotated, unlabelled, model
+    o = pd.concat((o1, o2))
+
+    if return_model:
+        return o, model
+    else:
+        return o
 
 
-def denoise_and_align(annotated_DT,
-                      unlabelled_DT,
+
+
+def denoise_and_align(annotated, unlabelled,
                       formula,
-                      model         ='Huber',
-                      refit         = True):
-    """Remove noise in grouped data and align the retention times in a run.
+                      model='Huber',
+                      refit=True,
+                      workers_cnt=16):
+    """Denoise and align all runs."""
 
-    Updates the 'signal' column in the original data chunks.
-    """
-    # All points are 'signal' before denoising: guardians
-    annotated_DT['signal'] = 'signal'
-    for run, annotated in annotated_DT.groupby('run'):
-        unlabelled = unlabelled_DT[unlabelled_DT.run == run]
-        yield   annotated,
-                unlabelled,
-                formula,
-                model,
-                refit
-        # yield denoise_and_align_run(annotated,
-        #                             unlabelled,
-        #                             formula,
-        #                             model,
-        #                             refit)
+    def iter_groups():
+        for run_no, a in annotated.groupby('run'):
+            u = unlabelled[unlabelled.run == run_no]
+            yield a, u, formula, model, refit
+
+    with Pool(workers_cnt) as workers:
+        data_frames = workers.starmap(denoise_and_align_run,
+                                      iter_groups())
+
+    return pd.concat(data_frames, axis=0)

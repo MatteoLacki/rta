@@ -15,7 +15,7 @@ import networkx as nx
 from rta.misc import max_space
 from rta.preprocessing import preprocess
 from rta.read_in_data import big_data
-# from rta.splines.denoising import denoise_and_align
+from rta.splines.denoising import denoise_and_align
 
 annotated, unlabelled = big_data()
 annotated, annotated_stats = preprocess(annotated,
@@ -27,118 +27,10 @@ formula = "rt_median_distance ~ bs(rt, df=40, degree=2, lower_bound=0, upper_bou
 # TODO: can these points be directly modelled?
 # DF = DF[DF.rt_median_distance != 0]
 
-def denoise_and_align(annotated,
-                      unlabelled,
-                      formula,
-                      model ='Huber',
-                      refit = True):
-    """Remove noise in grouped data and align the retention times in a run.
-
-    Updates the 'signal' column in the original data chunks.
-    """
-    for run_no, a in annotated.groupby('run'):
-        u = unlabelled[unlabelled.run == run_no]
-        yield a, u
-
-results = list(denoise_and_align(annotated,
-                                 unlabelled,
-                                 formula,
-                                 model ='Huber',
-                                 refit = True))
-
-import numpy as np
-from sklearn import mixture
-
-from rta.models import spline
-from rta.models import predict, fitted, coef, residuals
-
-model = 'Huber'
-refit = True
-annotated_run, unlabelled_run = results[0]
-annotated_run.columns
+res = denoise_and_align(annotated, unlabelled, formula)
 
 
-def denoise_and_align_run(annotated_run,
-                          unlabelled_run,
-                          formula,
-                          model = 'Huber',
-                          refit = True):
-    """Remove noise and align the retention times in a run."""
-    a, u = annotated_run, unlabelled_run
 
-    # fit the spline
-    model = spline(a, formula)
-
-    # fit the Gaussian mixture
-    res = residuals(model).reshape((-1,1))
-    gmm = mixture.GaussianMixture(n_components=2, # only 2: noise & signal
-                                  covariance_type='full').fit(res)
-
-    # signal has smaller variance
-    signal_idx, noise_idx = np.argsort(gmm.covariances_.ravel())
-    signal = np.array([signal_idx == i for i in gmm.predict(res)])
-
-    # refit the spline on the "signal" peptides
-    if refit:
-        model = spline(a[signal], formula)
-
-    # calculate new retention times
-    o1 = pd.concat((a.reset_index(drop=True),
-                    DF({'rt_aligned': np.array(a.rt) - predict(model, rt=a.rt),
-                        'status': list(map(lambda x: 'signal' if x else 'noise',
-                                           signal))})),
-                   axis=1)
-
-    o2 = pd.concat((u.reset_index(drop=True),
-                    DF({'rt_aligned': np.array(u.rt) - predict(model, rt=u.rt),
-                        'status': 'unlabelled'})),
-                   axis=1)
-
-    return pd.concat((o1, o2))
-
-
-def denoise_and_align(annotated_DT,
-                      unlabelled_DT,
-                      formula,
-                      model         ='Huber',
-                      refit         = True):
-    """Remove noise in grouped data and align the retention times in a run.
-
-    Updates the 'signal' column in the original data chunks.
-    """
-    # All points are 'signal' before denoising: guardians
-    annotated_DT['signal'] = 'signal'
-    for run, annotated in annotated_DT.groupby('run'):
-        unlabelled = unlabelled_DT[unlabelled_DT.run == run]
-        yield (annotated,
-                unlabelled,
-                formula,
-                model,
-                refit)
-        # yield denoise_and_align_run(annotated,
-        #                             unlabelled,
-        #                             formula,
-        #                             model,
-        #                             refit)
-
-args = next(denoise_and_align(annotated_DT, unlabelled_DT, formula))
-
-# resemble all the data sets
-DF_2 = pd.concat(d for r, m, d in models)
-
-# apply the models' predictions to the unlabelled_DT
-unlabelled_DT
-
-# The noise seems to be confirmed by the analysis of the drift times.
-[{g: np.median(np.abs(x.dt_median_distance))
-  for g, x in d.groupby('signal')}
- for _, d in models]
-
-[{g: np.median(np.abs(x.mass_median_distance))
-  for g, x in d.groupby('signal')}
- for _, d in models]
-
-# Trying out the modelling of the percentiles of the data.
 
 # Calculate the spaces in different directions for signal points
 DF_2_signal = DF_2[DF_2.signal == 'signal']
