@@ -36,15 +36,12 @@ def denoise_and_align(annotated,
 
     Updates the 'signal' column in the original data chunks.
     """
+    for run_no, a in annotated.groupby('run'):
+        u = unlabelled[unlabelled.run == run_no]
+        yield a, u
 
-    # mark all as 'signal' before denoising
-    annotated['signal'] = 'signal'
-    for run_no, annotated_run in annotated_DT.groupby('run'):
-        unlabelled_run = unlabelled[unlabelled_DT.run == run_no]
-        yield annotated_run, unlabelled_run
-
-results = list(denoise_and_align(annotated_DT,
-                                 unlabelled_DT,
+results = list(denoise_and_align(annotated,
+                                 unlabelled,
                                  formula,
                                  model ='Huber',
                                  refit = True))
@@ -58,18 +55,16 @@ from rta.models import predict, fitted, coef, residuals
 model = 'Huber'
 refit = True
 annotated_run, unlabelled_run = results[0]
+annotated_run.columns
 
-# TODO : change the function so that it doesn't actually fill in a DF.
+
 def denoise_and_align_run(annotated_run,
                           unlabelled_run,
                           formula,
                           model = 'Huber',
                           refit = True):
-    """Remove noise in grouped data and align the retention times in a run.
-
-    Updates the 'signal' column in the original data chunks.
-    """
-    a, u = annotated_run, unlabelled_run # local sugar
+    """Remove noise and align the retention times in a run."""
+    a, u = annotated_run, unlabelled_run
 
     # fit the spline
     model = spline(a, formula)
@@ -88,13 +83,18 @@ def denoise_and_align_run(annotated_run,
         model = spline(a[signal], formula)
 
     # calculate new retention times
-    out_aligned = DF({'rt_aligned': np.array(a.rt) - predict(model, rt=a.rt),
-                      'signal': signal})
+    o1 = pd.concat((a.reset_index(drop=True),
+                    DF({'rt_aligned': np.array(a.rt) - predict(model, rt=a.rt),
+                        'status': list(map(lambda x: 'signal' if x else 'noise',
+                                           signal))})),
+                   axis=1)
 
-    rt_aligned_unlabelled = np.array(u.rt) - predict(model, rt=u.rt)
+    o2 = pd.concat((u.reset_index(drop=True),
+                    DF({'rt_aligned': np.array(u.rt) - predict(model, rt=u.rt),
+                        'status': 'unlabelled'})),
+                   axis=1)
 
-
-    return
+    return pd.concat((o1, o2))
 
 
 def denoise_and_align(annotated_DT,
