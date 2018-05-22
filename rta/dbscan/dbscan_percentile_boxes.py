@@ -7,6 +7,7 @@ from itertools import islice, product, repeat
 from multiprocessing import Pool
 import numpy as np
 import pandas as pd
+from pandas import DataFrame as DF
 from sklearn import cluster
 import networkx as nx
 
@@ -16,34 +17,31 @@ from rta.preprocessing import preprocess
 from rta.read_in_data import big_data
 # from rta.splines.denoising import denoise_and_align
 
-annotated_DT, unlabelled_DT = big_data()
-annotated_DT, Dstats = preprocess(annotated_DT, min_runs_no = 2)
+annotated, unlabelled = big_data()
+annotated, annotated_stats = preprocess(annotated,
+                                        min_runs_no=2)
 
 formula = "rt_median_distance ~ bs(rt, df=40, degree=2, lower_bound=0, upper_bound=200, include_intercept=True) - 1"
+
 # Removing the peptides that have their RT equal to the median.
-# TODO: think if these points cannot be directly modelled.
-# and what if we start moving them around?
-# WARNING: skipping this for now.
+# TODO: can these points be directly modelled?
 # DF = DF[DF.rt_median_distance != 0]
 
-def denoise_and_align(annotated_DT,
-                      unlabelled_DT,
+def denoise_and_align(annotated,
+                      unlabelled,
                       formula,
-                      model         ='Huber',
-                      refit         = True):
+                      model ='Huber',
+                      refit = True):
     """Remove noise in grouped data and align the retention times in a run.
 
     Updates the 'signal' column in the original data chunks.
     """
-    # All points are 'signal' before denoising: guardians
-    annotated_DT['signal'] = 'signal'
-    for run, annotated in annotated_DT.groupby('run'):
-        unlabelled = unlabelled_DT[unlabelled_DT.run == run]
-        yield (annotated,
-                unlabelled,
-                formula,
-                model,
-                refit)
+
+    # mark all as 'signal' before denoising
+    annotated['signal'] = 'signal'
+    for run_no, annotated_run in annotated_DT.groupby('run'):
+        unlabelled_run = unlabelled[unlabelled_DT.run == run_no]
+        yield annotated_run, unlabelled_run
 
 results = list(denoise_and_align(annotated_DT,
                                  unlabelled_DT,
@@ -57,10 +55,13 @@ from sklearn import mixture
 from rta.models import spline
 from rta.models import predict, fitted, coef, residuals
 
-annotated, unlabelledm, formula, model, refitargs = results[0]
-# TODO maybe pass only a part of the data frame with the right columns?
-def denoise_and_align_run(annotated,
-                          unlabelled,
+model = 'Huber'
+refit = True
+annotated_run, unlabelled_run = results[0]
+
+# TODO : change the function so that it doesn't actually fill in a DF.
+def denoise_and_align_run(annotated_run,
+                          unlabelled_run,
                           formula,
                           model = 'Huber',
                           refit = True):
@@ -68,34 +69,32 @@ def denoise_and_align_run(annotated,
 
     Updates the 'signal' column in the original data chunks.
     """
-    # Fitting the spline
-    model = spline(annotated, formula)
+    a, u = annotated_run, unlabelled_run # local sugar
 
-    # Fitting the Gaussian mixture model
+    # fit the spline
+    model = spline(a, formula)
+
+    # fit the Gaussian mixture
     res = residuals(model).reshape((-1,1))
-    gmm = mixture.GaussianMixture(n_components=2,
+    gmm = mixture.GaussianMixture(n_components=2, # only 2: noise & signal
                                   covariance_type='full').fit(res)
 
-    # The signal is the cluster with smaller variance
+    # signal has smaller variance
     signal_idx, noise_idx = np.argsort(gmm.covariances_.ravel())
     signal = np.array([signal_idx == i for i in gmm.predict(res)])
 
-    # Refitting the spline only to the signal peptides
+    # refit the spline on the "signal" peptides
     if refit:
-        model = spline(annotated[signal], formula)
+        model = spline(a[signal], formula)
 
-    # Calculating the new retention times
+    # calculate new retention times
+    out_aligned = DF({'rt_aligned': np.array(a.rt) - predict(model, rt=a.rt),
+                      'signal': signal})
+
+    rt_aligned_unlabelled = np.array(u.rt) - predict(model, rt=u.rt)
 
 
-    annotated.loc[signal_indices, 'rt_aligned'] = \
-        annotated[annotated.signal == 'signal'].rt - fitted(model)
-
-    # Aligning the unlabelled data
-    # unlabelled.loc[:,'rt_aligned'] =
-    unlabelled['rt_aligned'] = unlabelled.rt - predict(model, rt = unlabelled.rt)
-
-    # Coup de grace!
-    return annotated, unlabelled, model
+    return
 
 
 def denoise_and_align(annotated_DT,
@@ -171,18 +170,18 @@ def cluster_percentile_test(data,
     DBSCAN_args.update(dict(metric      = metric,
                             eps         = eps,
                             min_samples = min_samples))
-    D_stats = pd.DataFrame(dict(runs_no_aligned      = X.rt.count(),
-                                rt_aligned_median    = X.rt.median(),
-                                rt_aligned_min       = X.rt.min(),
-                                rt_aligned_max       = X.rt.max(),
-                                rt_aligned_max_space = X.rt_aligned.aggregate(max_space),
-                                pep_mass_max__space  = X.pep_mass.aggregate(max_space),
-                                le_mass_max_space    = X.le_mass.aggregate(max_space),
-                                le_mass_aligned_min  = X.le_mass.min(),
-                                le_mass_aligned_max  = X.le_mass.max(),
-                                dt_max_space         = X.dt.aggregate(max_space),
-                                dt_aligned_min       = X.dt.min(),
-                                dt_aligned_max       = X.dt.max()))
+    D_stats = DF(dict(runs_no_aligned      = X.rt.count(),
+                    rt_aligned_median    = X.rt.median(),
+                    rt_aligned_min       = X.rt.min(),
+                    rt_aligned_max       = X.rt.max(),
+                    rt_aligned_max_space = X.rt_aligned.aggregate(max_space),
+                    pep_mass_max__space  = X.pep_mass.aggregate(max_space),
+                    le_mass_max_space    = X.le_mass.aggregate(max_space),
+                    le_mass_aligned_min  = X.le_mass.min(),
+                    le_mass_aligned_max  = X.le_mass.max(),
+                    dt_max_space         = X.dt.aggregate(max_space),
+                    dt_aligned_min       = X.dt.min(),
+                    dt_aligned_max       = X.dt.max()))
 
     # Getting the percentiles of selected features
     percentiles = {col: np.percentile(D_stats[col + '_max_space'], percentiles)
@@ -221,7 +220,7 @@ params_and_labels = [(p, relabel_noise(d.labels_)) for p, d in dbscans]
 #         return 0
 # def get_distribution_of_groupedness_index(x):
 #     labels, ids = x
-#     small_df = pd.DataFrame({'id': ids, 'cluster': labels})
+#     small_df = DF({'id': ids, 'cluster': labels})
 #     small_df = small_df.assign(signal = small_df.cluster != -1)
 #     grouped_ness_idx = [(id, grouped_ness(d)) for id, d in small_df.groupby('id')]
 #     return np.histogram(list(b for a, b in grouped_ness_idx),
@@ -239,7 +238,7 @@ params_and_labels = [(p, relabel_noise(d.labels_)) for p, d in dbscans]
 # groupedness_arr = np.asarray(groupedness)
 # percentiles = np.asarray([p for p, d in dbscans])
 #
-# groupedness_df = pd.DataFrame(np.concatenate((percentiles, groupedness_arr), axis=1))
+# groupedness_df = DF(np.concatenate((percentiles, groupedness_arr), axis=1))
 # groupedness_df.columns = ['le_mass', 'rt_aligned', 'dt'] + list(np.arange(0, 1, .1))
 # groupedness_df.to_csv('rta/data/groupedness.csv', index=False)
 
@@ -289,7 +288,7 @@ classes = np.array(DF_2_signal.id.copy())
 #     scores = workers.map(get_scores,
 #                        ((p,d,r) for (p,d), r in zip(params_and_labels,
 #                                                     repeat(classes))))
-# scores = pd.DataFrame(scores)
+# scores = DF(scores)
 #
 #
 # scores.columns = ('le_mass', 'rt_aligned', 'dt', 'completeness', 'homogeneity')
@@ -310,7 +309,7 @@ classes_clusters = simple_classes, clusters
 def Stefan_metrics(classes_clusters):
     X = Counter(zip(*classes_clusters))
     classes_cnt, clusters_cnt = [len(np.unique(x)) for x in classes_clusters]
-    X = pd.DataFrame(((cs, cr, n) for (cs, cr), n in X.items()))
+    X = DF(((cs, cr, n) for (cs, cr), n in X.items()))
     X.columns = ('class', 'cluster', 'cnt')
     N = X.cnt.sum()
     C = X.groupby('class').filter(lambda x: x.shape[0]==1)
@@ -328,10 +327,10 @@ with Pool(workers_cnt) as workers:
                          zip(repeat(classes), clusterings))
 
 # TODO:  write them down to csv
-scores = pd.DataFrame(scores)
+scores = DF(scores)
 scores.columns = ('c_Stefan', 'h_Stefan', 'c_weighted', 'h_weighted')
 
-params = pd.DataFrame([p for p, l in params_and_labels])
+params = DF([p for p, l in params_and_labels])
 params.columns = ('le_mass', 'rt_aligned', 'dt')
 scores = pd.concat([params, scores], axis=1)
 scores.to_csv('rta/data/completeness_homogeneity_stefan.csv', index=False)
@@ -349,7 +348,7 @@ def Swanson_metrics(classes_clusters):
     """This is a unidimensional metric: just find all crosses"""
     X = Counter(zip(*classes_clusters))
     classes_cnt, clusters_cnt = [len(np.unique(x)) for x in classes_clusters]
-    X = pd.DataFrame(((cs, cr, n) for (cs, cr), n in X.items()))
+    X = DF(((cs, cr, n) for (cs, cr), n in X.items()))
     X.columns = ('class', 'cluster', 'cnt')
     N = X.cnt.sum()
     classes_clusters_pairs_cnt = len(X)
@@ -366,7 +365,7 @@ with Pool(workers_cnt) as workers:
                            zip(repeat(simple_classes), clusterings))
 
 # TODO:  write them down to csv
-swansons = pd.DataFrame(swansons)
+swansons = DF(swansons)
 swansons.columns = ('swanson', 'swanson_weighted')
 
 swansons = pd.concat([params, swansons], axis=1)
