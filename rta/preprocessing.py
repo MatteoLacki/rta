@@ -1,6 +1,9 @@
 import numpy as np
 import pandas as pd
 
+
+# TODO introduce changes that will cope with the charges:
+# this cannot be a median based approach.
 def preprocess(D,
                min_runs_no  = 5,
                rt           = 'rt',

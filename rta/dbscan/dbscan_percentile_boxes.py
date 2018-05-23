@@ -22,63 +22,62 @@ annotated, annotated_stats = preprocess(annotated,
                                         min_runs_no=2)
 
 formula = "rt_median_distance ~ bs(rt, df=40, degree=2, lower_bound=0, upper_bound=200, include_intercept=True) - 1"
-
-# Removing the peptides that have their RT equal to the median.
-# TODO: can these points be directly modelled?
-# DF = DF[DF.rt_median_distance != 0]
-
 res = denoise_and_align(annotated, unlabelled, formula)
 
-
-
-
 # Calculate the spaces in different directions for signal points
-DF_2_signal = DF_2[DF_2.signal == 'signal']
+DF_2_signal = res[res.status == 'signal']
 
-# data = DF_2_signal
-# DBSCAN_args = {}
+
+#TODO write a cpython routine so that it accepts a box with any shape and
+# is still quick.
 def normalize_and_cluster(data_and_percentiles):
+    """Normalize the data and cluster the points.
+
+    The DBSCAN's chebyshev box is a cube.
+    We cannot change the box size without making the calculations much slower.
+    Thus, we need to scale the data, so that the box size could be set to 1.
+    """
     percentiles, data, DBSCAN_args = data_and_percentiles
     NORMALIZED = data.copy()
-    for col, percentile in zip(['le_mass', 'rt_aligned', 'dt'],
+    for col, percentile in zip(['mass', 'rt_aligned', 'dt'],
                                percentiles):
         NORMALIZED[col] = (data[col] - data[col].min()) / percentile
     DBSCAN = cluster.DBSCAN(**DBSCAN_args)
     dbscan_res = DBSCAN.fit(NORMALIZED)
     return dbscan_res
 
-# data = DF_2_signal
-# DBSCAN_args = {}
+
+
 def cluster_percentile_test(data,
                             percentiles     = np.arange(10,101,10),
-                            colnames        = ['le_mass', 'rt_aligned', 'dt'],
                             workers_cnt     = 15,
                             eps             = 1.0,
                             min_samples     = 3,
                             metric          = 'chebyshev',
                             **DBSCAN_args):
     """Run the test of percentile clustering."""
+    DBSCAN_args.update(dict(metric = metric, eps=eps, min_samples=min_samples))
+
+    # get statistics
     X = data.groupby('id')
-    DBSCAN_args.update(dict(metric      = metric,
-                            eps         = eps,
-                            min_samples = min_samples))
-    D_stats = DF(dict(runs_no_aligned      = X.rt.count(),
+    stats = DF(dict(runs_no_aligned      = X.rt.count(),
                     rt_aligned_median    = X.rt.median(),
                     rt_aligned_min       = X.rt.min(),
                     rt_aligned_max       = X.rt.max(),
                     rt_aligned_max_space = X.rt_aligned.aggregate(max_space),
-                    pep_mass_max__space  = X.pep_mass.aggregate(max_space),
-                    le_mass_max_space    = X.le_mass.aggregate(max_space),
-                    le_mass_aligned_min  = X.le_mass.min(),
-                    le_mass_aligned_max  = X.le_mass.max(),
+                    mass_max_space       = X.mass.aggregate(max_space),
+                    mass_aligned_min     = X.mass.min(),
+                    mass_aligned_max     = X.mass.max(),
                     dt_max_space         = X.dt.aggregate(max_space),
                     dt_aligned_min       = X.dt.min(),
                     dt_aligned_max       = X.dt.max()))
 
-    # Getting the percentiles of selected features
-    percentiles = {col: np.percentile(D_stats[col + '_max_space'], percentiles)
+    # get percentiles of
+    colnames = ['mass', 'rt_aligned', 'dt']
+    percentiles = {col: np.percentile(stats[col + '_max_space'],
+                                      percentiles)
                    for col in colnames}
-    CLUST_ME = DF_2_signal[colnames]
+    CLUST_ME = data[colnames]
     data_and_percentiles = zip(product(*[percentiles[name] for name in colnames]),
                                repeat(CLUST_ME),
                                repeat(DBSCAN_args))
@@ -87,11 +86,18 @@ def cluster_percentile_test(data,
         dbscans = workers.map(normalize_and_cluster,
                               data_and_percentiles)
 
-    return zip(product(*[percentiles[name] for name in colnames]),
-               dbscans)
+    dbscans = zip(product(*[percentiles[name] for name in colnames]),
+                  dbscans)
+    dbscans = list(dbscans)
+    return dbscans, stats
 
 
-dbscans = list(cluster_percentile_test(DF_2_signal))
+
+dbscans, stats = cluster_percentile_test(DF_2_signal)
+stats
+
+
+
 
 def relabel_noise(labels):
     label = -1

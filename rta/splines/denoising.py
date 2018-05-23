@@ -1,5 +1,7 @@
 from multiprocessing import Pool
 import numpy as np
+import pandas as pd
+from pandas import DataFrame as DF
 from sklearn import mixture
 
 from rta.models import spline
@@ -29,6 +31,8 @@ def denoise_and_align_run(annotated_run,
 
     # refit the spline on the "signal" peptides
     if refit:
+        # TODO add x-validation to the model here.
+        # this will destroy the rest of the code...
         model = spline(a[signal], formula)
 
     # calculate new retention times
