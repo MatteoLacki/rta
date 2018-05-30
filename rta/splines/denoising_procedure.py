@@ -6,7 +6,7 @@ import pandas as pd
 from sklearn import mixture
 from collections import Counter
 
-from rta.read_in_data import DT as D
+from rta.read_in_data import big_data
 from rta.preprocessing import preprocess
 from rta.models.base_model import predict, fitted, coef, residuals
 from rta.models import spline
@@ -15,34 +15,18 @@ from rta.splines.denoising import denoise_and_align
 from rta.misc import max_space
 
 
-# better use natural splines
+annotated, unlabelled = big_data(path = "~/Projects/retentiontimealignment/Data/")
+annotated, annotated_stats = preprocess(annotated, min_runs_no = 2)
+
 formula = "rt_median_distance ~ bs(rt, df=40, degree=2, lower_bound=0, upper_bound=200, include_intercept=True) - 1"
-DF = preprocess(D, min_runs_no = 2)
-# Removing the peptides that have their RT equal to the median.
-# TODO: think if these points cannot be directly modelled.
-# and what if we start moving them around?
-# WARNING: skipping this for now.
-# DF = DF[DF.rt_median_distance != 0]
+res = denoise_and_align(annotated,
+                        unlabelled,
+                        formula,
+                        workers_cnt=4)
+## data to validate hypothesis about charge reductions and others.
+# res.to_csv("~/Projects/retentiontimealignment/Data/rt_denoised.csv",
+#            index = False)
 
-# All points are 'signal' before denoising: guardians
-DF['signal'] = 'signal'
-# Division by run number
-runs = list(data for _, data in DF.groupby('run'))
-%%time
-models = list(denoise_and_align(runs, formula))
-
-
-d = models[0][1]
-m = models[0][0]
-
-%matplotlib
-plt.scatter(d.dt, d.dt_median_distance, marker = '.')
-plt.scatter(d.le_mass, d.le_mass_median_distance, marker = '.')
-
-
-
-# resemble all the data sets
-DF_2 = pd.concat(d for m, d in models)
 
 import pickle
 with open('rta/data/denoised_data.pickle3', 'wb') as h:
