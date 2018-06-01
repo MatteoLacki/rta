@@ -38,4 +38,4 @@ class SplineRegression(Model):
         return self.y.ravel() - self.fitted()
 
     def __repr__(self):
-        return "This is a spline regression."
+        return "This is spline regression."

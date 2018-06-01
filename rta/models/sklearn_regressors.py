@@ -23,7 +23,7 @@ class sklearnRegression(SplineRegression):
             self.coef = self.fit_out.coef_
 
     def __repr__(self):
-        return "This is a sklearn spline regression."
+        return "This is sklearn spline regression."
 
 
 def sklearn_spline(data, formula, regressor, **kwds):

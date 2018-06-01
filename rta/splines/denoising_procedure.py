@@ -3,7 +3,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-from sklearn import mixture
+from sklearn import mixture, cluster
 from collections import Counter
 
 from rta.read_in_data import big_data
@@ -19,36 +19,80 @@ annotated, unlabelled = big_data(path = "~/Projects/retentiontimealignment/Data/
 annotated, annotated_stats = preprocess(annotated, min_runs_no = 2)
 
 formula = "rt_median_distance ~ bs(rt, df=40, degree=2, lower_bound=0, upper_bound=200, include_intercept=True) - 1"
+
+%%timeit -n 1 -r 1
 res = denoise_and_align(annotated,
                         unlabelled,
                         formula,
                         workers_cnt=4)
+
+
+%%timeit -n 1 -r 1
+res = denoise_and_align(annotated,
+                        unlabelled,
+                        formula,
+                        workers_cnt=1)
+
+%%timeit -n 1 -r 1
+res = denoise_and_align(annotated,
+                        unlabelled,
+                        formula,
+                        workers_cnt=2)
+
+
+
 ## data to validate hypothesis about charge reductions and others.
 # res.to_csv("~/Projects/retentiontimealignment/Data/rt_denoised.csv",
 #            index = False)
+model = "Huber"
+refit = True
+
+def iter_groups():
+    for run_no, a in annotated.groupby('run'):
+        u = unlabelled[unlabelled.run == run_no]
+        yield a, u, formula, model, refit
+
+a, u, formula, model, refit = next(iter_groups())
 
 
-import pickle
-with open('rta/data/denoised_data.pickle3', 'wb') as h:
-    pickle.dump(DF_2, h)
-DF_2.to_csv('rta/data/denoised_data.csv', index = False)
-
-
-%matplotlib
-plt.plot(d[d.signal == 'signal'].rt, d[d.signal == 'signal'].rt_aligned)
-plt.hist(residuals(m))
-%matplotlib
-plt.scatter(d.rt,
-            d.rt_median_distance,
-            c=[{'signal': 'red', 'noise': 'grey'}[s] for s in d.signal])
-plot_curve(m, c='blue', linewidth=4)
+%%timeit
+model = spline(a, formula)
+res = residuals(model).reshape((-1,1))
+gmm = mixture.GaussianMixture(n_components=2, # only 2: noise & signal
+                              covariance_type='full').fit(res)
+signal_idx, noise_idx = np.argsort(gmm.covariances_.ravel())
+signal = np.array([signal_idx == i for i in gmm.predict(res)])
+if refit:
+    # TODO add x-validation to the model here.
+    # this will destroy the rest of the code...
+    model = spline(a[signal], formula)
 
 
 
-# Trying out the clustering
-from sklearn import cluster
-from collections import Counter
 
+
+
+
+# it doesn't make sense for the X-validation to be done globally:
+# each run should have it's own procedure.
+# it should me a method of the spline class.
+
+from rta.models.sklearn_regressors import sklearnRegression
+
+from patsy import dmatrices
+
+
+sklearn = sklearnRegression(data=a)
+sklearn.fit(formula, 'Huber')
+# aha!
+# so we can change the formula!
+# actually, we have to change the formula, because otherwise we could
+# not really pass in the new dimension of the spline.
+
+# cv function prototype
+
+def cv(self):
+    for
 
 
 
