@@ -1,0 +1,379 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"scan",
+				"scannumber"
+			],
+			[
+				"sca",
+				"scannumber"
+			],
+			[
+				"nu",
+				"numSlice2"
+			],
+			[
+				"num",
+				"numSlice"
+			],
+			[
+				"rt",
+				"rt_aligned_median"
+			],
+			[
+				"mul",
+				"multiprocessing\tmodule"
+			],
+			[
+				"D",
+				"D_stats"
+			],
+			[
+				"kd",
+				"kd_tree_nice\tmodule"
+			],
+			[
+				"bo",
+				"boxes_sizes\tstatement"
+			],
+			[
+				"box",
+				"box_tenants\tstatement"
+			],
+			[
+				"idx",
+				"idx2"
+			],
+			[
+				"rt_l",
+				"rt_aligned_min"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "/Users/matteo/Downloads/multiprocessing_test.py",
+			"settings":
+			{
+				"buffer_size": 1233,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		}
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+		[
+			[
+				[
+					"Packages/Golang Build/Go.sublime-build",
+					""
+				],
+				[
+					"Packages/Golang Build/Go.sublime-build",
+					"Run"
+				],
+				[
+					"Packages/Golang Build/Go.sublime-build",
+					"Test"
+				],
+				[
+					"Packages/Golang Build/Go.sublime-build",
+					"Install"
+				],
+				[
+					"Packages/Golang Build/Go.sublime-build",
+					"Cross-Compile (Interactive)"
+				],
+				[
+					"Packages/Golang Build/Go.sublime-build",
+					"Clean"
+				]
+			],
+			[
+				"Packages/Golang Build/Go.sublime-build",
+				"Run"
+			]
+		]
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"insta",
+				"Package Control: Install Package"
+			],
+			[
+				"send code",
+				"SendCode: Choose Program"
+			],
+			[
+				"instla",
+				"Package Control: Install Package"
+			],
+			[
+				"ins",
+				"Package Control: Install Package"
+			],
+			[
+				"colorco",
+				"Tweak Colorcode to current color scheme"
+			],
+			[
+				"colors",
+				"UI: Select Color Scheme"
+			],
+			[
+				"inst",
+				"Package Control: Install Package"
+			],
+			[
+				"color",
+				"UI: Select Color Scheme"
+			],
+			[
+				"her",
+				"Hermes: List Kernels"
+			],
+			[
+				"herm",
+				"Hermes: Connect Kernel"
+			],
+			[
+				"them",
+				"UI: Select Color Scheme"
+			],
+			[
+				"antia",
+				"Package Control: Install Package"
+			],
+			[
+				"theme",
+				"UI: Select Theme"
+			]
+		],
+		"width": 0.0
+	},
+	"console":
+	{
+		"height": 136.0,
+		"history":
+		[
+			"import urllib.request,os,hashlib; h = '6f4c264a24d933ce70df5dedcf1dcaee' + 'ebe013ee18cced0ef93d5f746d80ef60'; pf = 'Package Control.sublime-package'; ipp = sublime.installed_packages_path(); urllib.request.install_opener( urllib.request.build_opener( urllib.request.ProxyHandler()) ); by = urllib.request.urlopen( 'http://packagecontrol.io/' + pf.replace(' ', '%20')).read(); dh = hashlib.sha256(by).hexdigest(); print('Error validating download (got %s instead of %s), please try manual install' % (dh, h)) if dh != h else open(os.path.join( ipp, pf), 'wb' ).write(by)"
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"expanded_folders":
+	[
+		"/Users/matteo/Projects/rta"
+	],
+	"file_history":
+	[
+		"/Users/matteo/Projects/masstodon_response_to_reviewers/data/PXD001845/20141202_AMB_Bora_10x_40MeOH_1FA_OT_120k_10uscans_728_ETD_4ms_24precZ.raw",
+		"/Users/matteo/Projects/masstodon_response_to_reviewers/data/uniprot-organism%3A1241935.fasta",
+		"/Users/matteo/Projects/masstodon_response_to_reviewers/data/tabula-IH532330.csv",
+		"/Users/matteo/Projects/masstodon_response_to_reviewers/data/taxonomy-islandicus+LAL14%2F1.tab",
+		"/Users/matteo/Projects/masstodon_response_to_reviewers/data/raw2np.go",
+		"/Users/matteo/Projects/masstodon_response_to_reviewers/data/scans_cnt.go",
+		"/Users/matteo/Projects/masstodon_response_to_reviewers/data/20140909_F_EV_Sisl-prep2-SAX-fr6_r120_r240-ETD5SA20_1.mgf",
+		"/Users/matteo/Projects/masstodon_response_to_reviewers/analysis/getting_spectra.py",
+		"/Users/matteo/Poligon/Go/hello_world_2.go",
+		"/Users/matteo/Poligon/Go/hello_world_0.go",
+		"/Users/matteo/Poligon/Go/hello_world_1.go",
+		"/Users/matteo/Projects/masstodon_response_to_reviewers/analysis/reading_files/read_spectrum.go",
+		"/Users/matteo/Library/Application Support/Sublime Text 3/Packages/User/golang.sublime-settings",
+		"/Users/matteo/Projects/masstodon_response_to_reviewers/Search summary top-down SAX all lines.txt",
+		"/Users/matteo/Projects/masstodon_response_to_reviewers/analysis/PXD003074_header.py",
+		"/Users/matteo/Downloads/Finnigan-0.0206/README",
+		"/Users/matteo/Projects/rta/rta/kd_tree/kd_tree_nice.py",
+		"/Users/matteo/Projects/rta/rta/scripts/find_neighbour_graph.py",
+		"/Users/matteo/Projects/rta/rta/dbscan/dbscan_all_boxes.py",
+		"/Users/matteo/Projects/rta/rta/dbscan/dbscan_percentile_boxes.py",
+		"/Users/matteo/Projects/rta/rta/kd_tree/developing_kd_trees.py",
+		"/Users/matteo/.config/zathura/zathurarc",
+		"/Users/matteo/Projects/rta/rta/splines/denoising_procedure.py",
+		"/opt/X11/include/X11/extensions/xtrapdi.h"
+	],
+	"find":
+	{
+		"height": 27.0
+	},
+	"find_in_files":
+	{
+		"height": 0.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 0,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "/Users/matteo/Downloads/multiprocessing_test.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1233,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								364,
+								364
+							]
+						],
+						"settings":
+						{
+							"colorcode": true,
+							"show_definitions": false,
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 220.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 27.0
+	},
+	"input":
+	{
+		"height": 40.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"output.golang_build":
+	{
+		"height": 225.0
+	},
+	"output.gotools_syntax_errors":
+	{
+		"height": 127.0
+	},
+	"pinned_build_system": "",
+	"project": "rta.sublime-project",
+	"replace":
+	{
+		"height": 50.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"kd",
+				"rta/kd_tree/kd_tree_nice.py"
+			]
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": false,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 269.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}

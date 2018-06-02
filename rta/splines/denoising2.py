@@ -13,12 +13,13 @@ def denoise_and_align_run(annotated_run,
                           formula,
                           model = 'Huber',
                           refit = True,
-                          return_model = False):
+                          return_model = False,
+                          **kwds):
     """Remove noise and align the retention times in a run."""
     a, u = annotated_run, unlabelled_run
 
     # fit the spline
-    model = spline(a, formula)
+    model = spline(a, formula, **kwds)
 
     # fit the Gaussian mixture
     res = residuals(model).reshape((-1,1))
@@ -35,26 +36,7 @@ def denoise_and_align_run(annotated_run,
         # this will destroy the rest of the code...
         model = spline(a[signal], formula)
 
-    # calculate new retention times
-    o1 = pd.concat((a.reset_index(drop=True),
-                    DF({'rt_aligned': np.array(a.rt) - predict(model, rt=a.rt),
-                        'status': list(map(lambda x: 'signal' if x else 'noise',
-                                           signal))})),
-                   axis=1)
-
-    o2 = pd.concat((u.reset_index(drop=True),
-                    DF({'rt_aligned': np.array(u.rt) - predict(model, rt=u.rt),
-                        'status': 'unlabelled'})),
-                   axis=1)
-
-    o = pd.concat((o1, o2))
-
-    if return_model:
-        return o, model
-    else:
-        return o
-
-
+    return 0
 
 # supprisingly, this works!
 def denoise_and_align(annotated, unlabelled,
@@ -70,7 +52,6 @@ def denoise_and_align(annotated, unlabelled,
             yield a, u, formula, model, refit
 
     with Pool(workers_cnt) as workers:
-        data_frames = workers.starmap(denoise_and_align_run,
-                                      iter_groups())
+        res = workers.starmap(denoise_and_align_run, iter_groups())
 
-    return pd.concat(data_frames, axis=0)
+    return res
