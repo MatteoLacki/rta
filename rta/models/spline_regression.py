@@ -25,6 +25,8 @@ class SplineRegression(Model):
         # TODO: investigate the natural-splines and the smoothing-splines.
         spline_filtered_data = dmatrix(self.X.design_info,
                                        data = newdata)
+        spline_filtered_data = np.asarray(spline_filtered_data, dtype=np.float64)
+
         predictions = np.dot(spline_filtered_data, self.coef)
         return predictions
 
