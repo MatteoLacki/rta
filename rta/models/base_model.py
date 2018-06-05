@@ -31,16 +31,6 @@ class Model(object):
 
     def cv(self):
         """Run cross-validation."""
-        pass
-        # for p in self.get_params_for_cv():
-        #     for f in self.get_fold():
-
-    def get_params_for_cv(self):
-        """Run parameters for cross-validation."""
-        raise NotImplementedError
-
-    def get_folds_for_cv(self):
-        """Run parameters for cross-validation."""
         raise NotImplementedError
 
 

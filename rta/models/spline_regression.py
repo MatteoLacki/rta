@@ -4,9 +4,12 @@ from patsy import dmatrices, dmatrix
 
 from rta.models.base_model import Model
 
+
 class SplineRegression(Model):
     """Virtual class for different spline regressions."""
+
     def dmatrices(self, formula):
+        """Prepare the design matrix."""
         self.y, self.X = dmatrices(formula, self.data)
 
     def predict(self, newdata={}, *args, **kwds):
@@ -25,10 +28,16 @@ class SplineRegression(Model):
         # TODO: investigate the natural-splines and the smoothing-splines.
         spline_filtered_data = dmatrix(self.X.design_info,
                                        data = newdata)
+
+        spline_filtered_data = np.asarray(spline_filtered_data, 
+                                          dtype=np.float64)
+
         predictions = np.dot(spline_filtered_data, self.coef)
-        return predictions
+
+        return np.asarray(predictions)
 
     def fitted(self):
+        """Get fitted values."""
         spine_base_times_coefs = np.dot(self.X, self.coef)
         return spine_base_times_coefs
 
@@ -38,4 +47,6 @@ class SplineRegression(Model):
         return self.y.ravel() - self.fitted()
 
     def __repr__(self):
+        """Represent the model."""
+        #TODO make this more elaborate.
         return "This is spline regression."

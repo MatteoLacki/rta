@@ -1,3 +1,4 @@
+import gc
 from multiprocessing import Pool
 import numpy as np
 import pandas as pd
@@ -9,17 +10,16 @@ from rta.models import predict, fitted, coef, residuals
 
 
 def denoise_and_align_run(annotated_run,
-                          unlabelled_run,
+                          unnanotated_run,
                           formula,
-                          model = 'Huber',
+                          model_name = 'Huber',
                           refit = True,
-                          return_model = False,
                           **kwds):
     """Remove noise and align the retention times in a run."""
-    a, u = annotated_run, unlabelled_run
+    a, u = annotated_run, unnanotated_run
 
     # fit the spline
-    model = spline(a, formula, **kwds)
+    model = spline(a, formula, model_name, **kwds)
 
     # fit the Gaussian mixture
     res = residuals(model).reshape((-1,1))
@@ -32,24 +32,27 @@ def denoise_and_align_run(annotated_run,
 
     # refit the spline on the "signal" peptides
     if refit:
-        # TODO add x-validation to the model here.
-        # this will destroy the rest of the code...
         model = spline(a[signal], formula)
 
-    return 0
+    a_rt_aligned = np.array(a.rt) - predict(model, rt=a.rt)
+    u_rt_aligned = np.array(u.rt) - predict(model, rt=u.rt)
+
+    return signal, a_rt_aligned, u_rt_aligned
+
 
 # supprisingly, this works!
-def denoise_and_align(annotated, unlabelled,
-                      formula,
-                      model='Huber',
-                      refit=True,
-                      workers_cnt=16):
-    """Denoise and align all runs."""
+def denoise(annotated,
+            unlabelled,
+            formula,
+            model_name='Huber',
+            refit=True,
+            workers_cnt=16):
+    """Denoise all runs."""
 
     def iter_groups():
         for run_no, a in annotated.groupby('run'):
             u = unlabelled[unlabelled.run == run_no]
-            yield a, u, formula, model, refit
+            yield a, u, formula, model_name, refit
 
     with Pool(workers_cnt) as workers:
         res = workers.starmap(denoise_and_align_run, iter_groups())
