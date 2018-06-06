@@ -97,14 +97,12 @@ def denoise_and_align_run2(run_cnt,
 
 
 
-
 def denoise_and_align_run_wrapper(tasks, returns):
     while True:
         task = tasks.get()
         if task == "end":
             return
-        else:
-            returns.put(denoise_and_align_run(*task))
+        returns.put(denoise_and_align_run(*task))
 
 
 def denoise_and_align2(annotated, 
@@ -126,17 +124,19 @@ def denoise_and_align2(annotated,
 
     returns = Queue()
     processes = [Process(target=denoise_and_align_run_wrapper,
-                                args=(tasks, returns,)) 
+                         args=(tasks, returns,)) 
                  for run_cnt in range(runs_no)]    
+
     for p in processes:
         p.start()
+
     for p in processes:
         p.join()
     
     out = []
-    # while not returns.empty():
-    #     out.append(returns.get())
-
+    while not returns.empty():
+        out.append(returns.get())
+    
     return out
 
 
