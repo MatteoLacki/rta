@@ -4,7 +4,7 @@ from sklearn.linear_model import TheilSenRegressor, HuberRegressor
 from sklearn.linear_model import RANSACRegressor
 
 
-class sklearnRegression(SplineRegression):
+class SklearnRegression(SplineRegression):
     """Sklearn-based regression splines."""
     def fit(self, formula, regressor, **kwds):
         regressor_name = regressor
@@ -28,6 +28,6 @@ class sklearnRegression(SplineRegression):
 
 def sklearn_spline(data, formula, regressor, **kwds):
     """Fit one of the sklear regression splines."""
-    sklearn_spline = sklearnRegression(data)
+    sklearn_spline = SklearnRegression(data)
     sklearn_spline.fit(formula, regressor)
     return sklearn_spline

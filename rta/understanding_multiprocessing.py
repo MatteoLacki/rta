@@ -6,8 +6,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn import mixture, cluster
+from sklearn.model_selection import GroupKFold
 from collections import Counter
 from multiprocessing import Pool, Process
+from patsy import dmatrices, dmatrix, bs
 
 from rta.read_in_data import big_data
 from rta.preprocessing import preprocess
@@ -29,6 +31,17 @@ unlabelled_slim = unlabelled[['run', 'rt']]
 
 model = 'Huber'
 refit = True
+
+
+run1 = annotated_slim[annotated_slim.run == 1]
+bs_res = bs(run1.rt, 
+		    df=40, 
+		    degree=2, 
+		    lower_bound=0, 
+		    upper_bound=200, 
+		    include_intercept=True)
+
+
 
 
 
@@ -59,10 +72,6 @@ def denoise_align_run(run_cnt):
     return signal, a_rt_aligned, u_rt_aligned
 
 
-def dupa(gua):
-	print()
-	return gua
-
 def denoise_align(workers_cnt=10):
     """Denoise and align all runs."""
     with Pool(workers_cnt) as workers:
@@ -73,5 +82,6 @@ def denoise_align(workers_cnt=10):
 if __name__ == "__main__":
 	res = denoise_align()
 	print(res)
+
 
 
