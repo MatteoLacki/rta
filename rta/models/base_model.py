@@ -1,9 +1,9 @@
 class Model(object):
-    """The logic of a model."""
-    def __init__(self, data):
-        self.data = data
+    """A container for storing results of fitting."""
+    def fit(self, formula, data={}, **kwds):
+        raise NotImplementedError
 
-    def fit(self, formula, **kwds):
+    def fit_simple(self):
         raise NotImplementedError
 
     def predict(self, newdata={}, *args, **kwds):
@@ -30,17 +30,6 @@ class Model(object):
         raise NotImplementedError
 
     def cv(self):
-        """Run cross-validation."""
-        pass
-        # for p in self.get_params_for_cv():
-        #     for f in self.get_fold():
-
-    def get_params_for_cv(self):
-        """Run parameters for cross-validation."""
-        raise NotImplementedError
-
-    def get_folds_for_cv(self):
-        """Run parameters for cross-validation."""
         raise NotImplementedError
 
 

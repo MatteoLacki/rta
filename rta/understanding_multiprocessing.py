@@ -29,11 +29,20 @@ formula = "rt_median_distance ~ bs(rt, df=40, degree=2, lower_bound=0, upper_bou
 annotated_slim = annotated[['run', 'rt', 'rt_median_distance']]
 unlabelled_slim = unlabelled[['run', 'rt']]
 
+
+
+
+
 model = 'Huber'
 refit = True
 
-
 run1 = annotated_slim[annotated_slim.run == 1]
+
+import json
+with open("rta/data/run1.json",'rb') as h:
+	json.dump(run1, h)
+
+
 bs_res = bs(run1.rt, 
 		    df=40, 
 		    degree=2, 
