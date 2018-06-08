@@ -8,10 +8,6 @@ from rta.models.base_model import Model
 class SplineRegression(Model):
     """Virtual class for different spline regressions."""
 
-    def dmatrices(self, formula):
-        """Prepare the design matrix."""
-        self.y, self.X = dmatrices(formula, self.data)
-
     def predict(self, newdata={}, *args, **kwds):
         if isinstance(newdata, dict):
             newdata.update(kwds)

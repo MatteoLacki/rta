@@ -1,9 +1,9 @@
 class Model(object):
-    """The logic of a model."""
-    def __init__(self, data):
-        self.data = data
+    """A container for storing results of fitting."""
+    def fit(self, formula, data={}, **kwds):
+        raise NotImplementedError
 
-    def fit(self, formula, **kwds):
+    def fit_simple(self):
         raise NotImplementedError
 
     def predict(self, newdata={}, *args, **kwds):

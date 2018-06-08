@@ -4,6 +4,7 @@ import pandas as pd
 from sklearn import cluster
 import networkx as nx
 
+from rta.kd_tree.kd_tree_nice import kdtree
 from rta.misc import max_space
 from rta.preprocessing import preprocess
 from rta.read_in_data import DT as D
