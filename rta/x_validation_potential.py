@@ -62,25 +62,12 @@ for folds_no in range(3,11):
              # what the CV does with them anyway?
     # then, divide each fold into seperate runs and feed the models
 
-
 folds_no = 5
 
-
 # select runs that can be represented by the K folds
-foldable_runs = runs[peptides_cnt >= folds_no]
-foldable_runs = set(foldable_runs)
+foldable_runs = set(runs[peptides_cnt >= folds_no])
+annotated_cv = annotated[ annotated.runs.isin(foldable_runs) ]
 
-# this takes too much time... optimize!!!
-run_stratas = []
-for x in get_present_runs(summarize = False, dtype=runs_dtype):
-    run_stratas.extend(x)
-
-annotated_slim = annotated_slim.assign(runs=run_stratas)
-
-#TODO: replace this with the isin method!!!
-# e.g. D = D.loc[ D.id.isin(enough_runs) ]
-annotated_cv = annotated_slim[np.array(list(x in foldable_runs 
-                                            for x in run_stratas))]
 
 
 # to use predefined split, we fill have to simply pass the indices of groups.
