@@ -12,19 +12,16 @@ from rta.preprocessing import preprocess
 path = "~/Projects/retentiontimealignment/Data/"
 annotated, unlabelled = big_data(path=path)
 annotated, annotated_stats = preprocess(annotated, min_runs_no = 2)
-annotated_slim = annotated[['run', 'id',
-                                'rt', 'rt_median_distance', 
-                                'dt', 'dt_median_distance']]
-unlabelled_slim = unlabelled[['run', 
-                                'rt', 'dt']]
+
+# annotated_slim = annotated[['run', 'id',
+#                                 'rt', 'rt_median_distance', 
+#                                 'dt', 'dt_median_distance']]
+# unlabelled_slim = unlabelled[['run', 
+#                                 'rt', 'dt']]
 
 runs_no = max(annotated_stats.runs_no)
 runs_dtype = f"<U{2*runs_no}"
 
-def ordered_str(ints):
-    x = list(ints)
-    x.sort()
-    return "_".join(str(i) for i in x)
 
 def get_present_runs(summarize = True, dtype="<U20"):
     for pept_id, data in annotated.groupby('id'):
@@ -34,12 +31,7 @@ def get_present_runs(summarize = True, dtype="<U20"):
         else:
             yield np.full((len(data),), o, dtype)
 
-annotated_stats = annotated_stats.assign(
-    runs=annotated.groupby('id').run.agg(ordered_str))
-
-
-
-run_participation_cnt = count(get_present_runs())
+run_participation_cnt = count(annotated_stats.runs)
 print(len(run_participation_cnt)) # 1013 / 1024 - almost all possibilities!
 
 # make a plot summarizing the measure concentration in the case of 
@@ -47,11 +39,9 @@ print(len(run_participation_cnt)) # 1013 / 1024 - almost all possibilities!
 run_participation_cnt = sorted(run_participation_cnt.items(), 
                                key=lambda x: x[1], 
                                reverse=True)
-
 runs, peptides_cnt = map(np.array, zip(*run_participation_cnt))
 probs_optimal_p_sets = np.cumsum(peptides_cnt)
 probs_optimal_p_sets = probs_optimal_p_sets/probs_optimal_p_sets[-1]
-
 
 # the concentration of peptide presence across runs
 import matplotlib.pyplot as plt
