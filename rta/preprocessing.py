@@ -4,6 +4,16 @@ import pandas as pd
 
 # TODO introduce changes that will cope with the charges:
 # this cannot be a median based approach.
+# 
+# TODO eliminate the 'id' column and use indexing based on 
+# sequence and modification instead (to save memory)
+
+def ordered_str(ints):
+    x = list(ints)
+    x.sort()
+    return "_".join(str(i) for i in x)
+
+
 def preprocess(D,
                min_runs_no  = 5,
                rt           = 'rt',

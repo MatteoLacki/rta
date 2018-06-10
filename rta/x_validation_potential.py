@@ -9,7 +9,8 @@ import pandas as pd
 from rta.read_in_data import big_data
 from rta.preprocessing import preprocess
 
-annotated, unlabelled = big_data(path = "~/Projects/retentiontimealignment/Data/")
+path = "~/Projects/retentiontimealignment/Data/"
+annotated, unlabelled = big_data(path=path)
 annotated, annotated_stats = preprocess(annotated, min_runs_no = 2)
 annotated_slim = annotated[['run', 'id',
                                 'rt', 'rt_median_distance', 
@@ -32,6 +33,11 @@ def get_present_runs(summarize = True, dtype="<U20"):
             yield o
         else:
             yield np.full((len(data),), o, dtype)
+
+annotated_stats = annotated_stats.assign(
+    runs=annotated.groupby('id').run.agg(ordered_str))
+
+
 
 run_participation_cnt = count(get_present_runs())
 print(len(run_participation_cnt)) # 1013 / 1024 - almost all possibilities!
@@ -80,6 +86,9 @@ for x in get_present_runs(summarize = False, dtype=runs_dtype):
     run_stratas.extend(x)
 
 annotated_slim = annotated_slim.assign(runs=run_stratas)
+
+#TODO: replace this with the isin method!!!
+# e.g. D = D.loc[ D.id.isin(enough_runs) ]
 annotated_cv = annotated_slim[np.array(list(x in foldable_runs 
                                             for x in run_stratas))]
 
