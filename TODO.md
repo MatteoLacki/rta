@@ -1,3 +1,9 @@
-### My great big to-do list
-* checkout out other fitting procedures
-  * maybe scikit with direct LAPACK calls?
+# To Do
+
+* write tests for the spline fitting method
+* is there any good of doing measure concentration on peptide-presence across runs?
+
+
+
+
+# Done
