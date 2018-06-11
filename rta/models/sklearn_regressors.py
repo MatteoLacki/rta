@@ -3,11 +3,17 @@ from patsy import dmatrices
 from rta.models.spline_regression import SplineRegression
 from sklearn.linear_model import TheilSenRegressor, HuberRegressor
 from sklearn.linear_model import RANSACRegressor
+from sklearn.model_selection import cross_val_score, PredefinedSplit
 
 
 class SklearnRegression(SplineRegression):
     """Sklearn-based regression splines."""
-    def fit(self, formula, data={}, regressor_name="Huber", **kwds):
+    def fit(self,
+            formula, 
+            data={},
+            regressor_name="Huber",
+            cv = False,
+            **kwds):
         """Fit the model."""
         regressors = {'Theil-Sen': TheilSenRegressor,
                       'Huber': HuberRegressor,
@@ -31,7 +37,9 @@ class SklearnRegression(SplineRegression):
         return "This is sklearn spline regression."
 
     def cv(self, folds=None):
+        """Perform cross validation of the final model."""
         print(folds)
+        print("Dupa.")
 
 
 def sklearn_spline(formula,
