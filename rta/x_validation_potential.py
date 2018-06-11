@@ -48,10 +48,13 @@ from sklearn.linear_model import HuberRegressor
 from sklearn.model_selection import cross_validate
 from patsy import dmatrices
 
-
+for _, d in annotated_cv.groupby("run"):
+    pass
 
 formula = "rt_median_distance ~ bs(rt, df=40, degree=2, lower_bound=0, upper_bound=200, include_intercept=True) - 1"
 y, X = map(np.asarray, dmatrices(formula, d))
+
+
 
 def test():
     h_reg = HuberRegressor(warm_start = True,
@@ -60,19 +63,11 @@ def test():
     out = h_reg.fit(X, y.ravel())
     ps = PredefinedSplit(d.fold)
 
-    cross_val_score(estimator = h_reg, 
-                    X = X, 
-                    y = y.ravel(),
-                    cv = ps,
-                    n_jobs=-1)
-    return out.coef_
-
-
-
-
-
-
-
+    cv_scores = cross_val_score(estimator = h_reg, 
+                                X = X, 
+                                y = y.ravel(),
+                                cv = ps)
+    return cv_scores
 
 
 
