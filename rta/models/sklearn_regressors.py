@@ -20,12 +20,14 @@ class SklearnRegression(SplineRegression):
                       'RANSAC': RANSACRegressor}
         assert regressor_name in regressors, "God gonna cut you down."
 
-        self.y, self.X = dmatrices(formula, data)
+        self.data = data
+        self.y, self.X = dmatrices(formula, self.data)
+        self.y = self.y.ravel()
 
         if regressor_name is not 'RANSAC':
             kwds['fit_intercept'] = not 'include_intercept=True' in self.X.design_info.term_names[0]
         self.regressor = regressors[regressor_name](**kwds)
-        self.fit_out = self.regressor.fit(self.X, self.y.ravel())
+        self.fit_out = self.regressor.fit(self.X, self.y)
 
         if regressor_name is 'RANSAC':
             self.coef = self.fit_out.estimator_.coef_
@@ -36,10 +38,24 @@ class SklearnRegression(SplineRegression):
     def __repr__(self):
         return "This is sklearn spline regression."
 
-    def cv(self, folds=None):
+    def cv(self, folds=None, **kwds):
         """Perform cross validation of the final model."""
-        print(folds)
-        print("Dupa.")
+        
+        if folds:
+            cv = PredefinedSplit(folds)
+        else:
+            try:
+                cv = PredefinedSplit(self.data.fold)   
+            except AttributeError:
+                cv = None
+
+        self.cv_scores = cross_val_score(estimator = self.regressor,
+                                         X = self.X,
+                                         y = self.y,
+                                         cv = cv,
+                                         **kwds)
+        return self.cv_scores
+
 
 
 def sklearn_spline(formula,
@@ -49,6 +65,6 @@ def sklearn_spline(formula,
     """Fit one of the sklear regression splines."""
 
     sklearn_spline = SklearnRegression()
-    sklearn_spline.fit(formula, data, regressor_name)
+    sklearn_spline.fit(formula, data, regressor_name, **kwds)
 
     return sklearn_spline
