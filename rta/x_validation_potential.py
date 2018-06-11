@@ -6,8 +6,6 @@
     # make sequence & modification & run a multi-index.
     # aggregate accordingly w.r.t. the other dimensions.
     # assign dtypes other than "python objects"? 
-
-
 from collections import Counter as count
 import numpy as np
 import numpy.random as npr
@@ -20,14 +18,8 @@ from rta.models.sklearn_regressors import SklearnRegression
 from rta.xvalidation.grouped_k_folds import grouped_K_folds
 from rta.xvalidation.filters import filter_foldable
 
-path = "~/Projects/retentiontimealignment/Data/"
-annotated, unlabelled = big_data(path=path)
+annotated, unlabelled = big_data()
 annotated, annotated_stats = preprocess(annotated, min_runs_no = 2)
-# annotated_slim = annotated[['run', 'id',
-#                                 'rt', 'rt_median_distance', 
-#                                 'dt', 'dt_median_distance']]
-# unlabelled_slim = unlabelled[['run', 
-#                                 'rt', 'dt']]
 # run CV     
     # Runs seperately every of the 2**10 categories in 5 folds.
     # this way every run will have similar representation of points!
@@ -49,6 +41,8 @@ from sklearn.model_selection import cross_validate
 from patsy import dmatrices
 
 
+for _, d in annotated_cv.groupby('run'):
+    pass
 
 formula = "rt_median_distance ~ bs(rt, df=40, degree=2, lower_bound=0, upper_bound=200, include_intercept=True) - 1"
 y, X = map(np.asarray, dmatrices(formula, d))
@@ -59,13 +53,13 @@ def test():
                            alpha=.001)
     out = h_reg.fit(X, y.ravel())
     ps = PredefinedSplit(d.fold)
-
-    cross_val_score(estimator = h_reg, 
-                    X = X, 
-                    y = y.ravel(),
-                    cv = ps,
-                    n_jobs=-1)
-    return out.coef_
+    cv_scores = cross_val_score(estimator = h_reg,
+                                X = X,
+                                y = y.ravel(),
+                                cv = ps,
+                                n_jobs=-1,
+                                pre_dispatch='16')
+    return cv_scores
 
 
 
@@ -78,7 +72,7 @@ def test():
 
 ps.get_n_splits()
 
-print(ps)       
+print(ps)
 
 for train_index, test_index in ps.split():
 
@@ -89,3 +83,8 @@ print("Sizes of runs_no-strata:\n", count(annotated_stats.runs_no))
 
 
 
+# annotated_slim = annotated[['run', 'id',
+#                                 'rt', 'rt_median_distance', 
+#                                 'dt', 'dt_median_distance']]
+# unlabelled_slim = unlabelled[['run', 
+#                                 'rt', 'dt']]
