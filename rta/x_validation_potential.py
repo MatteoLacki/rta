@@ -2,9 +2,17 @@
 %autoreload 2
 %load_ext line_profiler
 
+# Possible optimizations:
+    # make sequence & modification & run a multi-index.
+    # aggregate accordingly w.r.t. the other dimensions.
+    # assign dtypes other than "python objects"? 
+
+
 from collections import Counter as count
 import numpy as np
+import numpy.random as 
 import pandas as pd
+from sklearn.model_selection import cross_val_score, PredefinedSplit
 
 from rta.read_in_data import big_data
 from rta.preprocessing import preprocess
@@ -62,33 +70,69 @@ for folds_no in range(3,11):
              # what the CV does with them anyway?
     # then, divide each fold into seperate runs and feed the models
 
-folds_no = 5
+def grouped_K_folds(x, K):
+    """Get K-folds that respects the inner groupings.
 
+    Divide the elements of "x" into "K" folds.
+    Some elements of "x" might repeat.
+    Repeating elements must be assigned together to one of the folds.
+
+    Args:
+        x (iterable) : x to divide
+        K (int) : number of folds
+
+    Return:
+        out (dict) : mapping between unique x and their 
+    """
+    ids = np.unique(x)
+    N = len(ids)
+    N_div_K = N // K
+    N_mod_K = N % K
+    groups = np.full((N,), 0)
+    for i in range(1, K):
+        groups[ i * N_div_K : (i+1) * N_div_K ] = i
+    if N_mod_K: 
+        # we decide at random (sampling without repetition)
+        # to which groups we should assign the remaining free indices.
+        group_tags = list(range(K))
+        npr.shuffle(group_tags)
+        groups[-N_mod_K:] = group_tags[0:N_mod_K]
+    npr.shuffle(groups)
+    id_2_group = dict(zip(ids, groups))
+    return np.array([id_2_group[x] for x in x], dtype=np.int8) 
+
+
+K = 5 # number of folds
 # select runs that can be represented by the K folds
-foldable_runs = set(runs[peptides_cnt >= folds_no])
+foldable_runs = set(runs[peptides_cnt >= K])
 annotated_cv = annotated[ annotated.runs.isin(foldable_runs) ]
+folds = annotated_cv.groupby('runs').rt.transform(grouped_K_folds, K=K).astype(np.int8)
+count(folds)
+
+annotated_cv = annotated_cv.assign(fold=folds)
+# ATTENTION sizes of folds withing groups should be similar or equal
+for _, d in annotated_cv.groupby("run"):
+    a = count(d.fold)
+    print(sorted(list(a.items())))
+
+
+ps = PredefinedSplit(d.fold)
+ps.get_n_splits()
+
+for train_index, test_index in ps.split():
+   print("TRAIN:", d.loc[train_index], "TEST:", d.loc[test_index])
 
 
 
-# to use predefined split, we fill have to simply pass the indices of groups.
-# either use the existing implementation to iterate over the test groups
-# or reimplement to have only test groups
 
-# iterate over strata:
-
-# goal: get the division into folds for each stata and run
-#       group = id
-
-def stratify():
-    for runs, stratum in annotated_cv.groupby('runs'):
-        yield runs, stratum
-
-runs, stratum = next(stratify())
-
-### FUCK FUCK FUCK!!!
-# "run" in a group don't correspond to "runs" aggregate!
+cross_val_score(estimator, X, CV)
 
 
+ps.get_n_splits()
+
+print(ps)       
+
+for train_index, test_index in ps.split():
 
 
 

@@ -31,10 +31,7 @@ class SklearnRegression(SplineRegression):
         return "This is sklearn spline regression."
 
     def cv(self, folds=None):
-        pass
-        # if not folds:
-        #     folds = 
-
+        print(folds)
 
 
 def sklearn_spline(formula,
