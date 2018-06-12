@@ -12,9 +12,11 @@ import numpy.random as npr
 import pandas as pd
 from sklearn.model_selection import cross_val_score, PredefinedSplit
 
+from rta.models.base_model import cv, coef
 from rta.read_in_data import big_data
 from rta.preprocessing import preprocess
-from rta.models.sklearn_regressors import SklearnRegression
+from rta.models.sklearn_regressors import SklearnRegression, sklearn_spline
+from rta.models.huber import huber_spline
 from rta.xvalidation.grouped_k_folds import grouped_K_folds
 from rta.xvalidation.filters import filter_foldable
 
@@ -104,21 +106,22 @@ cross_val_score(estimator = naive_regressor,
 from sklearn.base import BaseEstimator, RegressorMixin
 
 
+h_spline = huber_spline(formula=formula,
+                        data=d,
+                        warm_start=True)
+cv(h_spline)
+coef(h_spline)
+# TODO 
+    # why the R**2 is so low? It seems impossible!
+    # learn how to define your own metrics.
+    # calculate some average Huber error (make it not increase with obs no)
+    # leave the strategy of using the Huber regressor alone for now.
+    # read how to do grid search on the df in the splines arg.
 
 
 
 # How can this be done efficiently?
 
-
-
-
-
-
-ps.get_n_splits()
-
-print(ps)
-
-for train_index, test_index in ps.split():
 
 
 

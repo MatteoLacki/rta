@@ -29,7 +29,7 @@ class Model(object):
     def plot(self):
         raise NotImplementedError
 
-    def cv(self):
+    def cv(self, **kwds):
         """Run cross-validation."""
         raise NotImplementedError
 
@@ -51,3 +51,6 @@ def residuals(model):
 
 def res(model):
     return model.res
+
+def cv(model, **kwds):
+    return model.cv(**kwds)
