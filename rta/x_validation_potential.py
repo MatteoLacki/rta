@@ -44,7 +44,7 @@ from patsy import dmatrices
 
 
 def fit_huber(data, formula, cv=False):
-    y, X = map(np.asarray, dmatrices(formula, data))    
+    y, X = map(np.asarray, dmatrices(formula, data))
     h_reg = HuberRegressor(warm_start = True,
                            fit_intercept = True,
                            alpha=.001,
@@ -67,24 +67,29 @@ def fit_huber(data, formula, cv=False):
 # what do we need now?
 # run the code for every run.
 
-formula = "rt_median_distance ~ bs(rt, df=40, degree=2, lower_bound=0, upper_bound=200, include_intercept=True) - 1"
 
+
+
+
+formula = "rt_median_distance ~ bs(rt, df=40, degree=2, lower_bound=0, upper_bound=200, include_intercept=True) - 1"
 for _, data in annotated_cv.groupby('run'):
     pass
 
 h_reg, cv_scores = fit_huber(data, formula, cv=False)
-h_reg.intercept_
-h_reg.scale_
-h_reg.sigma_
+# h_reg.intercept_
+# h_reg.scale_
+# h_reg.sigma_
 
-
-plt.scatter(data.rt,
-            data.rt_median_distance,
-            c = h_reg.outliers_)
-plt.show()
+## the outliers seem to work fine!
+# plt.scatter(data.rt,
+#             data.rt_median_distance,
+#             c = h_reg.outliers_)
+# plt.show()
 # wait, shouldn't we implement it in the general code?
 
 
+
+# How to build your own SKLearn estimator?
 from sklearn.utils.estimator_checks import check_estimator
 
 class NaiveRegressor():
@@ -100,14 +105,12 @@ cross_val_score(estimator = naive_regressor,
                 X = data.rt,
                 y = data.rt_median_distance)
 
-
 # Extending the class to match sklearn
-
 from sklearn.base import BaseEstimator, RegressorMixin
 
 
 h_spline = huber_spline(formula=formula,
-                        data=d,
+                        data=data,
                         warm_start=True)
 cv(h_spline)
 coef(h_spline)
@@ -120,7 +123,40 @@ coef(h_spline)
 
 
 
-# How can this be done efficiently?
+# How to make your own scoring?
+# Decision: let's move around the well-thought-of world of SKLearn
+from sklearn.model_selection import cross_validate
+from sklearn.metrics.scorer import make_scorer
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.metrics import make_scorer
+from rta.models.base_model import predict
+
+scoring = {"l1": make_scorer(mean_absolute_error),
+           "l2": make_scorer(mean_squared_error)}
+
+h_reg = h_spline.regressor
+X = h_spline.X
+y = h_spline.y
+
+ps = PredefinedSplit(h_spline.data.fold)
+cv_out = cross_validate(estimator=h_reg, 
+                        X=X,
+                        y=y,
+                        scoring=scoring,
+                        cv=ps)
+
+# question: did the score calculate what it says it did?
+TRAIN = data[data.fold != 1]
+TEST = data[data.fold == 1]
+h_test = huber_spline(formula=formula,
+                      data=TRAIN,
+                      warm_start=True)
+mean_absolute_error(TEST.rt_median_distance.ravel(),
+                    predict(h_test, newdata=TEST))
+
+
+
+
 
 
 
