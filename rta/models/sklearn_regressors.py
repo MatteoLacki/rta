@@ -6,6 +6,7 @@ from sklearn.linear_model import RANSACRegressor
 from sklearn.model_selection import cross_val_score, PredefinedSplit
 
 
+
 class SklearnRegression(SplineRegression):
     """Sklearn-based regression splines."""
     def fit(self,
@@ -40,6 +41,7 @@ class SklearnRegression(SplineRegression):
         """Perform cross validation of the final model."""
         print(folds)
         print("Dupa.")
+
 
 
 def sklearn_spline(formula,

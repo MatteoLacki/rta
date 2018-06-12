@@ -20,8 +20,15 @@ formula = "rt_median_distance ~ bs(rt, df=40, degree=2, lower_bound=0, upper_bou
 test = SklearnRegression()
 test.fit(formula, run1, warm_start=True)
 
+
+from sklearn.metrics import make_scorer
+from sklearn.metrics import accuracy_score
+scoring = {'AUC': 'roc_auc'}
+
+
 cross_val_score(test.regressor, 
 				np.asarray(test.X), 
-				np.asarray(test.y), 
-				cv=5,
-				n_jobs=-1)
+				np.asarray(test.y).flatten(), 
+				cv=10,
+				n_jobs=-1,
+				scoring='neg_mean_squared_error')
