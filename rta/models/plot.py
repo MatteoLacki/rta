@@ -20,18 +20,23 @@ def plot_curve(model,
     if out_x_range:
         return x_range
 
+
 def plot(model,
-         x_name='rt',
-         y_name='rt_median_distance',
          step = .1,
          out_x_range = False,
          plt_style = 'dark_background',
          **kwds):
     # TODO: extract the names from design_info.
     plt.style.use(plt_style)
-    plt.scatter(model.data[x_name],
-                model.data[y_name],
-                s=.4)
-    plot_curve(model, x_name, y_name, step, out_x_range, **kwds)
+    plt.scatter(model.control,
+                model.response,
+                s=.4,
+                c=model.signal)
+    plot_curve(model, 
+               model.control_name,
+               model.response_name,
+               step,
+               out_x_range,
+               **kwds)
     if out_x_range:
         return x_range
