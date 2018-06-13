@@ -3,7 +3,7 @@ def get_quantiles(x, chunks_no=4):
 	return np.percentile(x, np.linspace(0, 100, chunks_no+1))
 
 
-def get_k_percentile_pairs_of_N_integers(N, k):
+def percentile_pairs_of_N_integers(N, k):
 	"""Generate pairs of consecutive k-percentiles of N first integers.
 
 	The distribution concentrates on set { 0 , 1 , .., N-1 }.
@@ -21,3 +21,19 @@ def get_k_percentile_pairs_of_N_integers(N, k):
 			res -= 1
 		yield s, e
 		s = e
+
+
+def percentiles_of_N_integers(N, k):
+	"""Generate k-percentiles of uniform distribution over N elements.
+	
+	Find approximate percentiles of the uniform distrubution over { 0, 1, .., N - 1}."""
+	assert N >= 0 and k > 0
+	base_step = N // k
+	res = N % k
+	o = 0
+	for _ in range(k):
+		yield o
+		o += base_step
+		if res > 0:
+			o += 1
+			res -= 1
