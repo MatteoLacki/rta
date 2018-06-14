@@ -44,20 +44,23 @@ gmm_ols.fit(formula, data, data_sorted=True, chunks_no=chunks_no)
 x = gmm_ols.control
 y = gmm_ols.response
 
-o = y, x = dmatrices( (y, x) )
+# o = y, x = dmatrices( (y, x) )
 
 
 # np.percentile(xm q = )
-from rta.array_operations.misc import percentiles_of_N_integers as percentiles
+from rta.array_operations.misc import percentiles, percentiles_of_N_integers, percentiles_iter
 
-# need to pass them later on.
-control_percentiles = np.fromiter((x[i] for i in percentiles(len(y), chunks_no)
-                                   if i != chunks_no),
-                                  dtype=np.float64,
-                                  count=chunks_no - 1)
 
-len(control_percentiles)
+np.array(list(percentiles_of_N_integers(len(x), chunks_no)))
+len(x)
+np.array(list(percentiles_of_N_integers(len(x), chunks_no, inner=True)))
 
+perc_iter = percentiles_iter(x, chunks_no, inner=True)
+percentiles(x, chunks_no)
+percentiles(x, chunks_no, inner=True)
+
+
+control_percentiles = percentiles(x, chunks_no)
 b_splines = bs(x,
                df=None,
                knots=control_percentiles,
@@ -69,17 +72,50 @@ b_splines = bs(x,
 len(x[x <= control_percentiles[1]])
 np.all(b_splines[:,0] == 0)
 
+%%timeit
 b_splines = bs(x,
                df=None,
-               knots=np.percentile(x, q=[33,66]),
-               degree=0,
+               knots=control_percentiles,
+               degree=3,
                include_intercept=True,
                lower_bound=0,
                upper_bound=200)
 
-b_splines
+# TODO:
+	# reproduce the spline fitting with state-transforms
+		# adjust the predict function
+	# the fitting of splines can potentially be done repeatedly, so we will need these classes to 
+	# accept new arguments. 
+		# set warm starts everywhere
+		# splines will also need to be recalculated.
+# Question: how is beta spline evalution implemented by PATSY? Check source code.
+	# it calls scipy's implementation of Bsplines, that is a wrapper around some Fortran code
 
-b_splines.shape
+
+from scipy.interpolate import LSQUnivariateSpline as Spline
+from collections import Counter as count
+
+data_no_dups = data.drop_duplicates(subset='rt', keep=False, inplace=False)
+
+x = np.asarray(data_no_dups.rt)
+y = np.asarray(data_no_dups.rt_median_distance)
+
+min(x)
+control_percentiles = percentiles(x, chunks_no, inner=True)
+spline = Spline(x, y, control_percentiles[1:-2])
+
+percentiles(x, chunks_no)
+internal_percentiles(x, chunks_no)
+
+
+len(list(percentiles_iter(x, chunks_no, cut_outer=True)))
+percentiles(x, chunks_no)
+
+
+
+
+
+
 
 
 from rta.models.spline_regression import SplineRegression
