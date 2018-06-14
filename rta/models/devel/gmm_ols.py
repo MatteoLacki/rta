@@ -35,10 +35,52 @@ data = annotated_cv_1
 data = data.sort_values(['rt', 'rt_median_distance'])
 
 chunks_no = 100
-
 gmm_ols = GMM_OLS()
 formula = "rt_median_distance ~ bs(rt, df=40, degree=2, lower_bound=0, upper_bound=200, include_intercept=True) - 1"
 gmm_ols.fit(formula, data, data_sorted=True, chunks_no=chunks_no)
+
+# An alternative for the calling of the function: directly pass X, y
+# how will patsy handle directly passed a tupple?
+x = gmm_ols.control
+y = gmm_ols.response
+
+o = y, x = dmatrices( (y, x) )
+
+isinstance(o, tuple)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # sd = np.sqrt(gmm_ols.covariances[:,0])
 # plt.plot(range(len(sd)), sd)

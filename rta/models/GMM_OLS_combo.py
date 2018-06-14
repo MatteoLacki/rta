@@ -27,14 +27,13 @@ class GMM_OLS(SplineRegression):
             data={},
             data_sorted=False,
             chunks_no=100,
-            weighted=False,
+            weighted=False, # weightening will not influence the means but SDs
             **kwds):
         """Fit gaussian mixtures to chunks and then OLS."""
-        self.formula = formula
-        names = C_name, R_name = self.control_name, self.response_name = parse_formula(formula)
+        C_name, R_name = self.control_name, self.response_name = parse_formula(formula)
 
         if not data_sorted: # we can avoid that up the call tree
-            data = data.sort_values(by = list(names))
+            data = data.sort_values(by = [C_name, R_name])
         self.data = data
         self.response = R = np.asarray(data[R_name]).reshape(-1,1)
         self.control = C = np.asarray(data[C_name]).reshape(-1,1)
@@ -77,6 +76,7 @@ class GMM_OLS(SplineRegression):
             self.ols_res = np.linalg.lstsq(a=X[signal,], b=y[signal,])
         self.coef = self.ols_res[0]
         self.signal = signal.reshape(-1,1)
+
 
     def __repr__(self):
         return "GMM_OLS"

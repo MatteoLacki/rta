@@ -1,6 +1,16 @@
 class Model(object):
     """A container for storing results of fitting."""
     def fit(self, formula, data={}, **kwds):
+        """Patsy API,"""
+        raise NotImplementedError
+
+    def _fit(self, X, y, **kwds):
+        """Base API.
+
+        Args:
+            x:  1D control variable. Not yet processed.
+            y:  1D response variable
+        """
         raise NotImplementedError
 
     def fit_simple(self):
