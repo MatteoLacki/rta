@@ -40,12 +40,25 @@ gmm_ols = GMM_OLS()
 formula = "rt_median_distance ~ bs(rt, df=40, degree=2, lower_bound=0, upper_bound=200, include_intercept=True) - 1"
 gmm_ols.fit(formula, data, data_sorted=True, chunks_no=chunks_no)
 
-# plot(gmm_ols)
-# plt.show()
 # sd = np.sqrt(gmm_ols.covariances[:,0])
 # plt.plot(range(len(sd)), sd)
 # plt.show()
 
+
+# comparing the two fits
+plt.subplot(2, 1, 1)
+gmm_ols = GMM_OLS()
+gmm_ols.fit(formula, data, data_sorted=True, chunks_no=chunks_no)
+plot(gmm_ols)
+plt.ylim(-3,3) 
+
+plt.subplot(2, 1, 2)
+gmm_ols = GMM_OLS()
+gmm_ols.fit(formula, data, data_sorted=True, chunks_no=chunks_no, weighted=True)
+plot(gmm_ols)
+
+plt.ylim(-3,3) 
+plt.show()
 
 
 # Now: we have to sync the generation of spline with the percentiles of the control variable
@@ -75,7 +88,7 @@ plt.show()
 y1.design_info
 y.design_info
 
-from rta.array_operations.misc import percentiles_of_N_integers as percentiles
+
 
 control = gmm_ols.control
 

@@ -22,14 +22,20 @@ from rta.patsy_operations.parsers import parse_formula
 # 
 # TODO: Grid search not so difficult in terms of GMMs.
 class GMM_OLS(SplineRegression):
-    def fit(self, formula, data={}, data_sorted=False, chunks_no=100, **kwds):
+    def fit(self,
+            formula,
+            data={},
+            data_sorted=False,
+            chunks_no=100,
+            weighted=False,
+            **kwds):
+        """Fit gaussian mixtures to chunks and then OLS."""
         self.formula = formula
         names = C_name, R_name = self.control_name, self.response_name = parse_formula(formula)
 
         if not data_sorted: # we can avoid that up the call tree
             data = data.sort_values(by = list(names))
         self.data = data
-
         self.response = R = np.asarray(data[R_name]).reshape(-1,1)
         self.control = C = np.asarray(data[C_name]).reshape(-1,1)
 
@@ -59,7 +65,16 @@ class GMM_OLS(SplineRegression):
             self.covariances[i,:] = g_mix.covariances_.ravel()[idxs]
 
         # fitting linear regression to points considered noise
-        self.ols_res = np.linalg.lstsq(a=X[signal,], b=y[signal,])
+        if weighted:
+            weights = np.exp( - .5 * np.log(self.covariances)).ravel()
+            wX = X.copy()
+            wy = y.copy()
+            for w, (s,e) in zip(weights, percentile_pairs(len(y), chunks_no)):
+                wX[s:e] *= w
+                wy[s:e] *= w
+            self.ols_res = np.linalg.lstsq(a=wX[signal,], b=wy[signal,])
+        else:
+            self.ols_res = np.linalg.lstsq(a=X[signal,], b=y[signal,])
         self.coef = self.ols_res[0]
         self.signal = signal.reshape(-1,1)
 
