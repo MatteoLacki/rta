@@ -73,6 +73,5 @@ if __name__ == '__main__':
     gmm_ols.fit(formula, data, data_sorted=True, chunks=100)
 
     from rta.models.plot import plot
-
     plot(gmm_ols)
     plt.show()
