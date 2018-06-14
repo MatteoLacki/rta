@@ -21,6 +21,7 @@ from rta.preprocessing import preprocess
 from rta.xvalidation import grouped_K_folds, filter_foldable
 from rta.models.GMM_OLS_combo import GMM_OLS
 from rta.models.plot import plot
+from rta.array_operations.misc import percentiles
 
 # get data
 annotated, unlabelled = big_data()
@@ -34,109 +35,79 @@ annotated_cv_1 = annotated_cv[annotated_cv.run == 1]
 data = annotated_cv_1
 data = data.sort_values(['rt', 'rt_median_distance'])
 
-chunks_no = 100
-gmm_ols = GMM_OLS()
-formula = "rt_median_distance ~ bs(rt, df=40, degree=2, lower_bound=0, upper_bound=200, include_intercept=True) - 1"
-gmm_ols.fit(formula, data, data_sorted=True, chunks_no=chunks_no)
-
-# An alternative for the calling of the function: directly pass X, y
-# how will patsy handle directly passed a tupple?
-x = gmm_ols.control
-y = gmm_ols.response
-
-# o = y, x = dmatrices( (y, x) )
+# chunks_no = 100
+# gmm_ols = GMM_OLS()
+# formula = "rt_median_distance ~ bs(rt, df=40, degree=2, lower_bound=0, upper_bound=200, include_intercept=True) - 1"
+# gmm_ols.fit(formula, data, data_sorted=True, chunks_no=chunks_no)
 
 
-# np.percentile(xm q = )
-from rta.array_operations.misc import percentiles, percentiles_of_N_integers, percentiles_iter
-
-
-np.array(list(percentiles_of_N_integers(len(x), chunks_no)))
-len(x)
-np.array(list(percentiles_of_N_integers(len(x), chunks_no, inner=True)))
-
-perc_iter = percentiles_iter(x, chunks_no, inner=True)
-percentiles(x, chunks_no)
-percentiles(x, chunks_no, inner=True)
-
-
-control_percentiles = percentiles(x, chunks_no)
-b_splines = bs(x,
-               df=None,
-               knots=control_percentiles,
-               degree=0,
-               include_intercept=False,
-               lower_bound=0,
-               upper_bound=200)
-
-len(x[x <= control_percentiles[1]])
-np.all(b_splines[:,0] == 0)
-
-%%timeit
-b_splines = bs(x,
-               df=None,
-               knots=control_percentiles,
-               degree=3,
-               include_intercept=True,
-               lower_bound=0,
-               upper_bound=200)
 
 # TODO:
-	# reproduce the spline fitting with state-transforms
-		# adjust the predict function
-	# the fitting of splines can potentially be done repeatedly, so we will need these classes to 
-	# accept new arguments. 
-		# set warm starts everywhere
-		# splines will also need to be recalculated.
+    # reproduce the spline fitting with state-transforms
+        # adjust the predict function
+    # the fitting of splines can potentially be done repeatedly, so we will need these classes to 
+    # accept new arguments. 
+        # set warm starts everywhere
+        # splines will also need to be recalculated.
 # Question: how is beta spline evalution implemented by PATSY? Check source code.
-	# it calls scipy's implementation of Bsplines, that is a wrapper around some Fortran code
+    # it calls scipy's implementation of Bsplines, that is a wrapper around some Fortran code
 
 
 from scipy.interpolate import LSQUnivariateSpline as Spline
 from collections import Counter as count
+from rta.models.base_model import Model
 
-data_no_dups = data.drop_duplicates(subset='rt', keep=False, inplace=False)
-
-x = np.asarray(data_no_dups.rt)
-y = np.asarray(data_no_dups.rt_median_distance)
-
-min(x)
-control_percentiles = percentiles(x, chunks_no, inner=True)
-spline = Spline(x, y, control_percentiles[1:-2])
-
-percentiles(x, chunks_no)
-internal_percentiles(x, chunks_no)
-
-
-len(list(percentiles_iter(x, chunks_no, cut_outer=True)))
-percentiles(x, chunks_no)
+# making the data friendly for the Fortran Spline fitting.
 
 
 
 
+# assume x has no repeats
+class GMM_OLS(Model):
+    def __init__(self):
+        self.have_data = False
 
+    def prepare_df(self, data, x_name='x', y_name='y'):
+        data = data.drop_duplicates(subset=x_name, keep=False, inplace=False)
+        data = data.sort_values([x_name, y_name])
+        self.x, self.y = (np.asarray(data[name]) for name in (x_name, y_name))
+        self.have_data = True
 
-
-
-from rta.models.spline_regression import SplineRegression
-
-class GMM_OLS(SplineRegression):
     def fit(self,
-            formula,
-            data={},
-            data_sorted=False,
+            x=None,
+            y=None,
             chunks_no=100,
             **kwds):
+        """Fit a denoised spline."""
+        pass
+
+    def predict(self):
+        pass
+
+    def fitted(self):
+        pass
+
+    @property
+    def res(self):
+        """Get residuals."""
+        pass
+
+    def __repr__(self):
+        """Represent the model."""
+        #TODO make this more elaborate.
+        return "This is a GMM_OLS combo class for super-duper fitting."    
 
 
+gmm_ols = GMM_OLS()
+data_no_dups = data.drop_duplicates(subset='rt', keep=False, inplace=False)
+gmm_ols.prepare_df(data, 'rt', 'rt_median_distance')
 
+x, y = gmm_ols.x, gmm_ols.y
+chunks_no = 100 
 
-
-
-
-
-
-
+%%timeit
+x_inner_percentiles = percentiles(x, chunks_no, inner=True)
+spline = Spline(x, y, x_inner_percentiles)
 
 
 
