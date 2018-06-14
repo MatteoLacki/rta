@@ -11,7 +11,7 @@ Possibly checking for the values of some parameters.
 
 import matplotlib.pyplot as plt
 import numpy as np
-from patsy import dmatrices, dmatrix
+from patsy import dmatrices, dmatrix, bs, cr, cc
 from sklearn.linear_model import HuberRegressor
 from statsmodels import robust
 
@@ -28,7 +28,7 @@ annotated, annotated_stats = preprocess(annotated, min_runs_no = 2)
 K = 5 # number of folds
 annotated_cv = filter_foldable(annotated, annotated_stats, K)
 folds = annotated_cv.groupby('runs').rt.transform(grouped_K_folds,
-												  K = K).astype(np.int8)
+                                                  K = K).astype(np.int8)
 annotated_cv = annotated_cv.assign(fold=folds)
 annotated_cv_1 = annotated_cv[annotated_cv.run == 1]
 data = annotated_cv_1
@@ -46,9 +46,51 @@ y = gmm_ols.response
 
 o = y, x = dmatrices( (y, x) )
 
-isinstance(o, tuple)
+
+# np.percentile(xm q = )
+from rta.array_operations.misc import percentiles_of_N_integers as percentiles
+
+# need to pass them later on.
+control_percentiles = np.fromiter((x[i] for i in percentiles(len(y), chunks_no)
+                                   if i != chunks_no),
+                                  dtype=np.float64,
+                                  count=chunks_no - 1)
+
+len(control_percentiles)
+
+b_splines = bs(x,
+               df=None,
+               knots=control_percentiles,
+               degree=0,
+               include_intercept=False,
+               lower_bound=0,
+               upper_bound=200)
+
+len(x[x <= control_percentiles[1]])
+np.all(b_splines[:,0] == 0)
+
+b_splines = bs(x,
+               df=None,
+               knots=np.percentile(x, q=[33,66]),
+               degree=0,
+               include_intercept=True,
+               lower_bound=0,
+               upper_bound=200)
+
+b_splines
+
+b_splines.shape
 
 
+from rta.models.spline_regression import SplineRegression
+
+class GMM_OLS(SplineRegression):
+    def fit(self,
+            formula,
+            data={},
+            data_sorted=False,
+            chunks_no=100,
+            **kwds):
 
 
 
