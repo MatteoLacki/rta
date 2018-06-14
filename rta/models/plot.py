@@ -3,22 +3,18 @@ import matplotlib.pyplot as plt
 
 
 def plot_curve(model,
-               x_name='rt',
-               y_name='rt_median_distance',
                step = .1,
                out_x_range = False,
                **kwds):
-    x_min = min(model.data[x_name])
-    x_max = max(model.data[x_name])
-    x_range = np.arange(x_min, x_max, step)
-    prediction = model.predict(newdata = {x_name: x_range})
+    x_min = min(model.x)
+    x_max = max(model.y)
+    xs = np.arange(x_min, x_max, step)
+    ys = model.predict(xs)
     if 'c' not in kwds:
         kwds['c'] = 'red'
-    plt.plot(x_range,
-             prediction,
-             **kwds)
+    plt.plot(xs, ys, **kwds)
     if out_x_range:
-        return x_range
+        return xs
 
 
 def plot(model,
@@ -28,13 +24,11 @@ def plot(model,
          **kwds):
     # TODO: extract the names from design_info.
     plt.style.use(plt_style)
-    plt.scatter(model.control,
-                model.response,
+    plt.scatter(model.x,
+                model.y,
                 s=.4,
-                c=model.signal)
+                c=model.signal.reshape(-1, 1))
     plot_curve(model, 
-               model.control_name,
-               model.response_name,
                step,
                out_x_range,
                **kwds)
