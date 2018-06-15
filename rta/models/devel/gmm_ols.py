@@ -11,53 +11,87 @@ Possibly checking for the values of some parameters.
 
 import matplotlib.pyplot as plt
 import numpy as np
-from patsy import dmatrices, dmatrix, bs, cr, cc
-from sklearn.linear_model import HuberRegressor
-from statsmodels import robust
+import pandas as pd
 
 from rta.models.base_model import coef, predict, fitted, coefficients, residuals, res, cv
-from rta.read_in_data import big_data
-from rta.preprocessing import preprocess
-from rta.xvalidation import grouped_K_folds, filter_foldable
-from rta.models.GMLSQSpline import GMLSQSpline, fit_spline, fit_interlapping_mixtures
 from rta.models.plot import plot
+from rta.models.GMLSQSpline import GMLSQSpline, fit_spline, fit_interlapping_mixtures
+from rta.models.RapidGMLSQSpline import RapidGMLSQSpline 
+from rta.models.SQSpline import SQSpline, mad_window_filter
+
+data = pd.read_csv("/Users/matteo/Projects/rta/rta/data/one_run_5_folds.csv")
+chunks_no = 20
+
+
+# strategy relying more on pure splines
+s_model = SQSpline()
+s_model.df_2_data(data, 'rt', 'rt_median_distance')
+x, y = s_model.x, s_model.y
+
+%%timeit
+signal, medians, st_devs = mad_window_filter(x, y, chunks_no, 3, True)
+
+plt.style.use('dark_background')
+plt.scatter(x, y, c=signal, s=.4)
+plt.show()
+
+
+%%timeit
+s_model = SQSpline()
+s_model.df_2_data(data, 'rt', 'rt_median_distance')
+s_model.fit(chunks_no=chunks_no)
+
+plot(s_model)
+plt.ylim(-3,3) 
+plt.show()
+
+
+a, b = np.percentile(x, [10, 20])
+xx = x[np.logical_and(a <= x, x <= b)]
+yy = y[np.logical_and(a <= x, x <= b)]
+
+scaling = 1.4826
+plt.scatter(xx, yy, s=.4)
+plt.hlines([np.mean(yy), np.median(yy)], a, b, colors='red')
+plt.hlines([np.median(yy) - mad(yy) * scaling * 3,
+            np.median(yy) + mad(yy) * scaling * 3] , 
+            a, b, colors='blue')
+# plt.ylim(-3,3) 
+plt.show()
 
 
 
-annotated, unlabelled = big_data() # get data
-annotated, annotated_stats = preprocess(annotated, min_runs_no = 2)
-K = 5 # number of folds
-annotated_cv = filter_foldable(annotated, annotated_stats, K)
-folds = annotated_cv.groupby('runs').rt.transform(grouped_K_folds, K = K).astype(np.int8)
-annotated_cv = annotated_cv.assign(fold=folds)
-annotated_cv_1 = annotated_cv[annotated_cv.run == 1]
-data = annotated_cv_1
-data = data.sort_values(['rt', 'rt_median_distance'])
+plt.hist(yy, bins=50)
+plt.vlines([np.median(yy) - mad(yy) * sqrt(pi/2) * 3,
+            np.median(yy) + mad(yy) * sqrt(pi/2)] * 3, 
+            0, 1500, colors='blue')
+plt.show()
 
-# %%timeit
+
+
+
+
+# OLD CODE
+
 model = GMLSQSpline()
 model.df_2_data(data, 'rt', 'rt_median_distance')
-chunks_no = 10
-model.fit(chunks_no = chunks_no, warm_start=True)
+x, y = model.x, model.y
 
-# plot(model)
-# plt.ylim(-3,3) 
-# plt.show()
+%%timeit
+model = GMLSQSpline()
+model.fit(x, y, chunks_no, True)
 
-coef(model)
-predict(model, [10, 1223.232])
-fitted(model)
-coefficients(model)
-residuals(model)
-res(model)
-
-
+plot(model)
+plt.ylim(-3,3) 
+plt.show()
 
 # investigating different strategies of fitting to make it faster: premature optimization at its high!
-# I woke up this morning, and deep deep, I couldn't sleep. I found out, I was to become the Jesus of 
-# Saint Premature Optimization, walking the path of shame...
-from rta.models.RapidGMLSQSpline import RapidGMLSQSpline 
-
-
+%%timeit
 rapid_model = RapidGMLSQSpline()
-rapid_model.fit(x=gmm_ols.x, y=gmm_ols.y, chunks_no=chunks_no, warn_start=True)
+rapid_model.fit(x, y, chunks_no, True)
+
+# %lprun -f rapid_model.fit rapid_model.fit(model.x, model.y, chunks_no, warn_start=True)
+
+plot(rapid_model)
+plt.ylim(-3,3) 
+plt.show()

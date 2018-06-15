@@ -20,7 +20,7 @@ def fit_interlapping_mixtures(x, y, chunks_no=20, warm_start=True):
     for i, (s, ss, se, e) in enumerate(overlapped_percentile_pairs(len(x), chunks_no)):
         g_mix.fit(y[s:e])
         idxs = signal_idx, noise_idx = np.argsort(g_mix.covariances_.ravel()) # signal's variance is small
-        signal[s:e] = g_mix.predict(y[s:e]) == signal_idx
+        signal[ss:ee] = g_mix.predict(y[ss:ee]) == signal_idx
         probs[i,:] = g_mix.weights_[idxs]
         means[i,:] = g_mix.means_.ravel()[idxs]
         covariances[i,:] = g_mix.covariances_.ravel()[idxs]
@@ -30,7 +30,7 @@ def fit_interlapping_mixtures(x, y, chunks_no=20, warm_start=True):
 
 def fit_spline(x, y, chunks_no=20):
     """Efficienlty fit spline to the denoined data with the least squares method."""
-    x_inner_percentiles = percentiles(x, 2*chunks_no, inner=True)
+    x_inner_percentiles = percentiles(x, chunks_no, inner=True)
     return Spline(x, y, x_inner_percentiles)
 
 
@@ -70,7 +70,7 @@ class GMLSQSpline(Model):
         signal, self.probs, self.means, self.covariances = fit_interlapping_mixtures(x, y, chunks_no, warm_start)
         x_signal = self.x[signal].ravel()
         y_signal = self.y[signal].ravel()
-        self.spline = fit_spline(x_signal, y_signal, chunks_no=chunks_no)
+        self.spline = fit_spline(x_signal, y_signal, chunks_no)
         self.signal = signal.reshape(-1, 1)
 
     def predict(self, x):
