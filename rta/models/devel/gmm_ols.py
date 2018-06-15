@@ -78,7 +78,7 @@ class GMM_OLS(Model):
     def fit(self,
             x=None,
             y=None,
-            chunks_no=100,
+            chunks_no=20,
             warm_start=False,
             **kwds):
         """Fit a denoised spline."""
@@ -90,16 +90,10 @@ class GMM_OLS(Model):
         N_obs = len(x)
         self.signal = signal = np.empty(N_obs, dtype=np.bool_)
         g_mix = GM(n_components = 2, warm_start=warm_start)
-        if overlapping:
-            perc = overlapped_percentile_pairs(N_obs, chunks_no)
-            adj_chunks = chunks_no - 2
-        else:
-            perc = percentile_pairs(N_obs, chunks_no)
-            adj_chunks = chunks_no
-        self.probs = probs = np.empty((adj_chunks, 2), dtype=np.float64)
+        self.probs = probs = np.empty((chunks_no, 2), dtype=np.float64)
         self.means = means = probs.copy()
         self.covariances = covariances = probs.copy()
-        for i, (s, e) in enumerate(perc):
+        for i, (s, ss, se, e) in enumerate(overlapped_percentile_pairs(N_obs, chunks_no)):
             # NOTE: the control "x" does not appear here
             g_mix.fit(y[s:e])
             # signal has smaller variance
@@ -111,7 +105,7 @@ class GMM_OLS(Model):
             covariances[i,:] = g_mix.covariances_.ravel()[idxs]
         x_signal = x[signal].ravel()
         y_signal = y[signal].ravel()
-        x_inner_percentiles = percentiles(x_signal, chunks_no, inner=True)
+        x_inner_percentiles = percentiles(x_signal, 2*chunks_no, inner=True)
         self.spline = Spline(x_signal, y_signal, x_inner_percentiles)
 
     def predict(self, x):
@@ -130,10 +124,22 @@ class GMM_OLS(Model):
         #TODO make this more elaborate.
         return "This is a GMM_OLS combo class for super-duper fitting."    
 
-chunks_no = 50
+# list(overlapped_percentile_pairs(N, k))
+
+# it seems that GMM and OLS should be separate.
+
 gmm_ols = GMM_OLS()
 gmm_ols.df_2_data(data, 'rt', 'rt_median_distance')
+
+%%timeit
+chunks_no = 10
 gmm_ols.fit(chunks_no = chunks_no)
+
+%%timeit
+chunks_no = 10
+gmm_ols.fit(chunks_no = chunks_no, warm_start=True)
+
+
 plot(gmm_ols)
 plt.show()
 

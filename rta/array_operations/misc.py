@@ -49,10 +49,12 @@ def percentiles_of_N_integers(N, k, return_last=True, inner=False):
 def overlapped_percentile_pairs(N, k):
     perc = percentiles_of_N_integers(N, k)
     i0, i1, i2, i3 = next(perc), next(perc), next(perc), next(perc)
-    yield i0, i3
+    yield i0, i0, i1, i2
+    yield i0, i1, i2, i3
     for i in perc:
         i0, i1, i2, i3 = i1, i2, i3, i
-        yield i0, i3
+        yield i0, i1, i2, i3
+    yield i1, i2, i3, i3
 
 
 def percentiles_iter(x, k, inner=False):
