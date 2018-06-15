@@ -7,7 +7,7 @@ def plot_curve(model,
                out_x_range = False,
                **kwds):
     x_min = min(model.x)
-    x_max = max(model.y)
+    x_max = max(model.x)
     xs = np.arange(x_min, x_max, step)
     ys = model.predict(xs)
     if 'c' not in kwds:

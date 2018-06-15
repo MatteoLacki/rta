@@ -56,10 +56,11 @@ from collections import Counter as count
 from scipy.interpolate import LSQUnivariateSpline as Spline
 from sklearn.mixture import GaussianMixture as GM
 
-from rta.models.base_model import Model
 from rta.array_operations.misc import percentiles, percentile_pairs_of_N_integers as percentile_pairs
+from rta.array_operations.misc import overlapped_percentile_pairs
+from rta.models.base_model import Model
+from rta.models.plot import plot
 
-# FIX THIS SHIT!!!
 
 
 class GMM_OLS(Model):
@@ -78,6 +79,7 @@ class GMM_OLS(Model):
             x=None,
             y=None,
             chunks_no=100,
+            warm_start=False,
             **kwds):
         """Fit a denoised spline."""
         if not self.has_data:
@@ -87,15 +89,22 @@ class GMM_OLS(Model):
             x, y = self.x, self.y
         N_obs = len(x)
         self.signal = signal = np.empty(N_obs, dtype=np.bool_)
-        self.probs = probs = np.empty((chunks_no, 2), dtype=np.float64)
+        g_mix = GM(n_components = 2, warm_start=warm_start)
+        if overlapping:
+            perc = overlapped_percentile_pairs(N_obs, chunks_no)
+            adj_chunks = chunks_no - 2
+        else:
+            perc = percentile_pairs(N_obs, chunks_no)
+            adj_chunks = chunks_no
+        self.probs = probs = np.empty((adj_chunks, 2), dtype=np.float64)
         self.means = means = probs.copy()
         self.covariances = covariances = probs.copy()
-        g_mix = GM(n_components = 2, warm_start=False)
-        for i, (s, e) in enumerate(percentile_pairs(N_obs, chunks_no)):
-            g_mix.fit(x[s:e])
+        for i, (s, e) in enumerate(perc):
+            # NOTE: the control "x" does not appear here
+            g_mix.fit(y[s:e])
             # signal has smaller variance
             idxs = signal_idx, noise_idx = np.argsort(g_mix.covariances_.ravel())
-            signal[s:e] = g_mix.predict(x[s:e]) == signal_idx
+            signal[s:e] = g_mix.predict(y[s:e]) == signal_idx
             # other chunk-specific outputs
             probs[i,:] = g_mix.weights_[idxs]
             means[i,:] = g_mix.means_.ravel()[idxs]
@@ -121,21 +130,21 @@ class GMM_OLS(Model):
         #TODO make this more elaborate.
         return "This is a GMM_OLS combo class for super-duper fitting."    
 
-
+chunks_no = 50
 gmm_ols = GMM_OLS()
-data_no_dups = data.drop_duplicates(subset='rt', keep=False, inplace=False)
 gmm_ols.df_2_data(data, 'rt', 'rt_median_distance')
-gmm_ols.fit(chunks_no = 10)
-
-gmm_ols.fitted()
-gmm_ols.predict(np.asarray([10, 20]))
-gmm_ols.signal.reshape(-1, 1)
-
-from rta.models.plot import plot
+gmm_ols.fit(chunks_no = chunks_no)
 plot(gmm_ols)
 plt.show()
 
+from rta.array_operations.misc import percentiles_of_N_integers
+x = gmm_ols.x
+N = N_obs = len(x)
+k = chunks_no
 
+
+
+list(overlapped_percentile_pairs(N, k))
 
 # OBSERVATION: if that cannot be optimized in C, than I am a silly wig.
 # 98% comes from fitting the Gaussian mixture.
