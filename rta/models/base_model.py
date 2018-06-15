@@ -1,30 +1,20 @@
 class Model(object):
     """A container for storing results of fitting."""
-    def fit(self, formula, data={}, **kwds):
+    def fit(self, x, y, **kwds):
         """Patsy API,"""
-        raise NotImplementedError
-
-    def _fit(self, X, y, **kwds):
-        """Base API.
-
-        Args:
-            x:  1D control variable. Not yet processed.
-            y:  1D response variable
-        """
-        raise NotImplementedError
-
-    def fit_simple(self):
         raise NotImplementedError
 
     def predict(self, newdata={}, *args, **kwds):
         """Predict the values at the new data points."""
         raise NotImplementedError
 
-    @property
-    def coefficients(self):
-        return self.coef
+    def coef(self):
+        """Retrieve spline coefficient.
 
-    @property
+        Then again, why would you?
+        """
+        raise NotImplementedError
+
     def res(self):
         """Get residuals."""
         raise NotImplementedError
@@ -51,16 +41,16 @@ def fitted(model):
     return model.fitted()
 
 def coef(model):
-    return model.coef
+    return model.coef()
 
 def coefficients(model):
-    return model.coefficients
+    return model.coef()
 
 def residuals(model):
-    return model.residuals()
+    return model.res()
 
 def res(model):
-    return model.res
+    return model.res()
 
 def cv(model, **kwds):
     return model.cv(**kwds)

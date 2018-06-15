@@ -27,7 +27,7 @@ def plot(model,
     plt.scatter(model.x,
                 model.y,
                 s=.4,
-                c=model.signal.reshape(-1, 1))
+                c=model.signal)
     plot_curve(model, 
                step,
                out_x_range,
