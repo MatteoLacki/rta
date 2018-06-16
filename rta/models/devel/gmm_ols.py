@@ -28,13 +28,6 @@ s_model = SQSpline()
 s_model.df_2_data(data, 'rt', 'rt_median_distance')
 x, y = s_model.x, s_model.y
 
-%%timeit
-signal, medians, st_devs = mad_window_filter(x, y, chunks_no, 3, True)
-
-plt.style.use('dark_background')
-plt.scatter(x, y, c=signal, s=.4)
-plt.show()
-
 
 %%timeit
 s_model = SQSpline()
@@ -44,31 +37,6 @@ s_model.fit(chunks_no=chunks_no)
 plot(s_model)
 plt.ylim(-3,3) 
 plt.show()
-
-
-a, b = np.percentile(x, [10, 20])
-xx = x[np.logical_and(a <= x, x <= b)]
-yy = y[np.logical_and(a <= x, x <= b)]
-
-scaling = 1.4826
-plt.scatter(xx, yy, s=.4)
-plt.hlines([np.mean(yy), np.median(yy)], a, b, colors='red')
-plt.hlines([np.median(yy) - mad(yy) * scaling * 3,
-            np.median(yy) + mad(yy) * scaling * 3] , 
-            a, b, colors='blue')
-# plt.ylim(-3,3) 
-plt.show()
-
-
-
-plt.hist(yy, bins=50)
-plt.vlines([np.median(yy) - mad(yy) * sqrt(pi/2) * 3,
-            np.median(yy) + mad(yy) * sqrt(pi/2)] * 3, 
-            0, 1500, colors='blue')
-plt.show()
-
-
-
 
 
 # OLD CODE

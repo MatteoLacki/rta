@@ -4,6 +4,70 @@
 		"selected_items":
 		[
 			[
+				"coe",
+				"coefficients\tfunction"
+			],
+			[
+				"per",
+				"percentiles_of_N_integers\tfunction"
+			],
+			[
+				"medi",
+				"rt_median_distance"
+			],
+			[
+				"anno",
+				"annotated\tstatement"
+			],
+			[
+				"o",
+				"ordered_str"
+			],
+			[
+				"runs",
+				"runs_no"
+			],
+			[
+				"min",
+				"min_rt\tstatement"
+			],
+			[
+				"unlabelled",
+				"unlabelled_slim\tstatement"
+			],
+			[
+				"annot",
+				"annotated_stats\tstatement"
+			],
+			[
+				"asa",
+				"asarray\tfunction"
+			],
+			[
+				"ann",
+				"annotated_slim\tstatement"
+			],
+			[
+				"rt",
+				"rt_median_distance"
+			],
+			[
+				"as",
+				"asarray\tfunction"
+			],
+			[
+				"pat",
+				"patsy\tmodule"
+			],
+			[
+				"mod",
+				"model_name\tstatement"
+			],
+			[
+				"Nto",
+				"NotImplementedError\tclass"
+			],
+			[
 				"scan",
 				"scannumber"
 			],
@@ -18,10 +82,6 @@
 			[
 				"num",
 				"numSlice"
-			],
-			[
-				"rt",
-				"rt_aligned_median"
 			],
 			[
 				"mul",
@@ -56,10 +116,10 @@
 	"buffers":
 	[
 		{
-			"file": "/Users/matteo/Downloads/multiprocessing_test.py",
+			"file": "rta/models/GMM_OLS_combo.py",
 			"settings":
 			{
-				"buffer_size": 1233,
+				"buffer_size": 3294,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -109,6 +169,62 @@
 		"selected_items":
 		[
 			[
+				"sen",
+				"SendCode: Choose Program"
+			],
+			[
+				"send",
+				"SendCode: Choose Program"
+			],
+			[
+				"termin",
+				"Preferences: Terminal View: Settings"
+			],
+			[
+				"ay",
+				"ayu: Activate theme"
+			],
+			[
+				"ins",
+				"Package Control: Install Package"
+			],
+			[
+				"colo",
+				"UI: Select Color Scheme"
+			],
+			[
+				"box",
+				"Boxy Theme: Preferences"
+			],
+			[
+				"remo",
+				"Package Control: Remove Package"
+			],
+			[
+				"colorco",
+				"Tweak Colorcode to current color scheme"
+			],
+			[
+				"instal",
+				"Package Control: Install Package"
+			],
+			[
+				"color",
+				"UI: Select Color Scheme"
+			],
+			[
+				"theme",
+				"UI: Select Color Scheme"
+			],
+			[
+				"ter",
+				"Preferences: Terminal View: Settings"
+			],
+			[
+				"term",
+				"Terminal View: Open Bash Terminal"
+			],
+			[
 				"insta",
 				"Package Control: Install Package"
 			],
@@ -121,24 +237,12 @@
 				"Package Control: Install Package"
 			],
 			[
-				"ins",
-				"Package Control: Install Package"
-			],
-			[
-				"colorco",
-				"Tweak Colorcode to current color scheme"
-			],
-			[
 				"colors",
 				"UI: Select Color Scheme"
 			],
 			[
 				"inst",
 				"Package Control: Install Package"
-			],
-			[
-				"color",
-				"UI: Select Color Scheme"
 			],
 			[
 				"her",
@@ -155,10 +259,6 @@
 			[
 				"antia",
 				"Package Control: Install Package"
-			],
-			[
-				"theme",
-				"UI: Select Theme"
 			]
 		],
 		"width": 0.0
@@ -182,10 +282,50 @@
 	},
 	"expanded_folders":
 	[
-		"/Users/matteo/Projects/rta"
+		"/Users/matteo/Projects/rta",
+		"/Users/matteo/Projects/rta/rta",
+		"/Users/matteo/Projects/rta/rta/alignment",
+		"/Users/matteo/Projects/rta/rta/models"
 	],
 	"file_history":
 	[
+		"/Users/matteo/Projects/rta/rta/models/GMLSQSpline.py",
+		"/Users/matteo/Projects/rta/rta/models/SQSpline.py",
+		"/Users/matteo/Projects/rta/TODO.md",
+		"/Users/matteo/Projects/rta/rta/models/devel/gmm_ols.py",
+		"/Users/matteo/Projects/rta/rta/models/plot.py",
+		"/Users/matteo/Projects/rta/rta/models/RapidGMLSQSpline.py",
+		"/Users/matteo/Projects/rta/rta/alignment/run_alignment.py",
+		"/Users/matteo/Projects/rta/rta/models/GMM_OLS_combo.py",
+		"/Users/matteo/Projects/rta/rta/models/base_model.py",
+		"/Users/matteo/Projects/rta/rta/array_operations/misc.py",
+		"/Users/matteo/Projects/rta/rta/junk/patsy_bs.py",
+		"/Users/matteo/Projects/rta/rta/models/spline_regression.py",
+		"/Users/matteo/Projects/rta/rta/misc.py",
+		"/Users/matteo/Projects/rta/rta/splines/denoising.py",
+		"/Users/matteo/Projects/rta/rta/models/least_squares_splines.py",
+		"/Users/matteo/Projects/rta/rta/patsy_operations/parsers.py",
+		"/Users/matteo/Projects/rta/rta/models/test_statistics/rt_residuals_distro.py",
+		"/Users/matteo/Projects/rta/rta/x_validation_potential.py",
+		"/Users/matteo/Projects/rta/rta/models/sklearn_regressors.py",
+		"/Users/matteo/Projects/rta/rta/array_operations/__init__.py",
+		"/Users/matteo/Projects/rta/rta/patsy_operations/__init__.py",
+		"/Users/matteo/Projects/rta/rta/xvalidation/__init__.py",
+		"/Users/matteo/Projects/rta/rta/xvalidation/grouped_k_folds.py",
+		"/Users/matteo/Projects/rta/rta/xvalidation/filters.py",
+		"/Users/matteo/Projects/rta/rta/xvalidation/pept_ids_representation_in_runs.py",
+		"/Users/matteo/Projects/rta/rta/splines/denoising2.py",
+		"/Users/matteo/Projects/rta/rta/read_in_data.py",
+		"/Users/matteo/Projects/rta/rta/preprocessing.py",
+		"/Users/matteo/Projects/rta/rta/getting_to_grips_with_pandas.py",
+		"/Users/matteo/Projects/rta/rta/profiling_denoise_and_align.py",
+		"/Users/matteo/Projects/rta/rta/splines/denoising_procedure.py",
+		"/Users/matteo/Projects/rta/rta/tweaking_preprocessing.py",
+		"/Users/matteo/Downloads/multiprocessing_test.py",
+		"/Users/matteo/Projects/rta/rta/scripts/xvalidationq.py",
+		"/Users/matteo/Projects/rta/rta/models/quantile.py",
+		"/Users/matteo/Projects/rta/rta/models/__init__.py",
+		"/Users/matteo/Projects/rta/rta/models/huber.py",
 		"/Users/matteo/Projects/masstodon_response_to_reviewers/data/PXD001845/20141202_AMB_Bora_10x_40MeOH_1FA_OT_120k_10uscans_728_ETD_4ms_24precZ.raw",
 		"/Users/matteo/Projects/masstodon_response_to_reviewers/data/uniprot-organism%3A1241935.fasta",
 		"/Users/matteo/Projects/masstodon_response_to_reviewers/data/tabula-IH532330.csv",
@@ -208,16 +348,15 @@
 		"/Users/matteo/Projects/rta/rta/dbscan/dbscan_percentile_boxes.py",
 		"/Users/matteo/Projects/rta/rta/kd_tree/developing_kd_trees.py",
 		"/Users/matteo/.config/zathura/zathurarc",
-		"/Users/matteo/Projects/rta/rta/splines/denoising_procedure.py",
 		"/opt/X11/include/X11/extensions/xtrapdi.h"
 	],
 	"find":
 	{
-		"height": 27.0
+		"height": 54.0
 	},
 	"find_in_files":
 	{
-		"height": 0.0,
+		"height": 134.0,
 		"where_history":
 		[
 		]
@@ -227,6 +366,22 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"percentiles",
+			"ss",
+			"count",
+			"adju",
+			"adji",
+			"signal",
+			"runs_dtype",
+			"get_present_runs",
+			"npr",
+			"objects",
+			"np.random",
+			"range",
+			"xran",
+			"xrag",
+			"print",
+			"kwds"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -234,6 +389,8 @@
 		"regex": false,
 		"replace_history":
 		[
+			"x",
+			"npr"
 		],
 		"reverse": false,
 		"show_context": true,
@@ -249,46 +406,55 @@
 			[
 				{
 					"buffer": 0,
-					"file": "/Users/matteo/Downloads/multiprocessing_test.py",
+					"file": "rta/models/GMM_OLS_combo.py",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 1233,
+						"buffer_size": 3294,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								364,
-								364
+								1339,
+								1339
 							]
 						],
 						"settings":
 						{
-							"colorcode": true,
 							"show_definitions": false,
 							"syntax": "Packages/Python/Python.sublime-syntax",
 							"tab_size": 4,
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 220.0,
+						"translation.y": 358.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 0,
 					"type": "text"
 				}
 			]
+		},
+		{
+			"sheets":
+			[
+			]
+		},
+		{
+			"sheets":
+			[
+			]
 		}
 	],
 	"incremental_find":
 	{
-		"height": 27.0
+		"height": 26.0
 	},
 	"input":
 	{
-		"height": 40.0
+		"height": 50.0
 	},
 	"layout":
 	{
@@ -299,11 +465,25 @@
 				0,
 				1,
 				1
+			],
+			[
+				1,
+				0,
+				2,
+				1
+			],
+			[
+				2,
+				0,
+				3,
+				1
 			]
 		],
 		"cols":
 		[
 			0.0,
+			0.33,
+			0.66,
 			1.0
 		],
 		"rows":
@@ -329,7 +509,7 @@
 	"project": "rta.sublime-project",
 	"replace":
 	{
-		"height": 50.0
+		"height": 48.0
 	},
 	"save_all_on_build": true,
 	"select_file":
@@ -338,6 +518,106 @@
 		"last_filter": "",
 		"selected_items":
 		[
+			[
+				"TODO",
+				"TODO.md"
+			],
+			[
+				"SQL",
+				"rta/models/SQSpline.py"
+			],
+			[
+				"plot",
+				"rta/models/plot.py"
+			],
+			[
+				"comb",
+				"rta/models/GMM_OLS_combo.py"
+			],
+			[
+				"junk",
+				"rta/junk/patsy_bs.py"
+			],
+			[
+				"bas",
+				"rta/models/base_model.py"
+			],
+			[
+				"GLM",
+				"rta/models/GMM_OLS_combo.py"
+			],
+			[
+				"misc",
+				"rta/array_operations/misc.py"
+			],
+			[
+				"array_oper",
+				"rta/array_operations/misc.py"
+			],
+			[
+				"base",
+				"rta/models/base_model.py"
+			],
+			[
+				"Spine",
+				"rta/models/spline_regression.py"
+			],
+			[
+				"plo",
+				"rta/models/plot.py"
+			],
+			[
+				"pars",
+				"rta/patsy_operations/parsers.py"
+			],
+			[
+				"deni",
+				"rta/splines/denoising.py"
+			],
+			[
+				"deno",
+				"rta/splines/denoising.py"
+			],
+			[
+				"SKL",
+				"rta/models/sklearn_regressors.py"
+			],
+			[
+				"splin",
+				"rta/models/spline_regression.py"
+			],
+			[
+				"skle",
+				"rta/models/sklearn_regressors.py"
+			],
+			[
+				"poten",
+				"rta/x_validation_potential.py"
+			],
+			[
+				"pandas",
+				"rta/getting_to_grips_with_pandas.py"
+			],
+			[
+				"twa",
+				"rta/tweaking_preprocessing.py"
+			],
+			[
+				"spline",
+				"rta/models/spline_regression.py"
+			],
+			[
+				"denoi",
+				"rta/splines/denoising.py"
+			],
+			[
+				"quant",
+				"rta/models/quantile.py"
+			],
+			[
+				"hub",
+				"rta/models/huber.py"
+			],
 			[
 				"kd",
 				"rta/kd_tree/kd_tree_nice.py"
@@ -370,8 +650,8 @@
 	"show_minimap": false,
 	"show_open_files": false,
 	"show_tabs": true,
-	"side_bar_visible": true,
-	"side_bar_width": 269.0,
+	"side_bar_visible": false,
+	"side_bar_width": 294.0,
 	"status_bar_visible": true,
 	"template_settings":
 	{
