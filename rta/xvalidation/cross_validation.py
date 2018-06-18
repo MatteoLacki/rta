@@ -31,12 +31,66 @@ annotated, annotated_stats = preprocess(annotated, min_runs_no = 2)
 folds_no = K = 5
 
 # only 50 ms
-annotated_cv, annotated_stats_cv = filter_K_foldable(annotated, annotated_stats, K)
+annotated_cv, annotated_stats_cv, run_counts = filter_K_foldable(annotated, annotated_stats, K)
+
+# build up the groups
+annotated_stats_cv
+
+# so now, we have to build up space for the folds indices
+folds = np.zeros(len(annotated_stats_cv))
+
+
+# TODO: we do not need that: replace it with simple for with if condition.
+# what are the numbers of peptides in each foldable group?
+peptide_counts_in_runs = dict(((runs, cnt) for runs, cnt in run_counts.items() if cnt >= K))
+
+# within each "runs" group, do the assignment to folds
+annotated_stats_cv.groupby('runs')
+
+
+# this can be very well done based on the 'run_counts'
 
 
 
 
-grouped_K_folds(annotated_cv.id, folds_no)
+def test(x, K):
+    N = len(x)
+    groups = np.full((N,), 0)
+    # produce an array of K numbers repeated 
+    N_div_K = N // K
+    N_mod_K = N % K
+    for i in range(1, K):
+        groups[ i * N_div_K : (i+1) * N_div_K ] = i
+    if N_mod_K: 
+        group_tags = np.arange(K)
+        shuffle(group_tags)         # random permutation of groups
+        groups[-N_mod_K:] = group_tags[0:N_mod_K] # assigning the remainder
+    shuffle(groups)
+    return groups
+
+folds = annotated_stats_cv.groupby('runs').runs_no.transform(test, K=K)
+
+
+pd.merge(annotated_cv, 
+         pd.DataFrame(folds), left_on="id", right_index=True)
+
+
+# we have filled the folds with proper values
+# now, we have to order the annotated_cv based on the values of this vector.
+# this can be done wihout appending the function
+
+# the order is wrong
+
+
+
+
+
+# then, we will have to scan the df for the order of these things and pass the views of
+# the data to fitting procedures
+
+
+
+
 
 # will it be faster if we change the whole peptide_id to integers?
 annotated_cv.id = annotated_cv.id.astype('category')
@@ -114,13 +168,4 @@ def get_shuffling(x):
 
 annotated_stats.groupby('runs').transform(get())
 
-def test(N, K):
-    groups = np.arange(N)
-    npr.shuffle(groups)
-    np.array_split(groups, K)
-
-
-
-
-test(N, K)
 
