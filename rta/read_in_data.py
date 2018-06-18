@@ -7,12 +7,25 @@
 import numpy as np
 import pandas as pd
 import platform
+import os
 
 # TODO eliminate the 'id' column and use indexing based on 
 # sequence and modification instead (to save memory)
 
 
-def big_data(path = None,
+def data_folder(path=""):    
+    system = platform.system()
+    if system == "Linux":
+        pre_path = "rta/data/"
+    elif system == "Darwin":
+        pre_path = "~/Projects/retentiontimealignment/Data/"
+    else:
+        raise KeyError("We support MacOS and Linux only.")
+    path = os.path.join(pre_path, path)
+    return path    
+
+
+def big_data(path = "",
              vars_annotated = [ 'id',
                                 'run',
                                 'mass',
@@ -40,15 +53,7 @@ def big_data(path = None,
                                 'LiftOffRT',
                                 'InfUpRT',
                                 'TouchDownRT']):
-    if not path:
-        system = platform.system()
-        if system == "Linux":
-            path = "rta/data/"
-        elif system == "Darwin":
-            path = "~/Projects/retentiontimealignment/Data/"
-        else:
-            raise KeyError("We support MacOS and Linux only.")
-            
+    path = data_folder(path)
     annotated  = pd.read_csv(path+'annotated_data.csv',
                              usecols=vars_annotated)
     unlabelled = pd.read_csv(path+'unannotated_data.csv',

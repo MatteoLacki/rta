@@ -2,6 +2,7 @@ import numpy as np
 from numpy.random import shuffle
 
 
+# this procedure is totally shit!!!
 def grouped_K_folds(x, K):
     """Get K-folds that respects the inner groupings.
 
@@ -27,8 +28,9 @@ def grouped_K_folds(x, K):
         # we decide at random (sampling without repetition)
         # to which groups we should assign the remaining free indices.
         group_tags = list(range(K))
-        shuffle(group_tags)
-        groups[-N_mod_K:] = group_tags[0:N_mod_K]
-    shuffle(groups)
+        shuffle(group_tags)         # random permutation of groups
+        groups[-N_mod_K:] = group_tags[0:N_mod_K] # assigning the remainder
+    shuffle(groups) #???
     id_2_group = dict(zip(ids, groups))
-    return np.array([id_2_group[x] for x in x], dtype=np.int8) 
+    # 'x' contains copies of group tags.
+    return np.array([id_2_group[x] for x in x], dtype=np.int8)

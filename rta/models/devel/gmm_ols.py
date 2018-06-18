@@ -18,9 +18,11 @@ from rta.models.plot import plot
 from rta.models.GMLSQSpline import GMLSQSpline, fit_spline, fit_interlapping_mixtures
 from rta.models.RapidGMLSQSpline import RapidGMLSQSpline 
 from rta.models.SQSpline import SQSpline, mad_window_filter
+from rta.read_in_data import data_folder
 
-data = pd.read_csv("/Users/matteo/Projects/rta/rta/data/one_run_5_folds.csv")
-chunks_no = 20
+
+data = pd.read_csv(data_folder("one_run_5_folds.csv"))
+chunks_no = 100
 
 
 # strategy relying more on pure splines
@@ -38,9 +40,7 @@ plot(s_model)
 plt.ylim(-3,3) 
 plt.show()
 
-
-# OLD CODE
-
+# OLDER TECHNOLOGY
 model = GMLSQSpline()
 model.df_2_data(data, 'rt', 'rt_median_distance')
 x, y = model.x, model.y

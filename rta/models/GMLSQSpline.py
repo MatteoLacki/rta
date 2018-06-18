@@ -20,7 +20,7 @@ def fit_interlapping_mixtures(x, y, chunks_no=20, warm_start=True):
     for i, (s, ss, se, e) in enumerate(overlapped_percentile_pairs(len(x), chunks_no)):
         g_mix.fit(y[s:e])
         idxs = signal_idx, noise_idx = np.argsort(g_mix.covariances_.ravel()) # signal's variance is small
-        signal[ss:ee] = g_mix.predict(y[ss:ee]) == signal_idx
+        signal[ss:se] = g_mix.predict(y[ss:se]) == signal_idx
         probs[i,:] = g_mix.weights_[idxs]
         means[i,:] = g_mix.means_.ravel()[idxs]
         covariances[i,:] = g_mix.covariances_.ravel()[idxs]
