@@ -70,9 +70,21 @@ def test(x, K):
 
 folds = annotated_stats_cv.groupby('runs').runs_no.transform(test, K=K)
 
+annotated_cv = pd.merge(annotated_cv,
+                        pd.DataFrame(folds),
+                        left_on="id",
+                        right_index=True)
+# hahaha direct pass the series!!!
+for group, data in annotated_cv.id.groupby(folds):
+    print(group, data)
 
-pd.merge(annotated_cv, 
-         pd.DataFrame(folds), left_on="id", right_index=True)
+
+# TODO : can one group by a value of a function?
+# then we could at least save on appending some stupid column.
+
+
+
+
 
 
 # we have filled the folds with proper values
