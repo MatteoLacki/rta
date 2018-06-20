@@ -50,3 +50,13 @@ class SQSpline(GMLSQSpline):
         x, y, chunks_no = self.check_input(x, y, chunks_no)
         self.signal, self.medians, self.st_devs = mad_window_filter(x, y, chunks_no, sd_cnt, True)
         self.spline = fit_spline(x[self.signal], y[self.signal], chunks_no)
+
+    def denoise(self, y):
+        """Apply the denoising for the 'y' values."""
+        raise NotImplementedError
+
+    def predict(self, x):
+        return self.spline(x)
+
+    def fitted(self):
+        return self.spline(self.x.ravel())
