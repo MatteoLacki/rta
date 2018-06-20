@@ -26,7 +26,9 @@ def preprocess(D, min_runs_no = 5):
                        'runs',
                        'runs_no']
     D_stats = D_stats[ D_stats.runs_no >= min_runs_no ]
-    
+
+    # this merge might be not necessary: the calculations could be
+    # carried out using some other function.
     D = pd.merge(D, D_stats, left_on="id", right_index=True)
     D = D.assign(rt_median_distance = D.rt - D.median_rt,
                  mass_median_distance = D.mass - D.median_mass,
