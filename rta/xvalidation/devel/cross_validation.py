@@ -12,7 +12,7 @@ pd.set_option('display.max_columns', 4)
 #
 from rta.models.base_model import coef, predict, fitted, coefficients, residuals
 from rta.models.plot import plot
-from rta.models.SQSpline import SQSpline
+from rta.models.SQSpline import SQSpline, mad, mean_absolute_deviation
 from rta.read_in_data import data_folder, big_data
 from rta.preprocessing import preprocess
 # PARAMETERS
@@ -37,13 +37,12 @@ def run_fold_training_test(data, folds_no):
         for fold in folds:
             train = data.loc[AND(data.run == run, data.fold != fold),:]
             train = train.drop_duplicates('rt')
-            train.sort_values('rt', inplace=True)
+            train = train.sort_values('rt', inplace=False)
+            # train.sort_values('rt', inplace=True)
             test = data.loc[AND(data.run == run, data.fold == fold),:]
             yield run, fold, train, test
 
 run, fold, train, test = next(run_fold_training_test(data, folds_no))
-
-
 chunks_no = 20
 model = SQSpline()
 model.fit(chunks_no=chunks_no,
@@ -51,18 +50,37 @@ model.fit(chunks_no=chunks_no,
           y=train.rt_median_distance.values)
 pred = predict(model, test.rt.values)
 res = pred - test.rt_median_distance.values
-res.mean()
-res.std()
 
-# we should somehow apply the filiter to other data.
-# encode that possibility tomorrow
-res[model.signal] # wrong dimension of course
-
-
+# the idea: run the model on whole of the data.
+# check for its consistency in applying the threshold
+# this could check model's stability
+# but so does MSE and MAE
+# this is obviously silly, because the most stable model would simply predict
+# constantly the same value.
 # this could be placed in the bloody base_model
-def cv(model, statistics=[np.mean, np.std],**kwds):
+
+
+def cv(model,
+       data,
+       folds_no=10,
+       statistics=(np.mean, np.std, mad, mean_absolute_deviation),
+       **kwds):
     """Cross validate a model."""
-    for r, f, train, test in run_fold_training_test():
+    for r, f, train, test in run_fold_training_test(data, folds_no):
         model.fit(x=train.rt.values,
                   y=train.rt_median_distance.values)
-        predict(model, test.rt.values)
+        test_pred = predict(model, test.rt.values)
+        yield [stat(test_pred) for stat in statistics]
+        # signal = model.is_signal(test.rt.values, test.rt_median_distance.values)
+        # test_pred[signal]
+
+
+
+
+
+
+%%timeit
+cv_stats = list(cv(model, data, folds_no))
+
+
+%lprun -f run_fold_training_test list(cv(model, data, folds_no))
