@@ -49,18 +49,20 @@ class SQSpline(GMLSQSpline):
         We don't use any Gaussian Mixture model here.
         So, we don't need to reshape the data to the silly format.
         """
-        data = data.drop_duplicates(subset=x_name, keep=False, inplace=False)
-        data = data.sort_values([x_name, y_name])
-        self.x, self.y = (np.asarray(data[name]) for name in (x_name, y_name))
+        self.data = data.drop_duplicates(subset=x_name, keep=False, inplace=False)
+        self.data = self.data.sort_values([x_name, y_name])
         self.has_data = True
 
-    def fit(self, x=None, y=None, chunks_no=20, sd_cnt=3, **kwds):
+    def fit(self, x, y, chunks_no=20, sd_cnt=3, **kwds):
         """Fit a denoised spline."""
-        self.sd_cnt = sd_cnt
-        x, y, chunks_no = self.check_input(x, y, chunks_no)
+        assert chunks_no > 0
+        assert sd_cnt > 0
+        self.chunks_no = int(chunks_no)
+        self.sd_cnt = int(sd_cnt)
         self.signal, self.medians, self.st_devs, self.x_percentiles = mad_window_filter(x, y, chunks_no, sd_cnt, True)
         self.spline = fit_spline(x[self.signal], y[self.signal], chunks_no)
 
+    # what about the corner conditions? 
     def is_signal(self, x_new, y_new):
         """Denoise the new data."""
         i = np.searchsorted(self.x_percentiles, x_new) - 1

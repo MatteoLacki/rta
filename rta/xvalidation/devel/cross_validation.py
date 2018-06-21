@@ -37,19 +37,17 @@ def run_fold_training_test(data, folds_no):
         for fold in folds:
             train = data.loc[AND(data.run == run, data.fold != fold),:]
             train = train.drop_duplicates('rt')
-            train = train.sort_values('rt', inplace=False)
-            # train.sort_values('rt', inplace=True)
-            test = data.loc[AND(data.run == run, data.fold == fold),:]
-            yield run, fold, train, test
+            train = train.sort_values('rt', inplace=False) # inplace much slower!
+            test_mask = AND(data.run == run, data.fold == fold)
+            test = data.loc[test_mask,:]
+            yield run, fold, train, test, test_mask.values
 
-run, fold, train, test = next(run_fold_training_test(data, folds_no))
 chunks_no = 20
 model = SQSpline()
-model.fit(chunks_no=chunks_no,
-          x=train.rt.values,
-          y=train.rt_median_distance.values)
-pred = predict(model, test.rt.values)
-res = pred - test.rt_median_distance.values
+model.df_2_data(data, 'rt', 'rt_median_distance')
+model.fit(x=model.data.rt.values,
+          y=model.data.rt_median_distance.values, 
+          chunks_no=chunks_no)
 
 # the idea: run the model on whole of the data.
 # check for its consistency in applying the threshold
@@ -59,24 +57,30 @@ res = pred - test.rt_median_distance.values
 # constantly the same value.
 # this could be placed in the bloody base_model
 
+# we might need the original model to return the noise-signal tags.
+# check if the Fortran model has more parameters to change.
+
+from sklearn.metrics import confusion_matrix
+r, f, train, test, test_mask = next( run_fold_training_test(model.data, folds_no) )
+test_mask.shape
 
 def cv(model,
-       data,
        folds_no=10,
        statistics=(np.mean, np.std, mad, mean_absolute_deviation),
        **kwds):
     """Cross validate a model."""
-    for r, f, train, test in run_fold_training_test(data, folds_no):
+    orig_signal = model.signal.copy().ravel()
+    for r, f, train, test, test_mask in run_fold_training_test(model.data, folds_no):
         model.fit(x=train.rt.values,
                   y=train.rt_median_distance.values)
         test_pred = predict(model, test.rt.values)
-        yield [stat(test_pred) for stat in statistics]
-        # signal = model.is_signal(test.rt.values, test.rt_median_distance.values)
-        # test_pred[signal]
+        out = [stat(test_pred) for stat in statistics]
+        curr_signal = model.is_signal(test.rt.values, test.rt_median_distance.values)
+        out.append(confusion_matrix(orig_signal[test_mask], curr_signal))
+        yield out
 
-
-
-
+orig_signal.shape
+test_mask.shape
 
 
 %%timeit
@@ -84,3 +88,4 @@ cv_stats = list(cv(model, data, folds_no))
 
 
 %lprun -f run_fold_training_test list(cv(model, data, folds_no))
+%lprun -f cv list(cv(model, data, folds_no))
