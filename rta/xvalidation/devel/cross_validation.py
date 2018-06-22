@@ -17,7 +17,8 @@ from rta.read_in_data import data_folder, big_data
 from rta.preprocessing import preprocess
 # PARAMETERS
 from rta.default_parameters import *
-# 
+from sklearn.metrics import confusion_matrix
+
 annotated_all, unlabelled_all = big_data()
 
 # this already preprocessed the data.
@@ -31,95 +32,42 @@ annotated_cv_slim = annotated_cv[slim_features]
 data = annotated_cv_slim
 Model=SQSpline
 
-parameters = np.power(2, range(2,8))
-param = parameters[3]
+parameters = [ {"chunks_no": n} for n in np.power(2, range(2,8))]
+run, d_run = 1, data.groupby('run').get_group(1)
+param = parameters[0]
+folds = np.unique(data.fold)
+fold = folds[0]
+statistics=(np.mean, np.std, mad, mean_absolute_deviation)
 
-def cv_search(data, parameters, Model=SQSpline):
+
+def cv_search(data,
+              parameters,
+              Model=SQSpline,
+              statistics=(np.mean, np.std, mad, mean_absolute_deviation)):
+    folds = np.unique(data.fold)
     for run, d_run in data.groupby('run'):
         d_run = d_run.sort_values('rt')
         d_run = d_run.drop_duplicates('rt')
         # grid search
         for param in parameters:
-            model = Model()
-            model.fit(d_run.rt.values, 
+            m = Model()
+            m.fit(d_run.rt.values, 
                       d_run.rt_median_distance.values,
-                      param)
-            yield run, param, model
-            # signal = model.signal.copy()
+                      **param)
+            yield run, param, m
+            for fold in folds:
+                train = d_run.loc[d_run.fold != fold,:]
+                test = d_run.loc[d_run.fold == fold,:]
+                n = Model()
+                n.fit(x=train.rt.values,
+                      y=train.rt_median_distance.values)
+                test_pred = predict(n, test.rt.values)
+                n_signal = n.is_signal(test.rt, test.rt_median_distance)
+                stats = [stat(test_pred) for stat in statistics]
+                cm = confusion_matrix(m.signal[d_run.fold == fold], n_signal)
+                yield run, param, n, stats, cm
 
-%%timeit
-models = list(cv_search(data, parameters))
-len(models)
+# analyze the data
+%lprun -f cv_search list(cv_search(data, parameters))
 
-
-
-# obs: fold is a perfect type of column that we could save in data frame
-# as it needs to be computed only once and the computation is highly random
-def run_fold_training_test(data, folds_no):
-    """Works on any data frame with columns run and fold."""
-    AND = np.logical_and
-    runs = np.unique(data.run)
-    folds = np.arange(folds_no)
-    for run in runs:
-        for fold in folds:
-            train = data.loc[AND(data.run == run, data.fold != fold),:]
-            train = train.drop_duplicates('rt')
-            train = train.sort_values('rt', inplace=False) # inplace much slower!
-            test_mask = AND(data.run == run, data.fold == fold)
-            test = data.loc[test_mask,:]
-            yield run, fold, train, test, test_mask.values
-
-
-
-
-
-
-
-
-chunks_no = 20
-model = SQSpline()
-model.df_2_data(data, 'rt', 'rt_median_distance')
-model.fit(x=model.data.rt.values,
-          y=model.data.rt_median_distance.values, 
-          chunks_no=chunks_no)
-
-# the idea: run the model on whole of the data.
-# check for its consistency in applying the threshold
-# this could check model's stability
-# but so does MSE and MAE
-# this is obviously silly, because the most stable model would simply predict
-# constantly the same value.
-# this could be placed in the bloody base_model
-
-# we might need the original model to return the noise-signal tags.
-# check if the Fortran model has more parameters to change.
-
-from sklearn.metrics import confusion_matrix
-r, f, train, test, test_mask = next( run_fold_training_test(model.data, folds_no) )
-test_mask.shape
-
-def cv(model,
-       folds_no=10,
-       statistics=(np.mean, np.std, mad, mean_absolute_deviation),
-       **kwds):
-    """Cross validate a model."""
-    orig_signal = model.signal.copy().ravel()
-    for r, f, train, test, test_mask in run_fold_training_test(model.data, folds_no):
-        model.fit(x=train.rt.values,
-                  y=train.rt_median_distance.values)
-        test_pred = predict(model, test.rt.values)
-        out = [stat(test_pred) for stat in statistics]
-        curr_signal = model.is_signal(test.rt.values, test.rt_median_distance.values)
-        out.append(confusion_matrix(orig_signal[test_mask], curr_signal))
-        yield out
-
-orig_signal.shape
-test_mask.shape
-
-
-%%timeit
-cv_stats = list(cv(model, data, folds_no))
-
-
-%lprun -f run_fold_training_test list(cv(model, data, folds_no))
-%lprun -f cv list(cv(model, data, folds_no))
+# make the plots now showing how the grid search improves the metrics

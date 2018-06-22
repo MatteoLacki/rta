@@ -5,8 +5,11 @@ from rta.array_operations.misc import overlapped_percentile_pairs
 from rta.models.GMLSQSpline import GMLSQSpline, fit_spline
 
 
+
 def mean_absolute_deviation(x):
     return np.abs(x).mean()
+
+
 
 def mad(x, return_median=False):
     """Compute median absolute deviation (from median, of course) and median."""
@@ -15,6 +18,7 @@ def mad(x, return_median=False):
         return np.median(np.abs(x - median)), median
     else:
         return np.median(np.abs(x - median))
+
 
 
 def mad_window_filter(x, y, chunks_no=100, sd_cnt=3, x_sorted=False):
@@ -27,7 +31,7 @@ def mad_window_filter(x, y, chunks_no=100, sd_cnt=3, x_sorted=False):
             "If 'x' ain't sorted, than I don't believe that 'y' is correct."
     signal = np.empty(len(x), dtype=np.bool_)
     medians = np.empty(chunks_no, dtype=np.float64)
-    st_devs = np.empty(chunks_no, dtype=np.float64)
+    stds = np.empty(chunks_no, dtype=np.float64)
     x_percentiles = np.empty(chunks_no, dtype=np.float64)
     scaling = 1.4826
     # NOTE: the control "x" does not appear here
@@ -36,10 +40,11 @@ def mad_window_filter(x, y, chunks_no=100, sd_cnt=3, x_sorted=False):
     for i, (s, ss, se, e) in enumerate(overlapped_percentile_pairs(len(x), chunks_no)):
         __mad, median = mad(y[s:e], return_median=True)
         medians[i] = median
-        st_devs[i] = sd = scaling * __mad
+        stds[i] = sd = scaling * __mad
         x_percentiles[i] = x[ss]
         signal[ss:se] = np.abs(y[ss:se] - median) < sd * sd_cnt
-    return signal, medians, st_devs, x_percentiles
+    return signal, medians, stds, x_percentiles
+
 
 
 class SQSpline(GMLSQSpline):
@@ -51,22 +56,40 @@ class SQSpline(GMLSQSpline):
         """
         self.data = data.drop_duplicates(subset=x_name, keep=False, inplace=False)
         self.data = self.data.sort_values([x_name, y_name])
-        self.has_data = True
+        self.x = data[x_name]
+        self.y = data[y_name]
 
-    def fit(self, x, y, chunks_no=20, sd_cnt=3, **kwds):
+    def process_input(self, x, y, chunks_no, std_cnt):
+            assert chunks_no > 0
+            assert std_cnt > 0
+            assert x is not None 
+            assert y is not None
+            self.chunks_no = int(chunks_no)
+            self.std_cnt = int(std_cnt)
+            self.x, self.y = x, y
+
+    def fit(self, x=None,
+                  y=None,
+                  chunks_no=20,
+                  std_cnt=3,
+                  **kwds):
         """Fit a denoised spline."""
-        assert chunks_no > 0
-        assert sd_cnt > 0
-        self.chunks_no = int(chunks_no)
-        self.sd_cnt = int(sd_cnt)
-        self.signal, self.medians, self.st_devs, self.x_percentiles = mad_window_filter(x, y, chunks_no, sd_cnt, True)
-        self.spline = fit_spline(x[self.signal], y[self.signal], chunks_no)
+        self.process_input(x, y, chunks_no, std_cnt)
+        self.signal, self.medians, self.stds, self.x_percentiles = \
+            mad_window_filter(self.x,
+                              self.y,
+                              self.chunks_no,
+                              self.std_cnt,
+                              x_sorted = True)
+        self.spline = fit_spline(self.x[self.signal],
+                                 self.y[self.signal],
+                                 self.chunks_no)
 
     # what about the corner conditions? 
     def is_signal(self, x_new, y_new):
         """Denoise the new data."""
         i = np.searchsorted(self.x_percentiles, x_new) - 1
-        return np.abs(self.medians[i] - y_new) <= self.st_devs[i] * self.sd_cnt
+        return np.abs(self.medians[i] - y_new) <= self.stds[i] * self.std_cnt
 
     def predict(self, x):
         return self.spline(x)

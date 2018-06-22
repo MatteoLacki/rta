@@ -46,18 +46,13 @@ class GMLSQSpline(Model):
         data = data.sort_values([x_name, y_name])
         self.x, self.y = (np.asarray(data[name]).reshape(-1,1) 
                           for name in (x_name, y_name))
-        self.has_data = True
 
-    def check_input(self, x, y, chunks_no=20):
+    def process_input(self, x, y, chunks_no=20):
         assert chunks_no > 0
-        chunks_no = int(chunks_no)
-        if not self.has_data:
-            assert not x is None or not y is None
-            self.x, self.y = x, y
-        else:
-            x, y = self.x, self.y
-        self.chunks_no = chunks_no
-        return x, y, chunks_no
+        assert x is not None 
+        assert y is not None
+        self.chunks_no = int(chunks_no)
+        self.x, self.y = x, y
 
     def fit(self,
             x=None,
@@ -66,11 +61,12 @@ class GMLSQSpline(Model):
             warm_start=True,
             **kwds):
         """Fit a denoised spline."""
-        x, y, chunks_no = self.check_input(x, y, chunks_no)
-        signal, self.probs, self.means, self.covariances = fit_interlapping_mixtures(x, y, chunks_no, warm_start)
+        self.process_input(x, y, chunks_no)
+        signal, self.probs, self.means, self.covariances = \
+            fit_interlapping_mixtures(self.x, self.y, self.chunks_no, self.warm_start)
         x_signal = self.x[signal].ravel()
         y_signal = self.y[signal].ravel()
-        self.spline = fit_spline(x_signal, y_signal, chunks_no)
+        self.spline = fit_spline(x_signal, y_signal, self.chunks_no)
         self.signal = signal.reshape(-1, 1)
 
     def predict(self, x):
