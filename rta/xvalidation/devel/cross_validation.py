@@ -19,12 +19,39 @@ from rta.preprocessing import preprocess
 from rta.default_parameters import *
 # 
 annotated_all, unlabelled_all = big_data()
+
+# this already preprocessed the data.
 annotated_cv, annotated_stats, runs_cnts = preprocess(annotated_all,
                                                       min_runs_no,
                                                       folds_no)
 slim_features = ['id','run','rt','rt_median_distance','fold']
 annotated_cv_slim = annotated_cv[slim_features]
+
+
 data = annotated_cv_slim
+Model=SQSpline
+
+parameters = np.power(2, range(2,8))
+param = parameters[3]
+
+def cv_search(data, parameters, Model=SQSpline):
+    for run, d_run in data.groupby('run'):
+        d_run = d_run.sort_values('rt')
+        d_run = d_run.drop_duplicates('rt')
+        # grid search
+        for param in parameters:
+            model = Model()
+            model.fit(d_run.rt.values, 
+                      d_run.rt_median_distance.values,
+                      param)
+            yield run, param, model
+            # signal = model.signal.copy()
+
+%%timeit
+models = list(cv_search(data, parameters))
+len(models)
+
+
 
 # obs: fold is a perfect type of column that we could save in data frame
 # as it needs to be computed only once and the computation is highly random
@@ -41,6 +68,13 @@ def run_fold_training_test(data, folds_no):
             test_mask = AND(data.run == run, data.fold == fold)
             test = data.loc[test_mask,:]
             yield run, fold, train, test, test_mask.values
+
+
+
+
+
+
+
 
 chunks_no = 20
 model = SQSpline()

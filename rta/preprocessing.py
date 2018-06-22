@@ -3,12 +3,10 @@ import pandas as pd
 from rta.xvalidation.cross_validation import peptide_stratified_folds
 
 
-
 def ordered_str(x):
     x = x.values
     x.sort()
     return "_".join(str(i) for i in x)
-
 
 
 def get_stats(D_all, min_runs_no = 5):
@@ -26,7 +24,6 @@ def get_stats(D_all, min_runs_no = 5):
     return D_stats[D_stats.runs_no >= min_runs_no].copy()
 
 
-
 def get_medians(D_all, D_stats, min_runs_no = 5):
     """Calculate distance to medians for 'rt', 'mass', 'dt'."""
     D = pd.merge(D_all, D_stats, left_on="id", right_index=True)
@@ -34,7 +31,6 @@ def get_medians(D_all, D_stats, min_runs_no = 5):
                  mass_median_distance = D.mass - D.median_mass,
                  dt_median_distance = D.dt - D.median_dt)
     return D
-
 
 
 def filter_and_fold(D,
@@ -61,7 +57,6 @@ def filter_and_fold(D,
                     left_on='id', 
                     right_index=True)
     return D_cv, D_stats, run_cnts
-
 
 
 def preprocess(D_all,
