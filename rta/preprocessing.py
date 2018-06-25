@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from rta.xvalidation.cross_validation import peptide_stratified_folds
+from rta.xvalidation.stratifications_folds import peptide_stratified_folds
 
 
 def ordered_str(x):

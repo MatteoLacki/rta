@@ -3,22 +3,7 @@ from numpy import logical_and as AND
 
 from rta.array_operations.misc import overlapped_percentile_pairs
 from rta.models.GMLSQSpline import GMLSQSpline, fit_spline
-
-
-
-def mean_absolute_deviation(x):
-    return np.abs(x).mean()
-
-
-
-def mad(x, return_median=False):
-    """Compute median absolute deviation (from median, of course) and median."""
-    median = np.median(x)
-    if return_median:
-        return np.median(np.abs(x - median)), median
-    else:
-        return np.median(np.abs(x - median))
-
+from rta.stats.stats import mad
 
 
 def mad_window_filter(x, y, chunks_no=100, sd_cnt=3, x_sorted=False):
@@ -34,7 +19,7 @@ def mad_window_filter(x, y, chunks_no=100, sd_cnt=3, x_sorted=False):
     stds = np.empty(chunks_no, dtype=np.float64)
     x_percentiles = np.empty(chunks_no, dtype=np.float64)
     scaling = 1.4826
-    # NOTE: the control "x" does not appear here
+    # NOTE: the control "x" does not appear herek
     # s, e      indices of the are being fitted
     # ss, se    indices used to decide upon denoising
     for i, (s, ss, se, e) in enumerate(overlapped_percentile_pairs(len(x), chunks_no)):
