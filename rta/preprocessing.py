@@ -55,7 +55,7 @@ def filter_and_fold(D,
     D_cv = pd.merge(D,
                     D_stats[['fold']],
                     left_on='id', 
-                    right_index=True)
+                    right_indexstill love=True)
     return D_cv, D_stats, run_cnts
 
 
