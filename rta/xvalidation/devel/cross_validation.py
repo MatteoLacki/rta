@@ -18,6 +18,7 @@ from rta.models.SQSpline import SQSpline
 from rta.read_in_data import big_data
 from rta.preprocessing import preprocess
 from rta.xvalidation.cross_validation import tasks_run_param, cv_run_param
+from rta.stats.stats import compare_fold_quantiles
 
 annotated_all, unlabelled_all = big_data()
 
@@ -39,21 +40,16 @@ with Pool(cores_no) as p:
 
 # check if the simple x-validation scheme offers good coverage of RT.
 
+data = annotated_cv_slim
 
-quantiles = np.arange(0, 101, 5)
-run_fold_data = annotated_cv_slim.groupby(['run', 'fold'])
-percentiles = run_fold_data.rt.apply(np.percentile, 
-                                     q=quantiles)
-percentiles = pd.DataFrame(percentiles.values.tolist(),
-                           columns=quantiles,
-                           index=percentiles.index)
-percentiles.to_csv(path_or_buf="~/Desktop/quantiles_run_folds.csv")
-percentiles.describe().to_csv(path_or_buf="~/Desktop/quantiles_run_folds_stats.csv")
-percentiles.groupby('run').describe().to_csv(path_or_buf="~/Desktop/quantiles_run_folds_stats_more.csv")
+
+compare_fold_quantiles(data)
 
 
 
 # developing the other x-validation scheme
+
+
 
 
 D_stats = annotated_stats
