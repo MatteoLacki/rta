@@ -1,3 +1,4 @@
+from functools import partial
 from itertools import cycle, islice
 import numpy as np
 from numpy.random import shuffle
@@ -105,3 +106,6 @@ def tenzer_folds(run_cnts, folds_no, shuffled=False):
     return np.fromiter(iter_folds(run_cnts, folds_no),
                        count=sum(run_cnts),
                        dtype=np.int8)
+
+
+randomized_tenzer_folds = partial(tenzer_folds, shuffled=True)

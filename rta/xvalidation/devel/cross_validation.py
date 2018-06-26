@@ -4,17 +4,12 @@
 %autoreload 2
 %load_ext line_profiler
 
-from collections import Counter as count
-import numpy as np
 import matplotlib.pyplot as plt
-from multiprocessing import Pool
+import numpy as np
 import pandas as pd
 pd.set_option('display.max_rows', 10)
 pd.set_option('display.max_columns', 4)
 
-from rta.models.base_model import coef, predict, fitted, coefficients, residuals
-from rta.models.plot import plot
-from rta.models.SQSpline import SQSpline
 from rta.read_in_data import big_data
 from rta.preprocessing import preprocess
 from rta.xvalidation.cross_validation import tasks_run_param, cv_run_param
