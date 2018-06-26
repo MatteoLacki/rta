@@ -27,9 +27,9 @@ def get_stats(D_all, min_runs_no = 5):
 def get_medians(D_all, D_stats, min_runs_no = 5):
     """Calculate distance to medians for 'rt', 'mass', 'dt'."""
     D = pd.merge(D_all, D_stats, left_on="id", right_index=True)
-    D = D.assign(rt_median_distance = D.rt - D.median_rt,
+    D = D.assign(rt_median_distance   = D.rt - D.median_rt,
                  mass_median_distance = D.mass - D.median_mass,
-                 dt_median_distance = D.dt - D.median_dt)
+                 dt_median_distance   = D.dt - D.median_dt)
     return D
 
 
@@ -47,9 +47,7 @@ def filter_and_fold(D,
     run_cnts = run_cnts[run_cnts >= folds_no].copy()
     D_stats = D_stats.loc[D_stats.runs.isin(run_cnts.index)].copy()
     # we need sorted DF to append a column correctly
-    
-    D_stats['fold'] = fold(peptides_cnt = len(D_stats),
-                           run_cnts = run_cnts,
+    D_stats['fold'] = fold(run_cnts = run_cnts,
                            folds_no = folds_no)
     # pd.merge copies memory
     D_cv = pd.merge(D,

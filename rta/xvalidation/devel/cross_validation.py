@@ -39,31 +39,29 @@ with Pool(cores_no) as p:
     results = p.starmap(cv_run_param, tasks_run_param(data, parameters))
 
 # check if the simple x-validation scheme offers good coverage of RT.
-
 data = annotated_cv_slim
-
-
 compare_fold_quantiles(data)
 
 
-
 # developing the other x-validation scheme
-
-
-
-
 D_stats = annotated_stats
-
 D_stats.sort_values("runs", inplace=True)
 run_cnts = D_stats.groupby("runs").runs.count()
 run_cnts = run_cnts[run_cnts >= folds_no].copy()
 D_stats = D_stats.loc[D_stats.runs.isin(run_cnts.index)].copy()
 # we need sorted DF to append a column correctly
 
-D_stats
+
+from rta.xvalidation.stratifications_folds import peptide_stratified_folds as fold
+from rta.xvalidation.stratifications_folds import tenzer_folds, iter_tenzer_folds, shuffled_folds
 
 
 
-D_stats['fold'] = fold(peptides_cnt = len(D_stats),
-                       run_cnts = run_cnts,
-                       folds_no = folds_no)
+folds = list(range(folds_no))
+shuffle(folds)
+
+
+# D_stats['fold'] = 
+fold(peptides_cnt = len(D_stats), run_cnts = run_cnts, folds_no = folds_no)
+
+
