@@ -74,7 +74,7 @@ def iter_shuffled_tenzer_folds(run_cnts, folds_no=10):
     with repetitions for all consecutive strata.
 
     Args:
-        runs_cnts (pandas.core.series.Series): the counts of occurences of peptides in different run groups.
+        runs_cnts (iterable): the counts of occurences of peptides in different run groups.
         folds_no (int): the number of folds the data will be divided into.
 
     Yield:
@@ -101,7 +101,7 @@ def tenzer_folds(run_cnts, folds_no, shuffle=False):
     The 'run_cnts' induce the order of appearance of folds.
 
     Args:
-        runs_cnts (pandas.core.series.Series): the counts of occurences of peptides in different run groups.
+        runs_cnts (iterable): the counts of occurences of peptides in different run groups.
         folds_no (int): the number of folds the data will be divided into.
 
     Return:
@@ -128,7 +128,7 @@ def randomized_tenzer_folds(run_cnts, folds_no, shuffle=True):
     The 'run_cnts' induce the order of appearance of folds.
 
     Args:
-        runs_cnts (pandas.core.series.Series): the counts of occurences of peptides in different run groups.
+        runs_cnts (iterable): the counts of occurences of peptides in different run groups.
         folds_no (int): the number of folds the data will be divided into.
 
     Return:
@@ -137,7 +137,45 @@ def randomized_tenzer_folds(run_cnts, folds_no, shuffle=True):
     return tenzer_folds(run_cnts, folds_no, True)
 
 
-#TODO: this should not need the computation of runs_cnts
+def no_runs_strata_tenzer_folds(run_cnts, folds_no):
+    """Create Stefan Tenzer folds without strata.
+
+    Divide points into different folds neglecting their appearance 
+    within different groups. The 'natural randomness' of the data points
+    is used.
+
+    Args:
+        runs_cnts (iterable): the counts of occurences of peptides in different run groups.
+        folds_no (int): the number of folds the data will be divided into.
+
+    Return:
+        out (np.array of ints): the folds prescription for individual peptide groups.
+    """
+    return np.fromiter(cycle(range(folds_no)),
+                       count=sum(run_cnts),
+                       dtype=np.int8)
+
+
+def no_runs_strata_randomized_tenzer_folds(run_cnts, folds_no):
+    """Create Stefan Tenzer folds without strata.
+
+    Divide points into different folds neglecting their appearance 
+    within different groups. The 'natural randomness' of the data points
+    is used.
+
+    Args:
+        runs_cnts (iterable): the counts of occurences of peptides in different run groups.
+        folds_no (int): the number of folds the data will be divided into.
+
+    Return:
+        out (np.array of ints): the folds prescription for individual peptide groups.
+    """
+    folds = list(range(folds_no))
+    return np.fromiter(shuffled_folds(folds),
+                       count=sum(run_cnts),
+                       dtype=np.int8)
+
+
 def replacement_sampled_folds(run_cnts, folds_no=10):
     """Draw folds truly at random.
 

@@ -111,18 +111,18 @@ def fold_similarity(data,
         distances_agg (pandas.DataFrame): distances aggregated over folds and runs.
     """
     run_data = data.groupby(run_name)
-    r_perc = dict(run_data.rt.apply(np.percentile, q=q))
+    r_perc = dict(run_data.rt.apply(np.percentile, q=quantiles))
 
     def iter_distances_from_fold_perc_2_real_perc():
         for (run, fold), rf_d in data.groupby([run_name, fold_name]):
             out = np.array((run, fold))
-            rf_perc = np.percentile(rf_d.rt, q=q)
+            rf_perc = np.percentile(rf_d.rt, q=quantiles)
             out = np.append(out, np.abs(rf_perc - r_perc[run]))
             yield out
 
     distances = pd.DataFrame(iter_distances_from_fold_perc_2_real_perc())
     distances[[0,1]] = distances[[0,1]].astype(int)
-    cols = [run_name, fold_name] + list(q)
+    cols = [run_name, fold_name] + list(quantiles)
     distances.columns = cols
     distances.set_index([run_name, fold_name], inplace=True)
     distances_run = pd.DataFrame(distances.groupby(run_name).describe())

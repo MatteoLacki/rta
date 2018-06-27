@@ -24,16 +24,28 @@ from rta.xvalidation.cross_validation import tasks_run_param, cv_run_param
 from rta.xvalidation.stratifications_folds import tenzer_folds
 from rta.xvalidation.stratifications_folds import randomized_tenzer_folds
 from rta.xvalidation.stratifications_folds import replacement_sampled_folds
+from rta.xvalidation.stratifications_folds import no_runs_strata_randomized_tenzer_folds
 
 annotated_all, unlabelled_all = big_data()
 folds_no    = 10
 min_runs_no = 5
 
-annotated_cv_tf, annotated_stats_tf, runs_cnts_tf = \
+annotated_cv_tf, annotated_stats_tf, run_cnts_tf = \
     preprocess(annotated_all,
                min_runs_no,
                folds_no,
                tenzer_folds)
+
+fs = fold_similarity(annotated_cv_tf)
+with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+    print(fs[1])
+
+
+
+no_runs_strata_tenzer_folds(run_cnts_tf, folds_no)
+no_runs_strata_tenzer_folds([3,4,5], 3)
+no_runs_strata_randomized_tenzer_folds(run_cnts_tf, folds_no)
+no_runs_strata_randomized_tenzer_folds([3,4,5], 3)
 
 real_perc_tz, *fold_stats_tz = compare_fold_quantiles(annotated_cv_tf)
 for d, n in zip(fold_stats_tz,
@@ -41,7 +53,7 @@ for d, n in zip(fold_stats_tz,
     d.to_csv(os.path.join("~/Desktop/tmp/tenzer_folds", n + ".csv"))
 
 
-annotated_cv_rtf, annotated_stats_rtf, runs_cnts_rtf = \
+annotated_cv_rtf, annotated_stats_rtf, run_cnts_rtf = \
     preprocess(annotated_all,
                min_runs_no,
                folds_no,
@@ -68,7 +80,7 @@ runs_cnts = runs_cnts_tf
 
 
 # ssr = simple sampling with replacement
-annotated_cv_ssr, annotated_stats_ssr, runs_cnts_ssr = \
+annotated_cv_ssr, annotated_stats_ssr, run_cnts_ssr = \
     preprocess(annotated_all,
                min_runs_no,
                folds_no,
@@ -85,4 +97,5 @@ with pd.option_context('display.max_rows', None, 'display.max_columns', None):
     # print(fs[0])
     # print(fs[1])
     print(fs[2])
+
 
