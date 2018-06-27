@@ -19,6 +19,7 @@ from rta.models.SQSpline import SQSpline
 from rta.read_in_data import big_data
 from rta.preprocessing import preprocess
 from rta.stats.stats import compare_fold_quantiles
+from rta.stats.stats import fold_similarity
 from rta.xvalidation.cross_validation import tasks_run_param, cv_run_param
 from rta.xvalidation.stratifications_folds import tenzer_folds
 from rta.xvalidation.stratifications_folds import randomized_tenzer_folds
@@ -78,20 +79,10 @@ for d, n in zip(fold_stats_ssr,
                 ['fold_perc', 'fold_perc_stats_by_run', 'fold_perc_stats']):
     d.to_csv(os.path.join("~/Desktop/tmp/simple_sampling_with_replacement", n + ".csv"))
 # OK, this really introduces a lot of additional variability.
+fs = fold_similarity(data)
 
-data = annotated_cv_ssr
-q = np.arange(0, 101, 5)
-param_name = "rt"
-run_name = "run"
-fold_name = "fold"
-
-
-from numpy import percentile
-
-
-
-fold_similarity(data)
-
-#TODO: 
-# a plot that will compare folds for a given run
+with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+    # print(fs[0])
+    # print(fs[1])
+    print(fs[2])
 

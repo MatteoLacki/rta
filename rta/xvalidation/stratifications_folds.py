@@ -137,7 +137,7 @@ def randomized_tenzer_folds(run_cnts, folds_no, shuffle=True):
     return tenzer_folds(run_cnts, folds_no, True)
 
 
-
+#TODO: this should not need the computation of runs_cnts
 def replacement_sampled_folds(run_cnts, folds_no=10):
     """Draw folds truly at random.
 
