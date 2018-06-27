@@ -1,7 +1,7 @@
-from functools import partial
 from itertools import cycle, islice
 import numpy as np
-from numpy.random import shuffle
+from numpy.random import shuffle, choice
+
 
 
 def K_folds(N, folds_no):
@@ -20,6 +20,7 @@ def K_folds(N, folds_no):
     return groups
 
 
+
 def peptide_stratified_folds(run_cnts, folds_no):
     folds = np.zeros(sum(run_cnts), dtype=np.int8)
     s = e = 0
@@ -28,6 +29,7 @@ def peptide_stratified_folds(run_cnts, folds_no):
         folds[s:e] = K_folds(cnt, folds_no)
         s = e
     return folds
+
 
 
 def iter_tenzer_folds(run_cnts, folds_no=10):
@@ -49,6 +51,7 @@ def iter_tenzer_folds(run_cnts, folds_no=10):
             yield i
 
 
+
 def shuffled_folds(folds):
     """Shuffle folds.
 
@@ -61,6 +64,7 @@ def shuffled_folds(folds):
         shuffle(folds)
         for f in folds:
             yield f
+
 
 
 def iter_shuffled_tenzer_folds(run_cnts, folds_no=10):
@@ -82,7 +86,8 @@ def iter_shuffled_tenzer_folds(run_cnts, folds_no=10):
             yield i
 
 
-def tenzer_folds(run_cnts, folds_no, shuffled=False):
+
+def tenzer_folds(run_cnts, folds_no, shuffle=False):
     """Create Stefan Tenzer folds.
 
     The division into folds takes into account the division
@@ -102,10 +107,43 @@ def tenzer_folds(run_cnts, folds_no, shuffled=False):
     Return:
         out (np.array of ints): the folds prescription for individual peptide groups.
     """
-    iter_folds = iter_shuffled_tenzer_folds if shuffled else iter_tenzer_folds
+    iter_folds = iter_shuffled_tenzer_folds if shuffle else iter_tenzer_folds
     return np.fromiter(iter_folds(run_cnts, folds_no),
                        count=sum(run_cnts),
                        dtype=np.int8)
 
 
-randomized_tenzer_folds = partial(tenzer_folds, shuffled=True)
+
+def randomized_tenzer_folds(run_cnts, folds_no, shuffle=True):
+    """Create randomized Stefan Tenzer folds.
+
+    The division into folds takes into account the division
+    into different run appearance.
+    Within each stratum, we divide data points into subsequent folds.
+    This is done by repeated operations on consecutive tupples of 'folds_no'
+    elements. E.g. for 'folds_no = 10', we first look at 0:9, then at 10:19, and so on.
+    Within these batches, we assign the points to different folds
+    using sampling without repetition. This is equivalent to first doing the 
+    assignment via Tenzer Folds, followed by a random permutation of fold assignments.
+    The 'run_cnts' induce the order of appearance of folds.
+
+    Args:
+        runs_cnts (pandas.core.series.Series): the counts of occurences of peptides in different run groups.
+        folds_no (int): the number of folds the data will be divided into.
+
+    Return:
+        out (np.array of ints): the folds prescription for individual peptide groups.
+    """
+    return tenzer_folds(run_cnts, folds_no, True)
+
+
+
+def replacement_sampled_folds(run_cnts, folds_no=10):
+    """Draw folds truly at random.
+
+    Each data point is independently assigned some fold
+    with equal probability.
+    """
+    return choice(folds_no,
+                  size=sum(run_cnts),
+                  replace=True)

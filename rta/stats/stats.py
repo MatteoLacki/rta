@@ -1,6 +1,13 @@
 import numpy as np
 import pandas as pd
 
+
+def l1(x, y):
+    """Calculate the sum of absolute differences of entries of 'x' and 'y'."""
+    return np.abs(x-y).sum()
+
+
+
 def mae(x):
     """Calculate the mean absolute deviation.
 
@@ -11,6 +18,7 @@ def mae(x):
         out (float): the mean absolute deviation for array 'x'.
     """
     return np.mean(np.abs(x))
+
 
 
 def mad(x, return_median=False):
@@ -30,6 +38,7 @@ def mad(x, return_median=False):
         return np.median(np.abs(x - median))
 
 
+
 def confusion_matrix(real, pred):
     """A confusion matrix that is quicker than SKLearn one.
     
@@ -43,6 +52,7 @@ def confusion_matrix(real, pred):
     return np.array([[np.sum(np.logical_and( real, pred)), np.sum(np.logical_and(~real, pred))],
                      [np.sum(np.logical_and( real,~pred)), np.sum(np.logical_and(~real,~pred))]], 
                      dtype=int)
+
 
 
 def compare_fold_quantiles(data,
@@ -78,3 +88,43 @@ def compare_fold_quantiles(data,
     fold_perc_stats_by_run = fold_perc.groupby('run').describe()
     real_perc = np.percentile(data[param_name], q=quantiles)
     return real_perc, fold_perc, fold_perc_stats_by_run, fold_perc_stats
+
+
+
+def fold_similarity(data, 
+                    quantiles = np.arange(0, 101, 5),
+                    param_name = "rt",
+                    run_name = "run",
+                    fold_name = "fold"):
+    """Evaluate the similarity between percentiles of folds and actual data.
+
+    Args:
+        data (pandas.DataFrame): Data with runs and folds and a feature to compare between folds.
+        quantiles (iterable): which quantiles should be compared, in range 0-100.
+        param_name (str): name of the column with the feature.
+        run_name (str): name of the column with runs.
+        fold_name (str): name of the column with folds.
+
+    Return:
+        distances (pandas.DataFrame): distances of folds per run to per run data.
+        distances_run (pandas.DataFrame): distances aggregated over folds.
+        distances_agg (pandas.DataFrame): distances aggregated over folds and runs.
+    """
+    run_data = data.groupby(run_name)
+    r_perc = dict(run_data.rt.apply(np.percentile, q=q))
+
+    def iter_distances_from_fold_perc_2_real_perc():
+        for (run, fold), rf_d in data.groupby([run_name, fold_name]):
+            out = np.array((run, fold))
+            rf_perc = np.percentile(rf_d.rt, q=q)
+            out = np.append(out, np.abs(rf_perc - r_perc[run]))
+            yield out
+
+    distances = pd.DataFrame(iter_distances_from_fold_perc_2_real_perc())
+    distances[[0,1]] = distances[[0,1]].astype(int)
+    cols = [run_name, fold_name] + list(q)
+    distances.columns = cols
+    distances.set_index([run_name, fold_name], inplace=True)
+    distances_run = pd.DataFrame(distances.groupby(run_name).describe())
+    distances_agg = pd.DataFrame(distances.describe())
+    return distances, distances_run, distances_agg
