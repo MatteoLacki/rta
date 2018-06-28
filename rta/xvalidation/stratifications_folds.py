@@ -76,7 +76,7 @@ def stratified_folds(strata_cnts, folds_no, shuffle=False):
     Within each stratum, points are divided into folds in 
     consecutive batches of 'folds_no' points.
     By default, points are prescibed to folds by their order of appearance.
-    
+
     
     For instance, if retention times were 21.4, 31.5, 53.1, 64.4, 78.2 
     and we wanted 3 folds, then these retention times would be simply mapped to
