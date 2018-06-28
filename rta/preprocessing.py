@@ -3,12 +3,15 @@ import pandas as pd
 from rta.xvalidation.stratifications_folds import peptide_stratified_folds
 
 
+
+# TODO: have to generalize the selection of column to DT from only RT
 def ordered_str(x):
     x = x.values
     x.sort()
     return "_".join(str(i) for i in x)
 
 
+# Still overally slow.
 def get_stats(D_all, min_runs_no = 5):
     D_id = D_all.groupby('id')
     D_stats = D_id.agg({'rt': np.median, 
@@ -36,13 +39,18 @@ def get_medians(D_all, D_stats, min_runs_no = 5):
 def filter_and_fold(D,
                     D_stats,
                     folds_no=5,
-                    fold=peptide_stratified_folds):
+                    fold=peptide_stratified_folds,
+                    **kwds):
     """Get folds for cross-validation.
 
     Trims the supplied data to subsets that can be folded and 
     assigns to folds.
     """
-    D_stats.sort_values("runs", inplace=True)
+    # sorting by medians facilitates the generation of fold sequences:
+        # the tenzer folds are calculated one after another.
+
+    # the 'runs' sort doesn't seem to play any role.
+    D_stats.sort_values(["runs", "median_rt"], inplace=True)
     run_cnts = D_stats.groupby("runs").runs.count()
     run_cnts = run_cnts[run_cnts >= folds_no].copy()
     D_stats = D_stats.loc[D_stats.runs.isin(run_cnts.index)].copy()
@@ -60,9 +68,11 @@ def filter_and_fold(D,
 def preprocess(D_all,
                min_runs_no=5,
                folds_no=10,
-               fold=peptide_stratified_folds):
+               fold=peptide_stratified_folds,
+               **filter_and_fold_kwds):
     """Preprocess the data for fitting cross-validated splines."""
     D_stats = get_stats(D_all, min_runs_no)
     D = get_medians(D_all, D_stats, min_runs_no)
-    D_cv, D_stats, run_cnts = filter_and_fold(D, D_stats, folds_no, fold)
+    D_cv, D_stats, run_cnts = filter_and_fold(D, D_stats, folds_no, fold, 
+                                              **filter_and_fold_kwds)
     return D_cv, D_stats, run_cnts

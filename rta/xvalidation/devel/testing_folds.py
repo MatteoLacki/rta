@@ -30,11 +30,61 @@ annotated_all, unlabelled_all = big_data()
 folds_no    = 10
 min_runs_no = 5
 
+
+# which things are stupidly coded?
+# 
+
+
+
+
+
+# Checking folding
+from rta.preprocessing import get_stats, get_medians
+
+D_all = annotated_all
+D_stats = get_stats(D_all, min_runs_no)
+D = get_medians(D_all, D_stats, min_runs_no)
+
+# filter and folds
+D_stats.sort_values(["runs", "median_rt"], inplace=True)
+
+run_cnts = D_stats.groupby("runs").runs.count()
+run_cnts = run_cnts[run_cnts >= folds_no].copy()
+D_stats = D_stats.loc[D_stats.runs.isin(run_cnts.index)].copy()
+
+# this has to be replaced by something that simply filters.
+D_cv = pd.merge(D,
+                D_stats[['runs']],
+                left_on='id', 
+                right_index=True)
+D_cv.sort_values(["run", "rt"], inplace=True)
+run_counts = D_cv.groupby('run').id.count()
+D_cv['fold'] = tenzer_folds(run_counts, folds_no)
+
+
+
+
+fs = fold_similarity(D_cv)
+with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+    print(fs[1])
+
+
+
+
+
+
+# 
 annotated_cv_tf, annotated_stats_tf, run_cnts_tf = \
     preprocess(annotated_all,
                min_runs_no,
                folds_no,
                tenzer_folds)
+
+
+annotated_cv_tf.groupby(['run', 'fold']).id.count()
+X = annotated_cv_tf[annotated_cv_tf.run == 1].copy()
+X.rt
+
 
 fs = fold_similarity(annotated_cv_tf)
 with pd.option_context('display.max_rows', None, 'display.max_columns', None):
@@ -91,7 +141,11 @@ for d, n in zip(fold_stats_ssr,
                 ['fold_perc', 'fold_perc_stats_by_run', 'fold_perc_stats']):
     d.to_csv(os.path.join("~/Desktop/tmp/simple_sampling_with_replacement", n + ".csv"))
 # OK, this really introduces a lot of additional variability.
-fs = fold_similarity(data)
+fs = fold_similarity(annotated_cv_ssr)
+
+with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+    print(fs[1])
+
 
 with pd.option_context('display.max_rows', None, 'display.max_columns', None):
     # print(fs[0])

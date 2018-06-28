@@ -32,28 +32,8 @@ def peptide_stratified_folds(run_cnts, folds_no):
 
 
 
-def iter_tenzer_folds(run_cnts, folds_no=10):
-    """Create a Stefan Tenzer's empirical fold iterator.
-
-    Cycles through numbers in set 0,..,folds_no 
-    with repetitions for all consecutive strata.
-
-    Args:
-        runs_cnts (pandas.core.series.Series): the counts of occurences of peptides in different run groups.
-        folds_no (int): the number of folds the data will be divided into.
-
-    Yield:
-        a sequence of folds.
-    """
-    folds = tuple(range(folds_no))
-    for cnt in run_cnts:
-        for i in islice(cycle(folds), cnt):
-            yield i
-
-
-
-def shuffled_folds(folds):
-    """Shuffle folds.
+def shuffled_cycle(folds):
+    """Shuffled cycles.
 
     Args:
         folds (list of ints): folds numbers.
@@ -67,74 +47,57 @@ def shuffled_folds(folds):
 
 
 
-def iter_shuffled_tenzer_folds(run_cnts, folds_no=10):
-    """Create a randomized Stefan Tenzer's empirical fold iterator.
+def iter_stratified_folds(strata_cnts, folds_no=10, shuffle=False):
+    """Iterate over assignments to different strata,
 
-    Cycles through numbers in set 0,..,folds_no that have been randomly permutated.
+    Cycles through numbers in set 0,..,folds_no 
     with repetitions for all consecutive strata.
 
     Args:
-        runs_cnts (iterable): the counts of occurences of peptides in different run groups.
-        folds_no (int): the number of folds the data will be divided into.
+        strata_cnts (iterable): counts of elements in subsequent strata.
+        folds_no (int):         the number of folds.
+        shuffle (boolean):      shuffle the cycle.
 
     Yield:
         a sequence of folds.
     """
     folds = list(range(folds_no))
+    __folds_iter = shuffled_cycle if shuffle else cycle
     for cnt in run_cnts:
-        for i in shuffled_folds(folds):
+        for i in islice(__folds_iter(folds), cnt):
             yield i
 
 
 
-def tenzer_folds(run_cnts, folds_no, shuffle=False):
-    """Create Stefan Tenzer folds.
+def stratified_folds(strata_cnts, folds_no, shuffle=False):
+    """Assign elements tot folds based on strata counts.
 
-    The division into folds takes into account the division
-    into different run appearance.
-    Within each stratum, we divide data points into subsequent folds
-    simply based on their order of appearance in the consider dimension.
-    We also repeat the cycles.
+    The strata counts are assumed to be ordered by the user.
+    Within each stratum, points are divided into folds in 
+    consecutive batches of 'folds_no' points.
+    By default, points are prescibed to folds by their order of appearance.
+    
+    
     For instance, if retention times were 21.4, 31.5, 53.1, 64.4, 78.2 
     and we wanted 3 folds, then these retention times would be simply mapped to
     folds with numbers 0, 1, 2, 0, 1.
     The 'run_cnts' induce the order of appearance of folds.
+    If 'shuffle=True', the numbers will be permuted each time.
 
     Args:
-        runs_cnts (iterable): the counts of occurences of peptides in different run groups.
-        folds_no (int): the number of folds the data will be divided into.
+        strata_cnts (iterable): counts of elements in subsequent strata.
+        folds_no (int):         the number of folds.
+        shuffle (boolean):      shuffle the cycle.
 
     Return:
         out (np.array of ints): the folds prescription for individual peptide groups.
     """
-    iter_folds = iter_shuffled_tenzer_folds if shuffle else iter_tenzer_folds
-    return np.fromiter(iter_folds(run_cnts, folds_no),
-                       count=sum(run_cnts),
-                       dtype=np.int8)
+    elements_cnt = sum(strata_cnts)
+    iter_folds   = iter_stratified_folds(strata_cnts,
+                                         folds_no,
+                                         shuffle)
+    return np.fromiter(iter_folds, count=elements_cnt, dtype=np.int8)
 
-
-
-def randomized_tenzer_folds(run_cnts, folds_no, shuffle=True):
-    """Create randomized Stefan Tenzer folds.
-
-    The division into folds takes into account the division
-    into different run appearance.
-    Within each stratum, we divide data points into subsequent folds.
-    This is done by repeated operations on consecutive tupples of 'folds_no'
-    elements. E.g. for 'folds_no = 10', we first look at 0:9, then at 10:19, and so on.
-    Within these batches, we assign the points to different folds
-    using sampling without repetition. This is equivalent to first doing the 
-    assignment via Tenzer Folds, followed by a random permutation of fold assignments.
-    The 'run_cnts' induce the order of appearance of folds.
-
-    Args:
-        runs_cnts (iterable): the counts of occurences of peptides in different run groups.
-        folds_no (int): the number of folds the data will be divided into.
-
-    Return:
-        out (np.array of ints): the folds prescription for individual peptide groups.
-    """
-    return tenzer_folds(run_cnts, folds_no, True)
 
 
 def no_runs_strata_tenzer_folds(run_cnts, folds_no):

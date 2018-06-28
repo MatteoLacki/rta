@@ -128,3 +128,41 @@ def fold_similarity(data,
     distances_run = pd.DataFrame(distances.groupby(run_name).describe())
     distances_agg = pd.DataFrame(distances.describe())
     return distances, distances_run, distances_agg
+
+
+
+def __describe_runs(data,
+                    var_name,
+                    q=np.arange(0, 101, 5)):
+    """Basic description of the data set.
+
+    Number of peptides per run.
+    """
+    data_run = data.groupby('run')
+    out = pd.DataFrame(data_run.rt.count())
+    out.columns=['count']
+    out = pd.concat([out,
+                     pd.DataFrame(data_run[var_name].apply(np.percentile,
+                                                           q=q).values.tolist(),
+                                  columns=q,
+                                  index=out.index)],
+                    axis=1)
+    return out
+
+
+
+def describe_runs(data,
+                  var_names=['rt', 'dt', 'mass'],
+                  quantiles=np.arange(0, 101, 5)):
+    """Basic description of the data set.
+
+    Args:
+        data (pandas.DataFrame): DataFrame with column 'run' and other features.
+        var_names (string or list of strings): names of features to report on.
+        quantiles (iterable): which quantiles should be compared, in range 0-100.
+
+    Return:
+        out (dictionary): a dictionary with run summaries and percentile of feature distribution per run.
+    """
+    v = var_names if isinstance(var_names, list) else [var_names]
+    return {n:__describe_runs(data, n, quantiles) for n in v}
