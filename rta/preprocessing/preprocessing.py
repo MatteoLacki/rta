@@ -27,6 +27,7 @@ class DataPreprocessor(object):
         assert all(vn in annotated_peptides.columns for vn in all_col_names),\
              "Not all variable names are among the column names of the supplied data frame."
         self.var_names = var_names
+        self.run_name  = run_name
         self.pept_id   = pept_id        
         # the slimmed data-set: copy is quick and painless.
         self.D = annotated_peptides[all_col_names].copy()
