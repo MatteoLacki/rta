@@ -17,12 +17,11 @@ from rta.models.base_model import coef, predict, fitted, coefficients, residuals
 from rta.models.plot import plot
 from rta.models.SQSpline import SQSpline
 from rta.read_in_data import big_data
-from rta.preprocessing import preprocess
+from rta.preprocessing_old import preprocess
 from rta.stats.stats import compare_fold_quantiles
 from rta.stats.stats import fold_similarity
 from rta.xvalidation.cross_validation import tasks_run_param, cv_run_param
-from rta.xvalidation.stratifications_folds import tenzer_folds
-from rta.xvalidation.stratifications_folds import randomized_tenzer_folds
+from rta.xvalidation.stratifications_folds import stratified_folds
 from rta.xvalidation.stratifications_folds import replacement_sampled_folds
 from rta.xvalidation.stratifications_folds import no_runs_strata_randomized_tenzer_folds
 

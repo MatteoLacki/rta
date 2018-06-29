@@ -11,19 +11,31 @@ def ordered_str(x):
     return "_".join(str(i) for i in x)
 
 
-# Still overally slow.
-def get_stats(D_all, min_runs_no = 5):
+
+def get_stats(D_all, 
+              min_runs_no=5,
+              var_names=('rt', 'dt', 'mass'), 
+              pept_id='id',              
+              stat=np.median):
+    """Calculate basic statistics conditional on peptide-id.
+
+    Args:
+        D_all (pandas.DataFrame): The DataFrame with identified peptides.
+        min_runs_no (int): Analyze only peptides that appear at least in that number of runs.
+        var_names (iter of strings): names of columns for which to obtain the statistic.
+        pept_id (str): name of column that identifies peptides in different runs.
+        stat (function): a statistic to apply to the selected features.
+
+    Return:
+        D_stats (pandas.DataFrame): A DataFrame summarizing the selected features of peptides. Filtered for peptides appearing at least in a given minimal number of runs. 
+
+    """
     D_id = D_all.groupby('id')
-    D_stats = D_id.agg({'rt':   np.median, 
-                        'mass': np.median,
-                        'dt':   np.median,
-                        'run':  ordered_str,
-                        'id':   len})
-    D_stats.columns = ['median_rt', 
-                       'median_mass',
-                       'median_dt',
-                       'runs',
-                       'runs_no']
+    D_stats = D_id[var_names].agg(stat)
+    D_stats.columns = [ stat.__name__ + "_" + vn  for vn in var_names]
+    D_stats['runs_no'] = D_id.id.count()
+    # this should be rewritten in C.
+    D_stats['runs'] = D_id.run.agg(ordered_str)
     return D_stats[D_stats.runs_no >= min_runs_no].copy()
 
 
