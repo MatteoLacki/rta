@@ -4,11 +4,6 @@ from rta.xvalidation.stratifications_folds import peptide_stratified_folds
 
 
 
-# TODO: have to generalize the selection of column to DT from only RT
-def ordered_str(x):
-    x = x.values
-    x.sort()
-    return "_".join(str(i) for i in x)
 
 
 

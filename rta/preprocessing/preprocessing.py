@@ -1,18 +1,13 @@
-"""Cross validate the input model."""
-
-%load_ext autoreload
-%autoreload 2
-%load_ext line_profiler
-
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-pd.set_option('display.max_rows', 10)
-pd.set_option('display.max_columns', 4)
-from rta.read_in_data import big_data
 
 
-annotated_all, unlabelled_all = big_data()
+#TODO: replace this with C.
+def ordered_str(x):
+    x = x.values
+    x.sort()
+    return "_".join(str(i) for i in x)
+
 
 
 class DataPreprocessor(object):
@@ -36,9 +31,6 @@ class DataPreprocessor(object):
         # the slimmed data-set: copy is quick and painless.
         self.D = annotated_peptides[all_col_names].copy()
 
-    def run(self):
-        """Run preprocessing."""
-        pass
 
     def get_stats(self, stat=np.median, min_runs_no=5):
         """Calculate basic statistics conditional on peptide-id.
@@ -66,6 +58,8 @@ class DataPreprocessor(object):
 
     def get_distances_to_stats(self):
         """Calculate the distances of selected features to their summarizing statistic."""
+
+        # filter the runs that did not appear more than 'min_runs_no'.
         self.D = pd.merge(self.D, self.stats, left_on="id", right_index=True)
         distances = {}
         for n in self.var_names:
@@ -73,7 +67,14 @@ class DataPreprocessor(object):
             distances[var_stat + "_distance"] = self.D[n] - self.D[var_stat]
         self.D = self.D.assign(**distances)
 
-dp = DataPreprocessor(annotated_all)
-dp.get_stats()
-dp.get_distances_to_stats()
-dp.D.columns
+
+
+def preprocess(annotated_peptides,
+               min_runs_no=5,
+               DP_init_vars={},
+               get_stats_vars={}):
+    """Wrapper around preprocessing of the annotated peptides.""" 
+    dp = DataPreprocessor(annotated_peptides, **DP_init_vars)
+    dp.get_stats(min_runs_no=5, **get_stats_vars)
+    dp.get_distances_to_stats()
+    return dp
