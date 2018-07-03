@@ -17,9 +17,51 @@ from rta.preprocessing.preprocessing import preprocess
 folds_no = 10
 annotated_all, unlabelled_all = big_data()
 dp = preprocess(annotated_peptides=annotated_all)
-dp.filter_unfoldable_strata(folds_no)
+dp.fold(folds_no)
+
+dp.
 
 
+from rta.xvalidation.folds import stratified_group_folds
+from rta.xvalidation.folds import replacement_folds_strata
+
+preprocessed_data = dp
+D = dp.D
+stats = dp.stats
+run_cnts = dp.run_cnts
+dp.stat_name
+dp.strata_cnts
+
+def get_fold(preprocessed_data,
+             folds_no=10,
+             feature='rt',
+             fold=stratified_group_folds,
+             fold_kwds={'shuffle': True}):
+    """Assign to folds."""
+    d = preprocessed_data
+    if fold.__name__ == 'stratified_group_folds':
+        # we want the result to be sorted w.r.t. median rt.
+        d.stats.sort_values(["runs", d.stat_name + '_' + feature],
+                            inplace=True)
+    d.stats['fold'] = fold(d.strata_cnts,
+                           folds_no,
+                         **fold_kwds)
+    fold_cols = list(c for c in d.D.columns if 'fold' in c)
+    d.D.drop(labels=fold_cols, axis=1, inplace=True)
+    d.D = pd.merge(d.D, d.stats[['fold']],
+                   left_on='id', right_index=True)
+    return d
+
+
+
+
+
+d = get_fold(dp,
+             folds_no=10,
+             feature='rt',
+             fold=stratified_group_folds,
+             fold_kwds={'shuffle': True})
+d.D
 
 
 
@@ -28,37 +70,63 @@ from rta.xvalidation.cross_validation import tasks_run_param, cv_run_param
 
 
 
+# def tasks_run_param(data,
+#                     parameters,
+#                     var_name='rt',
+#                     run_name='run',
+#                    *other_worker_args):
+#     """Iterate over the data runs and fitting parameters."""
+#     folds = np.unique(data.fold)
+#     for run, d_run in data.groupby(run_name):
+#         d_run = d_run.sort_values(var_name)
+#         d_run = d_run.drop_duplicates(var_name)
+#         for param in parameters:
+#             out = [run, d_run, param, folds]
+#             out.extend(other_worker_args)
+#             yield out
 
 
-def tasks_run_param(data,
-                    parameters,
-                    var_name='rt',
-                    run_name='run',
-                   *other_worker_args):
-    """Iterate over the data runs and fitting parameters."""
-    folds = np.unique(data.fold)
-    for run, d_run in data.groupby(run_name):
-        d_run = d_run.sort_values(var_name)
-        d_run = d_run.drop_duplicates(var_name)
-        for param in parameters:
-            out = [run, d_run, param, folds]
-            out.extend(other_worker_args)
-            yield out
 
 
 
 def calibrate(preprocessed_data,
-              feature_name,
-              folds_no=10):
+              parameters,
+              feature_name='rt',
+              run_name='run',
+              folds_no=10,
+              cores_no=cpu_count(),
+              *other_worker_args):
     """Calibrate the model for a given feature.
 
     Args:
         preprocessed_data (pandas.DataFrame): data to work on.
+        parameters (iterable): parameters for the individual run models.
         folds_no (int): number of folds to test the model's generalization capabilities.
 
     Returns:
         a list of models fitted to runs.
     """
+
+    # get folds
+
+
+    # run calibration on runs and parameters
+    def tasks_run_param():
+        """Iterate over the data runs and fitting parameters."""
+        folds = np.unique(preprocessed_data.fold)
+        for run, d_run in data.groupby(run_name):
+            d_run = d_run.sort_values(var_name)
+            d_run = d_run.drop_duplicates(var_name)
+            for param in parameters:
+                out = [run, d_run, param, folds]
+                out.extend(other_worker_args)
+                yield out
+
+    with Pool(cores_no) as p:
+        results = p.starmap(cv_run_param,
+                            tasks_run_param(preprocessed_data,
+                                            parameters))
+    return results
 
 
 
