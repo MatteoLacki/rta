@@ -54,6 +54,7 @@ def tasks_run_param(data, parameters, *other_worker_args):
             out.extend(other_worker_args)
             yield out
 
+# this looks more like a fit method for the bloody model
 # tasks_run_param pipes in parameters for this.
 def cv_run_param(run, d_run, param, folds,
                  Model=SQSpline,
