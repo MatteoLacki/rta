@@ -4,7 +4,7 @@ from numpy.random import shuffle, choice
 
 
 
-def K_folds(N, folds_no):
+def K_folds(N, folds_no=10):
     K = folds_no
     groups = np.full((N,), 0)
     # produce an array of K numbers repeated 
@@ -21,7 +21,7 @@ def K_folds(N, folds_no):
 
 
 
-def peptide_stratified_folds(run_cnts, folds_no):
+def peptide_stratified_folds(run_cnts, folds_no=10):
     folds = np.zeros(sum(run_cnts), dtype=np.int8)
     s = e = 0
     for cnt in run_cnts:
@@ -63,14 +63,16 @@ def iter_stratified_folds(strata_cnts, folds_no=10, shuffle=False):
     """
     folds = list(range(folds_no))
     __folds_iter = shuffled_cycle if shuffle else cycle
-    for cnt in run_cnts:
+    for cnt in strata_cnts:
         for i in islice(__folds_iter(folds), cnt):
             yield i
 
 
 
-def stratified_folds(strata_cnts, folds_no, shuffle=False):
-    """Assign elements tot folds based on strata counts.
+def stratified_group_folds(strata_cnts,
+                           folds_no=10,
+                           shuffle=False):
+    """Assign elements to folds based on strata counts, in peptide-id groups.
 
     The strata counts are assumed to be ordered by the user.
     Within each stratum, points are divided into folds in 
@@ -99,35 +101,31 @@ def stratified_folds(strata_cnts, folds_no, shuffle=False):
     return np.fromiter(iter_folds, count=elements_cnt, dtype=np.int8)
 
 
+def tenzer_folds(peptides_cnt, folds_no=10):
+    """Create Tenzer folds without strata.
 
-def no_runs_strata_tenzer_folds(run_cnts, folds_no):
-    """Create Stefan Tenzer folds without strata.
-
-    Divide points into different folds neglecting their appearance 
-    within different groups. The 'natural randomness' of the data points
-    is used.
+    There is no additional grouping by peptide-ids here.
+    The 'natural randomness' of the data points is used.
 
     Args:
-        runs_cnts (iterable): the counts of occurences of peptides in different run groups.
+        peptides_cnt (int): number of peptides
         folds_no (int): the number of folds the data will be divided into.
 
     Return:
         out (np.array of ints): the folds prescription for individual peptide groups.
     """
     return np.fromiter(cycle(range(folds_no)),
-                       count=sum(run_cnts),
+                       count=peptides_cnt,
                        dtype=np.int8)
 
 
-def no_runs_strata_randomized_tenzer_folds(run_cnts, folds_no):
-    """Create Stefan Tenzer folds without strata.
-
-    Divide points into different folds neglecting their appearance 
-    within different groups. The 'natural randomness' of the data points
-    is used.
+def random_tenzer_folds(peptides_cnt, folds_no=10):
+    """Draw folds in Tenszer's windows, but randomly shuffled.
+    
+    There is no additional grouping by peptide-ids here.
 
     Args:
-        runs_cnts (iterable): the counts of occurences of peptides in different run groups.
+        peptides_cnt (int): number of peptides.
         folds_no (int): the number of folds the data will be divided into.
 
     Return:
@@ -135,16 +133,36 @@ def no_runs_strata_randomized_tenzer_folds(run_cnts, folds_no):
     """
     folds = list(range(folds_no))
     return np.fromiter(shuffled_folds(folds),
-                       count=sum(run_cnts),
+                       count=peptides_cnt,
                        dtype=np.int8)
 
 
-def replacement_sampled_folds(run_cnts, folds_no=10):
-    """Draw folds truly at random.
+def replacement_folds(peptide_groups_cnt, 
+                      folds_no=10):
+    """Assign peptide groups to folds independently one from another.
 
-    Each data point is independently assigned some fold
-    with equal probability.
+    Args:
+        peptide_groups_cnt (int): number of peptide groups.
+        folds_no (int): the number of folds the data will be divided into.
+
+    Return:
+        out (np.array of ints): the folds prescription for individual peptide groups.
     """
     return choice(folds_no,
-                  size=sum(run_cnts),
+                  size=peptide_groups_cnt,
                   replace=True)
+
+def replacement_folds_strata(strata_cnts,
+                             folds_no=10,
+                             shuffle=False):
+    """Assign peptide groups to folds independently one from another.
+
+    Args:
+        strata_cnts (iterable): numbers of peptide groups in each stratum.
+        folds_no (int): the number of folds the data will be divided into.
+        shuffle (boolean): for compability only.
+
+    Return:
+        out (np.array of ints): the folds prescription for individual peptide groups.
+    """
+    return replacement_folds(sum(strata_cnts), folds_no)

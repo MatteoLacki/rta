@@ -28,10 +28,9 @@ class DataPreprocessor(object):
              "Not all variable names are among the column names of the supplied data frame."
         self.var_names = var_names
         self.run_name  = run_name
-        self.pept_id   = pept_id        
+        self.pept_id   = pept_id
         # the slimmed data-set: copy is quick and painless.
         self.D = annotated_peptides[all_col_names].copy()
-
 
     def get_stats(self, stat=np.median, min_runs_no=5):
         """Calculate basic statistics conditional on peptide-id.
@@ -68,14 +67,47 @@ class DataPreprocessor(object):
             distances[var_stat + "_distance"] = self.D[n] - self.D[var_stat]
         self.D = self.D.assign(**distances)
 
+    def filter_unfoldable_strata(self, folds_no):
+        """Filter peptides that cannot be folded.
+
+        Trim both stats on peptides and run data of all peptides
+        that are not appearing in the same runs in a group of at
+        least 'folds_no' other peptides."""
+        self.folds_no = folds_no
+        self.folds = np.arange(folds_no)
+        strata_cnts = self.stats.groupby("runs").runs.count()
+        self.strata_cnts = strata_cnts[strata_cnts >= self.folds_no].copy()
+        # filtering stats
+        self.stats = self.stats[np.isin(self.stats.runs,
+                                self.strata_cnts.index)].copy()
+        # filtering data
+        self.D = self.D[self.D[self.pept_id].isin(self.stats.index)].copy()
+
+    # def fold(self, folds_no,
+    #                feature='rt',
+    #                fold=stratified_folds,
+    #                fold_kwds={'shuffle': True}):
+    #     self.folds_no = folds_no
+    #     # no sense to make foldable unless folds are prepared too
+    #     self.__filter_unfoldable_strata()
+    #     if fold.__name__ == 'stratified_folds':
+    #         # we want the result to be sorted w.r.t. median rt.
+    #         sort_vars = ["runs", self.stat_name + '_' + feature]
+    #         self.stats.sort_values(sort_vars, inplace=True)
+    #     self.stats['fold'] = fold(self.strata_cnts,
+    #                               self.folds_no,
+    #                               **fold_kwds)
+    #     self.D = pd.merge(self.D, self.stats[['fold']],
+    #                       left_on='id', right_index=True)
+
 
 
 def preprocess(annotated_peptides,
                min_runs_no=5,
-               DP_init_vars={},
-               get_stats_vars={}):
+               _DataPreprocessor={},
+               _get_stats={}):
     """Wrapper around preprocessing of the annotated peptides.""" 
-    dp = DataPreprocessor(annotated_peptides, **DP_init_vars)
-    dp.get_stats(min_runs_no=5, **get_stats_vars)
+    dp = DataPreprocessor(annotated_peptides, **_DataPreprocessor)
+    dp.get_stats(min_runs_no=5, **_get_stats)
     dp.get_distances_to_stats()
     return dp
