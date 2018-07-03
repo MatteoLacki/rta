@@ -17,9 +17,9 @@ from rta.preprocessing.preprocessing import preprocess
 folds_no = 10
 annotated_all, unlabelled_all = big_data()
 dp = preprocess(annotated_peptides=annotated_all)
-dp.fold(folds_no)
 
-dp.
+
+
 
 
 from rta.xvalidation.folds import stratified_group_folds
@@ -32,38 +32,25 @@ run_cnts = dp.run_cnts
 dp.stat_name
 dp.strata_cnts
 
-def get_fold(preprocessed_data,
-             folds_no=10,
+def set_fold(preprocessed_data,
              feature='rt',
              fold=stratified_group_folds,
-             fold_kwds={'shuffle': True}):
+             folds_no=10,
+             shuffle=True):
     """Assign to folds."""
     d = preprocessed_data
+    d.filter_unfoldable_strata(folds_no)
     if fold.__name__ == 'stratified_group_folds':
         # we want the result to be sorted w.r.t. median rt.
         d.stats.sort_values(["runs", d.stat_name + '_' + feature],
                             inplace=True)
-    d.stats['fold'] = fold(d.strata_cnts,
-                           folds_no,
-                         **fold_kwds)
-    fold_cols = list(c for c in d.D.columns if 'fold' in c)
-    d.D.drop(labels=fold_cols, axis=1, inplace=True)
+    d.stats['fold'] = fold(d.strata_cnts, folds_no, shuffle)
+    d.D.drop(labels  = [c for c in d.D.columns if 'fold' in c], 
+             axis    = 1,
+             inplace = True)
     d.D = pd.merge(d.D, d.stats[['fold']],
                    left_on='id', right_index=True)
     return d
-
-
-
-
-
-d = get_fold(dp,
-             folds_no=10,
-             feature='rt',
-             fold=stratified_group_folds,
-             fold_kwds={'shuffle': True})
-d.D
-
-
 
 from multiprocessing import Pool, cpu_count
 from rta.xvalidation.cross_validation import tasks_run_param, cv_run_param
@@ -84,6 +71,64 @@ from rta.xvalidation.cross_validation import tasks_run_param, cv_run_param
 #             out = [run, d_run, param, folds]
 #             out.extend(other_worker_args)
 #             yield out
+
+# How this should look like?
+def AlignData(annotated_peptides,
+              features          = ('rt', 'dt'),
+              min_runs_no       = 5,
+              fold              = stratified_group_folds,
+              folds_no          = 10,
+              parameters        = {},
+              _DataPreprocessor = {},
+              _get_stats        = {},
+              _set_fold         = {},
+              cores_no          = cpu_count()):
+    """Align features."""
+
+    dp = preprocess(annotated_peptides, 
+                    min_runs_no,
+                    _DataPreprocessor,
+                    _get_stats)
+
+    fits = {}
+    for feature in features:
+        dp = set_fold(dp,
+                      feature,
+                      folds_no = folds_no,
+                      **_set_fold)
+
+        try:
+            feature_param = parameters[feature]
+        except KeyError:
+            print("Need default.")
+
+        # calibration
+        def tasks_run_param():
+            """Iterate over the data runs and fitting parameters."""
+            for run, d_run in dp.D.groupby(run_name):
+                d_run = d_run.sort_values(feature)
+                d_run = d_run.drop_duplicates(feature)
+                for param in feature_param:
+                    out = [run, d_run, param, dp.folds]
+                    out.extend(other_worker_args)
+                    yield out
+
+        with Pool(cores_no) as p:
+            fits['feature'] = p.starmap(cv_run_param,
+                                        tasks_run_param())
+
+
+
+
+
+
+
+dp = get_fold(dp,
+              folds_no=10,
+              feature='rt',
+              fold=stratified_group_folds,
+              fold_kwds={'shuffle': True})
+dp.D
 
 
 

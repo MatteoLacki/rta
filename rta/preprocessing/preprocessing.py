@@ -74,6 +74,7 @@ class DataPreprocessor(object):
         that are not appearing in the same runs in a group of at
         least 'folds_no' other peptides."""
         self.folds_no = folds_no
+        self.folds = np.arange(folds_no)
         strata_cnts = self.stats.groupby("runs").runs.count()
         self.strata_cnts = strata_cnts[strata_cnts >= self.folds_no].copy()
         # filtering stats
