@@ -31,6 +31,7 @@ class DataPreprocessor(object):
         self.pept_id   = pept_id
         # the slimmed data-set: copy is quick and painless.
         self.D = annotated_peptides[all_col_names].copy()
+        self.filtered_unfoldable = False
 
     def get_stats(self, stat=np.median, min_runs_no=5):
         """Calculate basic statistics conditional on peptide-id.
@@ -72,16 +73,23 @@ class DataPreprocessor(object):
 
         Trim both stats on peptides and run data of all peptides
         that are not appearing in the same runs in a group of at
-        least 'folds_no' other peptides."""
-        self.folds_no = folds_no
-        self.folds = np.arange(folds_no)
-        strata_cnts = self.stats.groupby("runs").runs.count()
-        self.strata_cnts = strata_cnts[strata_cnts >= self.folds_no].copy()
-        # filtering stats
-        self.stats = self.stats[np.isin(self.stats.runs,
-                                self.strata_cnts.index)].copy()
-        # filtering data
-        self.D = self.D[self.D[self.pept_id].isin(self.stats.index)].copy()
+        least 'folds_no' other peptides.
+        Do it once only per dataset.
+
+        Args:
+            folds_no (int): the number of folds to divide the data into.
+        """
+        if not self.filtered_unfoldable:
+            self.folds_no = folds_no
+            self.folds = np.arange(folds_no)
+            strata_cnts = self.stats.groupby("runs").runs.count()
+            self.strata_cnts = strata_cnts[strata_cnts >= self.folds_no].copy()
+            # filtering stats
+            self.stats = self.stats[np.isin(self.stats.runs,
+                                    self.strata_cnts.index)].copy()
+            # filtering data
+            self.D = self.D[self.D[self.pept_id].isin(self.stats.index)].copy()
+            self.filtered_unfoldable = True
 
     # def fold(self, folds_no,
     #                feature='rt',

@@ -18,43 +18,88 @@ folds_no = 10
 annotated_all, unlabelled_all = big_data()
 dp = preprocess(annotated_peptides=annotated_all)
 
-
-
-
-
 from rta.xvalidation.folds import stratified_group_folds
 from rta.xvalidation.folds import replacement_folds_strata
 
-preprocessed_data = dp
-D = dp.D
-stats = dp.stats
-run_cnts = dp.run_cnts
-dp.stat_name
-dp.strata_cnts
+
 
 def set_fold(preprocessed_data,
              feature='rt',
              fold=stratified_group_folds,
              folds_no=10,
              shuffle=True):
-    """Assign to folds."""
-    d = preprocessed_data
-    d.filter_unfoldable_strata(folds_no)
+    """Assign to folds.
+
+    Args:
+        preprocessed_data (pandas.DataFrame): data to assign folds to.
+        feature (string):   the name of the feature in the column space of the preprocessed_data that will be aligned.
+        fold (function):    the folding function.
+        folds_no (int):     the number of folds to split the data into.
+        shuffle (boolean):  shuffle the points while folding?
+    """
+    dp = preprocessed_data
+    dp.filter_unfoldable_strata(folds_no)
     if fold.__name__ == 'stratified_group_folds':
         # we want the result to be sorted w.r.t. median rt.
-        d.stats.sort_values(["runs", d.stat_name + '_' + feature],
-                            inplace=True)
-    d.stats['fold'] = fold(d.strata_cnts, folds_no, shuffle)
-    d.D.drop(labels  = [c for c in d.D.columns if 'fold' in c], 
-             axis    = 1,
-             inplace = True)
-    d.D = pd.merge(d.D, d.stats[['fold']],
-                   left_on='id', right_index=True)
-    return d
+        dp.stats.sort_values(["runs", dp.stat_name + '_' + feature],
+                             inplace=True)
+    dp.stats['fold'] = fold(dp.strata_cnts, folds_no, shuffle)
+    dp.D.drop(labels  = [c for c in dp.D.columns if 'fold' in c], 
+              axis    = 1,
+              inplace = True)
+    dp.D = pd.merge(dp.D, dp.stats[['fold']],
+                    left_on='id', right_index=True)
+    return dp
 
 from multiprocessing import Pool, cpu_count
-from rta.xvalidation.cross_validation import tasks_run_param, cv_run_param
-from rta.xvalidation.stratifications_folds import stratified_folds
+from rta.cv.cross_validation import tasks_run_param, cv_run_param
+from rta.cv.folds import stratified_group_folds
+
+
+#TODO: this part should have the possibility to change the fitting procedure.
+# So as to make it possible to refit the data.
+def calibrate(preprocessed_data,
+              parameters,
+              feature_name='rt',
+              run_name='run',
+              folds_no=10,
+              cores_no=cpu_count(),
+              *other_worker_args):
+    """Calibrate the model for a given feature.
+
+    Args:
+        preprocessed_data (pandas.DataFrame): data including folds.
+        parameters (iterable): parameters for the individual run models.
+        folds_no (int): number of folds to test the model's generalization capabilities.
+
+    Returns:
+        a list of models fitted to runs.
+    """
+    dp = preprocessed_data
+
+    # run calibration on runs and parameters
+    def tasks_run_param():
+        """Iterate over the data runs and fitting parameters."""
+        folds = np.unique(dp.fold)
+        for run, d_run in data.groupby(run_name):
+            d_run = d_run.sort_values(var_name)
+            d_run = d_run.drop_duplicates(var_name)
+            for param in parameters:
+                out = [run, d_run, param, folds]
+                out.extend(other_worker_args)
+                yield out
+
+    with Pool(cores_no) as p:
+        results = p.starmap(cv_run_param,
+                            tasks_run_param(preprocessed_data,
+                                            parameters))
+    best_model = select_best_model(results)
+    # align the given dimension
+    dp['aligned_' + feature_name] = fitted(best_model)
+    return dp, results
+
+
+
 
 def AlignData(annotated_peptides,
               features          = ('rt', 'dt'),
@@ -73,34 +118,30 @@ def AlignData(annotated_peptides,
                     _DataPreprocessor,
                     _get_stats)
 
-    fits = {}
+    calibrated_alignments = {}
     for feature in features:
         dp = set_fold(dp,
                       feature,
                       folds_no = folds_no,
                       **_set_fold)
 
-        try:
-            feature_param = parameters[feature]
-        except KeyError:
-            print("Need default.")
+        dp, calibrated_alignments[feature] = calibrate()
+        
+        # def tasks_run_param():
+        #     """Iterate over the data runs and fitting parameters."""
+        #     for run, d_run in dp.D.groupby(run_name):
+        #         d_run = d_run.sort_values(feature)
+        #         d_run = d_run.drop_duplicates(feature)
+        #         for param in feature_param:
+        #             out = [run, d_run, param, dp.folds]
+        #             out.extend(other_worker_args)
+        #             yield out
 
-        # calibration
-        def tasks_run_param():
-            """Iterate over the data runs and fitting parameters."""
-            for run, d_run in dp.D.groupby(run_name):
-                d_run = d_run.sort_values(feature)
-                d_run = d_run.drop_duplicates(feature)
-                for param in feature_param:
-                    out = [run, d_run, param, dp.folds]
-                    out.extend(other_worker_args)
-                    yield out
+        # with Pool(cores_no) as p:
+        #     fits['feature'] = p.starmap(cv_run_param,
+        #                                 tasks_run_param())
 
-        with Pool(cores_no) as p:
-            fits['feature'] = p.starmap(cv_run_param,
-                                        tasks_run_param())
-
-
+    return calibrated_alignments
 
 
 
@@ -114,47 +155,6 @@ dp = get_fold(dp,
 dp.D
 
 
-
-
-
-def calibrate(preprocessed_data,
-              parameters,
-              feature_name='rt',
-              run_name='run',
-              folds_no=10,
-              cores_no=cpu_count(),
-              *other_worker_args):
-    """Calibrate the model for a given feature.
-
-    Args:
-        preprocessed_data (pandas.DataFrame): data to work on.
-        parameters (iterable): parameters for the individual run models.
-        folds_no (int): number of folds to test the model's generalization capabilities.
-
-    Returns:
-        a list of models fitted to runs.
-    """
-
-    # get folds
-
-
-    # run calibration on runs and parameters
-    def tasks_run_param():
-        """Iterate over the data runs and fitting parameters."""
-        folds = np.unique(preprocessed_data.fold)
-        for run, d_run in data.groupby(run_name):
-            d_run = d_run.sort_values(var_name)
-            d_run = d_run.drop_duplicates(var_name)
-            for param in parameters:
-                out = [run, d_run, param, folds]
-                out.extend(other_worker_args)
-                yield out
-
-    with Pool(cores_no) as p:
-        results = p.starmap(cv_run_param,
-                            tasks_run_param(preprocessed_data,
-                                            parameters))
-    return results
 
 
 
