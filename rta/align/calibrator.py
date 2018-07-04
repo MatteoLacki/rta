@@ -1,8 +1,16 @@
 """A class for calibrating the parameters of the model. """
-from rta.models.base_model import fitted
 
-from rta.cv.folds import stratified_group_folds
-from rta.cv.folds import replacement_folds_strata
+from multiprocessing import Pool, cpu_count
+import numpy as np
+import pandas as pd
+
+from rta.cv.cv              import cv_run_param
+from rta.cv.folds           import replacement_folds_strata
+from rta.cv.folds           import stratified_group_folds
+from rta.models.base_model  import fitted, predict
+from rta.models.SQSpline    import SQSpline
+from rta.stats.stats        import mae, mad, confusion_matrix
+
 
 class Calibrator(object):
     def __init__(self, 
@@ -18,6 +26,7 @@ class Calibrator(object):
         self.dp = preprocessed_data
         self.feature = feature
         self.run = run
+        self.feature_stat = self.dp.stat_name+'_'+self.feature
 
     def set_folds(self,
                   folds_no=10,
@@ -38,9 +47,7 @@ class Calibrator(object):
         # TODO: this should really be some wrapper around the silly method.
         if fold.__name__ == 'stratified_group_folds':
             # we want the result to be sorted w.r.t. median rt.
-            self.dp.stats.sort_values(["runs",
-                                       self.dp.stat_name+'_'+feature],
-                                      inplace=True)
+            self.dp.stats.sort_values(["runs", self.feature_stat], inplace=True)
 
         # get fold assignments for pept-id groups
         self.dp.stats['fold'] = fold(self.dp.strata_cnts,
@@ -48,43 +55,89 @@ class Calibrator(object):
                                      shuffle)
 
         # if there was some other fold in the dataframe - drop it!
-        self.dp.D.drop(labels = [c for c in self.dp.D.columns
-                                 if 'fold' in c], 
+        self.dp.D.drop(labels = [c for c in self.dp.D.columns if 'fold' in c], 
                        axis = 1,
                        inplace = True)
 
         # propage fold assignments to the main data
-        dp.D = pd.merge(dp.D, dp.stats[['fold']],
-                        left_on='id', right_index=True)
-
-    def cv_run_param(self):
-        pass
+        self.dp.D = pd.merge(self.dp.D,
+                             self.dp.stats[['fold']],
+                             left_on='id',
+                             right_index=True)
 
     def iter_run_param(self):
         """Iterate over the data runs and fitting parameters."""
-        for r, d_r in self.dp.D.groupby(sef.run):
-            d_r = d_r.sort_values(feature)
-            d_r = d_r.drop_duplicates(feature)
-            for p in parameters:
+        # iterate over runs
+        for r, d_r in self.dp.D.groupby(self.run):
+            #TODO: what to do with these values?
+            d_r = d_r.sort_values(self.feature)
+            # only one procedure requires the values to be 
+            # ordered and without duplicates...
+            d_r = d_r.drop_duplicates(self.feature)
+            for p in self.parameters:
                 out = [r, d_r, p, self.dp.folds]
-                out.extend(_cv_run_args)
+                out.extend(self._cv_run_args)
                 yield out
+
+    def select_best_model(self):
+        """Select the best model from the results."""
+        pass
+
+    def cv_run_param(self,
+                     run_no,
+                     d_run,
+                     parameter,
+                     Model=SQSpline,
+                     fold_stats=(mae, mad),
+                     model_stats=(np.mean, np.median, np.std)):
+        """Cross-validate a model under a given 'run' and 'parameter'."""
+        m = Model()
+        m.fit(d_run[self.feature].values, 
+              d_run[self.feature_stat].values,
+              **parameter)
+        m_stats = []
+        cv_out = []
+        for fold in self.dp.folds:
+            train = d_run.loc[d_run.fold != fold,:]
+            test  = d_run.loc[d_run.fold == fold,:]
+            n = Model()
+            n.fit(x=train[self.feature].values,
+                  y=train[self.feature_stat].values,
+                  **parameter)
+            errors = np.abs(predict(n, test[self.feature].values) - \
+                            test[self.feature_stat].values)
+            n_signal = n.is_signal(test.rt, test.rt_median_distance)
+            stats = [stat(errors) for stat in fold_stats]
+            m_stats.append(stats)
+            cm = confusion_matrix(m.signal[d_run.fold == fold], n_signal)
+            cv_out.append((n, stats, cm))
+        # process stats
+        m_stats = np.array(m_stats)
+        m_stats = np.array([stat(m_stats, axis=0) for stat in model_stats])
+        m_stats = pd.DataFrame(m_stats)
+        m_stats.columns = ["fold_" + fs.__name__ for fs in fold_stats]
+        m_stats.index = [ms.__name__ for ms in model_stats]
+
+        return run_no, parameter, m, m_stats, cv_out
+
+
 
     def calibrate(self,
                   parameters=None,
-                  cores_no=cpu_count()):
+                  cores_no=cpu_count(),
+                  _cv_run_args=[]):
         if not parameters:
             parameters = [{"chunks_no": 2**e} for e in range(2,8)]
         self.parameters = parameters
+        self._cv_run_args = _cv_run_args
 
         with Pool(cores_no) as p:
-            results = p.starmap(self.cv_run_param,
-                                self.iter_run_param())
+            self.results = p.starmap(cv_run_param,
+                                     self.iter_run_param())
 
-        best_model = select_best_model(results)
-    # align the given dimension
+        self.select_best_model()
+        # align the given dimension
         self.dp['aligned_' + self.feature] = fitted(best_model)
-        return self.dp, results
 
 
 
@@ -94,8 +147,10 @@ def calibrate(preprocessed_data,
               fold=stratified_group_folds,
               shuffle=True):
     """Calibrate the given feature of the data."""
-    calibrator = Calibrator(preprocessed_data, feature)
+    self.feature = feature
+    calibrator = Calibrator(preprocessed_data, self.feature)
     calibrator.set_folds(folds_no, fold, shuffle)
     calibrator.calibrate()
-    return calibrator
+    return calibrator.dp, calibrator.results
+    # return calibrator.dp, calibrator.best_model
 

@@ -1,7 +1,7 @@
 from itertools import cycle, islice
 import numpy as np
 from numpy.random import shuffle, choice
-
+import pandas as pd
 
 
 def K_folds(N, folds_no=10):
@@ -166,3 +166,32 @@ def replacement_folds_strata(strata_cnts,
         out (np.array of ints): the folds prescription for individual peptide groups.
     """
     return replacement_folds(sum(strata_cnts), folds_no)
+
+
+def set_folds(preprocessed_data,
+              feature='rt',
+              fold=stratified_group_folds,
+              folds_no=10,
+              shuffle=True):
+    """Assign to folds.
+
+    Args:
+        preprocessed_data (pandas.DataFrame): data to assign folds to.
+        feature (string):   the name of the feature in the column space of the preprocessed_data that will be aligned.
+        fold (function):    the folding function.
+        folds_no (int):     the number of folds to split the data into.
+        shuffle (boolean):  shuffle the points while folding?
+    """
+    dp = preprocessed_data
+    dp.filter_unfoldable_strata(folds_no)
+    if fold.__name__ == 'stratified_group_folds':
+        # we want the result to be sorted w.r.t. median rt.
+        dp.stats.sort_values(["runs", dp.stat_name + '_' + feature],
+                             inplace=True)
+    dp.stats['fold'] = fold(dp.strata_cnts, folds_no, shuffle)
+    dp.D.drop(labels  = [c for c in dp.D.columns if 'fold' in c], 
+              axis    = 1,
+              inplace = True)
+    dp.D = pd.merge(dp.D, dp.stats[['fold']],
+                    left_on='id', right_index=True)
+    return dp
