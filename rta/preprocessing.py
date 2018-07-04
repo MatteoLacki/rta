@@ -5,29 +5,30 @@
 %load_ext line_profiler
 
 import matplotlib.pyplot as plt
+from multiprocessing import Pool, cpu_count
 import numpy as np
 import pandas as pd
 pd.set_option('display.max_rows', 10)
 pd.set_option('display.max_columns', 4)
+
 from rta.read_in_data import big_data
 from rta.models.base_model import Model
 from rta.models.base_model import predict, fitted, coef, residuals
-from rta.preprocessing.preprocessing import preprocess
+from rta.pre.processing import preprocess
+from rta.cv.folds import stratified_group_folds
+from rta.cv.folds import replacement_folds_strata
+
 
 folds_no = 10
 annotated_all, unlabelled_all = big_data()
 dp = preprocess(annotated_peptides=annotated_all)
 
-from rta.xvalidation.folds import stratified_group_folds
-from rta.xvalidation.folds import replacement_folds_strata
 
-
-
-def set_fold(preprocessed_data,
-             feature='rt',
-             fold=stratified_group_folds,
-             folds_no=10,
-             shuffle=True):
+def set_folds(preprocessed_data,
+              feature='rt',
+              fold=stratified_group_folds,
+              folds_no=10,
+              shuffle=True):
     """Assign to folds.
 
     Args:
@@ -51,20 +52,16 @@ def set_fold(preprocessed_data,
                     left_on='id', right_index=True)
     return dp
 
-from multiprocessing import Pool, cpu_count
-from rta.cv.cross_validation import tasks_run_param, cv_run_param
-from rta.cv.folds import stratified_group_folds
-
 
 #TODO: this part should have the possibility to change the fitting procedure.
 # So as to make it possible to refit the data.
 def calibrate(preprocessed_data,
-              parameters,
-              feature_name='rt',
-              run_name='run',
+              parameters=None,
+              feature='rt',
+              run='run',
               folds_no=10,
               cores_no=cpu_count(),
-              *other_worker_args):
+              _cv_run_args=[]):
     """Calibrate the model for a given feature.
 
     Args:
@@ -77,17 +74,20 @@ def calibrate(preprocessed_data,
     """
     dp = preprocessed_data
 
+    if not parameters:
+        parameters = [{"chunks_no": 2**e} for e in range(2,8)]
+
     # run calibration on runs and parameters
     def tasks_run_param():
         """Iterate over the data runs and fitting parameters."""
-        folds = np.unique(dp.fold)
-        for run, d_run in data.groupby(run_name):
-            d_run = d_run.sort_values(var_name)
-            d_run = d_run.drop_duplicates(var_name)
-            for param in parameters:
-                out = [run, d_run, param, folds]
-                out.extend(other_worker_args)
+        for r, d_r in dp.D.groupby(run):
+            d_r = d_r.sort_values(feature)
+            d_r = d_r.drop_duplicates(feature)
+            for p in parameters:
+                out = [r, d_r, p, dp.folds]
+                out.extend(_cv_run_args)
                 yield out
+
 
     with Pool(cores_no) as p:
         results = p.starmap(cv_run_param,
@@ -120,10 +120,10 @@ def AlignData(annotated_peptides,
 
     calibrated_alignments = {}
     for feature in features:
-        dp = set_fold(dp,
-                      feature,
-                      folds_no = folds_no,
-                      **_set_fold)
+        dp = set_folds(dp,
+                       feature,
+                       folds_no = folds_no,
+                       **_set_fold)
 
         dp, calibrated_alignments[feature] = calibrate()
         
