@@ -54,9 +54,7 @@ class GMLSQSpline(Model):
         self.chunks_no = int(chunks_no)
         self.x, self.y = x, y
 
-    def fit(self,
-            x=None,
-            y=None,
+    def fit(self, x, y,
             chunks_no=20,
             warm_start=True,
             **kwds):

@@ -45,19 +45,17 @@ class SQSpline(GMLSQSpline):
         self.y = data[y_name]
 
     def process_input(self, x, y, chunks_no, std_cnt):
-            assert chunks_no > 0
-            assert std_cnt > 0
-            assert x is not None 
-            assert y is not None
-            self.chunks_no = int(chunks_no)
-            self.std_cnt = int(std_cnt)
-            self.x, self.y = x, y
+        assert chunks_no > 0
+        assert std_cnt > 0
+        assert x is not None 
+        assert y is not None
+        self.chunks_no = int(chunks_no)
+        self.std_cnt = int(std_cnt)
+        self.x, self.y = x, y
 
-    def fit(self, x=None,
-                  y=None,
-                  chunks_no=20,
-                  std_cnt=3,
-                  **kwds):
+    def fit(self, x, y,
+            chunks_no=20,
+            std_cnt=3):
         """Fit a denoised spline."""
         self.process_input(x, y, chunks_no, std_cnt)
         self.signal, self.medians, self.stds, self.x_percentiles = \
@@ -86,3 +84,20 @@ class SQSpline(GMLSQSpline):
         """Represent the model."""
         #TODO make this more elaborate.
         return "This is a SQSpline class for super-duper fitting."
+
+    # TODO get rid of params and move it up the object ladder
+    def cv(self, x, y, folds,
+           chunks_no=20,
+           std_cnt=3,
+           confusion=True):
+        """Run cross-validation.
+
+        Args:
+            x (iterable)
+        """
+        assert len(x) == len(y) == len(folds)
+        if confusion:
+            self.fit(x, y, chunks_no, std_cnt)
+            signal_fold_free = self.signal.copy()
+
+        

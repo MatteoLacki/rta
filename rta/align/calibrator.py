@@ -12,6 +12,49 @@ from rta.models.SQSpline    import SQSpline
 from rta.stats.stats        import mae, mad, confusion_matrix
 
 
+
+
+def cv_run_param(run_no,
+                 d_run,
+                 parameter,
+                 folds,
+                 feature,
+                 feature_stat,
+                 Model=SQSpline,
+                 fold_stats=(mae, mad),
+                 model_stats=(np.mean, np.median, np.std)):
+    """Cross-validate a model under a given 'run' and 'parameter'."""
+    m = Model()
+    m.fit(d_run[feature].values, 
+          d_run[feature_stat].values,
+          **parameter)
+    m_stats = []
+    cv_out = []
+    for fold in folds:
+        train = d_run.loc[d_run.fold != fold,:]
+        test  = d_run.loc[d_run.fold == fold,:]
+        n = Model()
+        n.fit(x=train[feature].values,
+              y=train[feature_stat].values,
+              **parameter)
+        errors = np.abs(predict(n, test[feature].values) - \
+                        test[feature_stat].values)
+        n_signal = n.is_signal(test.rt, test.rt_median_distance)
+        stats = [stat(errors) for stat in fold_stats]
+        m_stats.append(stats)
+        cm = confusion_matrix(m.signal[d_run.fold == fold], n_signal)
+        cv_out.append((n, stats, cm))
+    # process stats
+    m_stats = np.array(m_stats)
+    m_stats = np.array([stat(m_stats, axis=0) for stat in model_stats])
+    m_stats = pd.DataFrame(m_stats)
+    m_stats.columns = ["fold_" + fs.__name__ for fs in fold_stats]
+    m_stats.index = [ms.__name__ for ms in model_stats]
+
+    return run_no, parameter, m, m_stats, cv_out
+
+
+
 class Calibrator(object):
     def __init__(self, 
                  preprocessed_data,
@@ -23,10 +66,10 @@ class Calibrator(object):
             preprocessed_data (pandas.DataFrame): data to assign folds to.
             feature (string):   the name of the feature in the column space of the preprocessed_data that will be aligned.
         """
-        self.dp = preprocessed_data
+        self.d = preprocessed_data
         self.feature = feature
         self.run = run
-        self.feature_stat = self.dp.stat_name+'_'+self.feature
+        self.feature_stat = self.d.stat_name+'_'+self.feature
 
     def set_folds(self,
                   folds_no=10,
@@ -41,41 +84,44 @@ class Calibrator(object):
         """
 
         # filter out peptides that occur in runs in groups smaller than ''
-        self.dp.filter_unfoldable_strata(folds_no)
+        self.d.filter_unfoldable_strata(folds_no)
         self.folds_no = folds_no # write a setter to check for proper type and value
 
         # TODO: this should really be some wrapper around the silly method.
         if fold.__name__ == 'stratified_group_folds':
             # we want the result to be sorted w.r.t. median rt.
-            self.dp.stats.sort_values(["runs", self.feature_stat], inplace=True)
+            self.d.stats.sort_values(["runs", self.feature_stat], inplace=True)
 
         # get fold assignments for pept-id groups
-        self.dp.stats['fold'] = fold(self.dp.strata_cnts,
+        self.d.stats['fold'] = fold(self.d.strata_cnts,
                                      self.folds_no,
                                      shuffle)
 
         # if there was some other fold in the dataframe - drop it!
-        self.dp.D.drop(labels = [c for c in self.dp.D.columns if 'fold' in c], 
+        self.d.D.drop(labels = [c for c in self.d.D.columns if 'fold' in c], 
                        axis = 1,
                        inplace = True)
 
         # propage fold assignments to the main data
-        self.dp.D = pd.merge(self.dp.D,
-                             self.dp.stats[['fold']],
+        self.d.D = pd.merge(self.d.D,
+                             self.d.stats[['fold']],
                              left_on='id',
                              right_index=True)
 
     def iter_run_param(self):
         """Iterate over the data runs and fitting parameters."""
         # iterate over runs
-        for r, d_r in self.dp.D.groupby(self.run):
+        for r, d_r in self.d.D.groupby(self.run):
             #TODO: what to do with these values?
             d_r = d_r.sort_values(self.feature)
             # only one procedure requires the values to be 
             # ordered and without duplicates...
             d_r = d_r.drop_duplicates(self.feature)
             for p in self.parameters:
-                out = [r, d_r, p, self.dp.folds]
+                out = [r, d_r, p,
+                       self.d.folds,
+                       self.feature,
+                       self.feature_stat]
                 out.extend(self._cv_run_args)
                 yield out
 
@@ -97,7 +143,7 @@ class Calibrator(object):
               **parameter)
         m_stats = []
         cv_out = []
-        for fold in self.dp.folds:
+        for fold in self.d.folds:
             train = d_run.loc[d_run.fold != fold,:]
             test  = d_run.loc[d_run.fold == fold,:]
             n = Model()
@@ -121,7 +167,6 @@ class Calibrator(object):
         return run_no, parameter, m, m_stats, cv_out
 
 
-
     def calibrate(self,
                   parameters=None,
                   cores_no=cpu_count(),
@@ -137,7 +182,7 @@ class Calibrator(object):
 
         self.select_best_model()
         # align the given dimension
-        self.dp['aligned_' + self.feature] = fitted(best_model)
+        self.d['aligned_' + self.feature] = fitted(best_model)
 
 
 

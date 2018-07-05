@@ -51,7 +51,7 @@ class DataPreprocessor(object):
         self.stat_name = stat.__name__
         D_id = self.D.groupby('id')
         stats = D_id[self.var_names].agg(stat)
-        stats.columns = [self.stat_name + "_" + vn for vn in self.var_names]
+        stats.columns = [n + "_" + self.stat_name for n in self.var_names]
         stats['runs_no'] = D_id.id.count()
         # this should be rewritten in C.
         stats['runs'] = D_id.run.agg(ordered_str)
@@ -64,7 +64,7 @@ class DataPreprocessor(object):
         self.D = pd.merge(self.D, self.stats, left_on="id", right_index=True)
         distances = {}
         for n in self.var_names:
-            var_stat = self.stat_name + "_" + n
+            var_stat = n + "_" + self.stat_name
             distances[var_stat + "_distance"] = self.D[n] - self.D[var_stat]
         self.D = self.D.assign(**distances)
 

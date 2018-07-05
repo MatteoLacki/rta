@@ -29,7 +29,7 @@ class Model(object):
     def plot(self):
         raise NotImplementedError
 
-    def cv(self, **kwds):
+    def cv(self, x, y, folds):
         """Run cross-validation."""
         raise NotImplementedError
 
