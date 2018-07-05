@@ -21,14 +21,13 @@ from rta.cv.folds import stratified_group_folds
 # from rta.cv.folds import replacement_folds_strata
 
 
-
-
-
 folds_no = 10
 annotated_all, unlabelled_all = big_data()
 
 d = preprocess(annotated_peptides=annotated_all)
 
+d.D
+d.stats.columns
 feature = 'rt'
 
 calibrator = Calibrator(d, feature)

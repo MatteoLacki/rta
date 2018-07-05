@@ -41,21 +41,19 @@ class SQSpline(GMLSQSpline):
         """
         self.data = data.drop_duplicates(subset=x_name, keep=False, inplace=False)
         self.data = self.data.sort_values([x_name, y_name])
-        self.x = data[x_name]
-        self.y = data[y_name]
+        return data[x_name], data[y_name]
 
     def process_input(self, x, y, chunks_no, std_cnt):
         assert chunks_no > 0
         assert std_cnt > 0
-        assert x is not None 
-        assert y is not None
         self.chunks_no = int(chunks_no)
         self.std_cnt = int(std_cnt)
         self.x, self.y = x, y
 
     def fit(self, x, y,
             chunks_no=20,
-            std_cnt=3):
+            std_cnt=3,
+            cv = False):
         """Fit a denoised spline."""
         self.process_input(x, y, chunks_no, std_cnt)
         self.signal, self.medians, self.stds, self.x_percentiles = \
@@ -86,7 +84,8 @@ class SQSpline(GMLSQSpline):
         return "This is a SQSpline class for super-duper fitting."
 
     # TODO get rid of params and move it up the object ladder
-    def cv(self, x, y, folds,
+    def cv(self,
+           folds,
            chunks_no=20,
            std_cnt=3,
            confusion=True):
@@ -100,4 +99,10 @@ class SQSpline(GMLSQSpline):
             self.fit(x, y, chunks_no, std_cnt)
             signal_fold_free = self.signal.copy()
 
-        
+        for fold in np.unique(folds):
+            x_train = x[folds != fold]
+            y_train = y[folds != fold]
+            x_test  = x[folds == fold]
+            y_test  = y[folds == fold]
+            n = SQSpline()
+            n.fit(x_train, y_train, chunks_no)

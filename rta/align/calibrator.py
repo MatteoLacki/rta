@@ -58,7 +58,8 @@ def cv_run_param(run_no,
 class Calibrator(object):
     def __init__(self, 
                  preprocessed_data,
-                 feature,
+                 feature='rt',
+                 folds_no=10,
                  run='run'):
         """Initialize the Calibrator.
 
@@ -66,10 +67,15 @@ class Calibrator(object):
             preprocessed_data (pandas.DataFrame): data to assign folds to.
             feature (string):   the name of the feature in the column space of the preprocessed_data that will be aligned.
         """
-        self.d = preprocessed_data
+        
+        # filter out peptides that occur in runs in groups smaller than ''
+        preprocessed_data.filter_unfoldable_strata(folds_no)
+        self.D = preprocessed_data.D
+        self.stats = preprocessed_data.stats
         self.feature = feature
+        self.feature_stat = feature + '_' + preprocessed_data.stat_name
+        self.feature_stat_distance = feature_stat + '_distance'
         self.run = run
-        self.feature_stat = self.feature + '_' + self.d.stat_name
 
     def set_folds(self,
                   folds_no=10,
@@ -82,36 +88,33 @@ class Calibrator(object):
             folds_no (int):     the number of folds to split the data into.
             shuffle (boolean):  shuffle the points while folding?
         """
-
-        # filter out peptides that occur in runs in groups smaller than ''
-        self.d.filter_unfoldable_strata(folds_no)
+        # TODO: this should really be some wrapper around the silly method.
         self.folds_no = folds_no # write a setter to check for proper type and value
 
-        # TODO: this should really be some wrapper around the silly method.
         if fold.__name__ == 'stratified_group_folds':
             # we want the result to be sorted w.r.t. median rt.
-            self.d.stats.sort_values(["runs", self.feature_stat], inplace=True)
+            self.stats.sort_values(["runs", self.feature_stat], inplace=True)
 
         # get fold assignments for pept-id groups
-        self.d.stats['fold'] = fold(self.d.strata_cnts,
+        self.stats['fold'] = fold(self.d.strata_cnts,
                                      self.folds_no,
                                      shuffle)
 
         # if there was some other fold in the dataframe - drop it!
-        self.d.D.drop(labels = [c for c in self.d.D.columns if 'fold' in c], 
+        self.d.D.drop(labels = [c for c in self.D.columns if 'fold' in c], 
                        axis = 1,
                        inplace = True)
 
         # propage fold assignments to the main data
-        self.d.D = pd.merge(self.d.D,
-                            self.d.stats[['fold']],
-                            left_on='id',
-                            right_index=True)
+        self.D = pd.merge(self.D,
+                          self.stats[['fold']],
+                          left_on='id',
+                          right_index=True)
 
     def iter_run_param(self):
         """Iterate over the data runs and fitting parameters."""
         # iterate over runs
-        for r, d_r in self.d.D.groupby(self.run):
+        for r, d_r in self.D.groupby(self.run):
             #TODO: what to do with these values?
             d_r = d_r.sort_values(self.feature)
             # only one procedure requires the values to be 
@@ -120,7 +123,7 @@ class Calibrator(object):
             for p in self.parameters:
                 # TODO run and other info should go into _cv_run_args
                 out = [r, d_r, p,
-                       self.d.folds,
+                       self.folds,
                        self.feature,
                        self.feature_stat]
                 out.extend(self._cv_run_args)
@@ -146,7 +149,7 @@ class Calibrator(object):
               **parameter)
         m_stats = []
         cv_out = []
-        for fold in self.d.folds:
+        for fold in self.folds:
             train = d_run.loc[d_run.fold != fold,:]
             test  = d_run.loc[d_run.fold == fold,:]
             n = Model()
