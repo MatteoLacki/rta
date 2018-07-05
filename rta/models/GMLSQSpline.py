@@ -37,9 +37,6 @@ def fit_spline(x, y, chunks_no=20):
 
 class GMLSQSpline(Model):
     """A general class for this sort of silly things."""
-    def __init__(self):
-        self.has_data = False
-
     def df_2_data(self, data, x_name='x', y_name='y'):
         """Prepare data, if not ready."""
         data = data.drop_duplicates(subset=x_name, keep=False, inplace=False)

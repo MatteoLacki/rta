@@ -1,5 +1,6 @@
 import numpy as np
 from numpy import logical_and as AND
+import pandas as pd
 
 from rta.array_operations.misc import overlapped_percentile_pairs
 from rta.models.GMLSQSpline import GMLSQSpline, fit_spline
@@ -33,29 +34,24 @@ def mad_window_filter(x, y, chunks_no=100, sd_cnt=3, x_sorted=False):
 
 
 class SQSpline(GMLSQSpline):
-    def df_2_data(self, data, x_name='x', y_name='y'):
-        """Prepare data, if not ready.
-
-        We don't use any Gaussian Mixture model here.
-        So, we don't need to reshape the data to the silly format.
-        """
-        self.data = data.drop_duplicates(subset=x_name, keep=False, inplace=False)
-        self.data = self.data.sort_values([x_name, y_name])
-        return data[x_name], data[y_name]
-
-    def process_input(self, x, y, chunks_no, std_cnt):
-        assert chunks_no > 0
-        assert std_cnt > 0
-        self.chunks_no = int(chunks_no)
-        self.std_cnt = int(std_cnt)
-        self.x, self.y = x, y
+    def adjust(self, x, y):
+        """Remove dupilcate x entries. Sort by x."""
+        d = pd.DataFrame(x=x, y=y)
+        d = d.drop_duplicates(subset='x', keep=False)
+        d = d.sort_values(['x', 'y'])
+        return d.x, d.y
 
     def fit(self, x, y,
             chunks_no=20,
             std_cnt=3,
-            cv = False):
+            adjust=True):
         """Fit a denoised spline."""
-        self.process_input(x, y, chunks_no, std_cnt)
+        assert chunks_no > 0
+        assert std_cnt > 0
+        self.chunks_no = int(chunks_no)
+        self.std_cnt = int(std_cnt)
+        assert len(x) == len(y)
+        self.x, self.y = self.adjust(x, y) if adjust else (x, y)
         self.signal, self.medians, self.stds, self.x_percentiles = \
             mad_window_filter(self.x,
                               self.y,
@@ -84,25 +80,41 @@ class SQSpline(GMLSQSpline):
         return "This is a SQSpline class for super-duper fitting."
 
     # TODO get rid of params and move it up the object ladder
-    def cv(self,
-           folds,
-           chunks_no=20,
-           std_cnt=3,
-           confusion=True):
-        """Run cross-validation.
-
-        Args:
-            x (iterable)
-        """
-        assert len(x) == len(y) == len(folds)
+    def cv(self, folds,
+                 fold_stats = (mae, mad),
+                 model_stats= (np.mean, np.median, np.std),
+                 confusion  = True,
+                 *pass_through_args):
+        """Run cross-validation."""
+        assert len(self.x) == len(folds)
         if confusion:
             self.fit(x, y, chunks_no, std_cnt)
             signal_fold_free = self.signal.copy()
 
+        m_stats = []
+        cv_out = []
         for fold in np.unique(folds):
             x_train = x[folds != fold]
             y_train = y[folds != fold]
             x_test  = x[folds == fold]
             y_test  = y[folds == fold]
             n = SQSpline()
-            n.fit(x_train, y_train, chunks_no)
+            n.fit(x_train,
+                  y_train,
+                  self.chunks_no,
+                  self.std_cnt,
+                  adjust=False)
+            errors = np.abs(n.predict(x_test) - y_test)
+            n_signal = n.is_signal(x_test, y_test)
+            stats = [stat(errors) for stat in fold_stats]
+            m_stats.append(stats)
+            cm = confusion_matrix(m.signal[d_run.fold == fold], n_signal)
+            cv_out.append((n, stats, cm))
+
+        m_stats = np.array(m_stats)
+        m_stats = np.array([stat(m_stats, axis=0) for stat in model_stats])
+        m_stats = pd.DataFrame(m_stats)
+        m_stats.columns = ["fold_" + fs.__name__ for fs in fold_stats]
+        m_stats.index = [ms.__name__ for ms in model_stats]
+
+        return m_stats, cv_out, self.chunks_no, *pass_through_args
