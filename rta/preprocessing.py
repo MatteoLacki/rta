@@ -21,18 +21,28 @@ from rta.cv.folds import stratified_group_folds
 # from rta.cv.folds import replacement_folds_strata
 
 
+
+
+
 folds_no = 10
 annotated_all, unlabelled_all = big_data()
 
-dp = preprocess(annotated_peptides=annotated_all)
-dp.D.columns
-dp.filter_unfoldable_strata(10)
-
+d = preprocess(annotated_peptides=annotated_all)
 
 feature = 'rt'
 
-calibrator = Calibrator(dp, feature)
+calibrator = Calibrator(d, feature)
 calibrator.set_folds(folds_no, stratified_group_folds, True)
+
+
+from rta.models.SQSpline import SQSpline
+
+calibrator.d.D
+
+
+model = SQSpline()
+model.fit()
+
 calibrator.parameters = [{"chunks_no": 2**e} for e in range(2,8)]
 calibrator._cv_run_args = []
 calibrator.calibrate()
@@ -48,7 +58,7 @@ from rta.align.calibrator import cv_run_param
 cv_run_param(*next(it))
 run_no, d_run, parameter, folds, feature, feature_stat = next(it)
 
-calibrator.dp.D.columns
+
 
 # tests for what the methods should be returning.
 

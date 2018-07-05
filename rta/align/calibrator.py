@@ -69,7 +69,7 @@ class Calibrator(object):
         self.d = preprocessed_data
         self.feature = feature
         self.run = run
-        self.feature_stat = self.d.stat_name+'_'+self.feature
+        self.feature_stat = self.feature + '_' + self.d.stat_name
 
     def set_folds(self,
                   folds_no=10,
@@ -104,9 +104,9 @@ class Calibrator(object):
 
         # propage fold assignments to the main data
         self.d.D = pd.merge(self.d.D,
-                             self.d.stats[['fold']],
-                             left_on='id',
-                             right_index=True)
+                            self.d.stats[['fold']],
+                            left_on='id',
+                            right_index=True)
 
     def iter_run_param(self):
         """Iterate over the data runs and fitting parameters."""
@@ -118,6 +118,7 @@ class Calibrator(object):
             # ordered and without duplicates...
             d_r = d_r.drop_duplicates(self.feature)
             for p in self.parameters:
+                # TODO run and other info should go into _cv_run_args
                 out = [r, d_r, p,
                        self.d.folds,
                        self.feature,
@@ -129,6 +130,8 @@ class Calibrator(object):
         """Select the best model from the results."""
         pass
 
+
+    # definately, the cv should be part of the model.
     def cv_run_param(self,
                      run_no,
                      d_run,
