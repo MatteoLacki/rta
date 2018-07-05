@@ -16,7 +16,7 @@ def cv_search_iterator(data,
         d_run = d_run.sort_values('rt')
         d_run = d_run.drop_duplicates('rt')
         # grid search
-        for param in parameters:
+        for param in parameters:-
             m = Model()
             m.fit(d_run.rt.values, 
                   d_run.rt_median_distance.values,
@@ -92,3 +92,4 @@ def cv_run_param(run,
 
     return run, param, m, m_stats, cv_out
 
+# TODO: write a test to check if it will work.
