@@ -2,13 +2,13 @@ import numpy as np
 import pandas as pd
 
 from rta.models.base_model import predict
-from rta.models.SQSpline import SQSpline
+from rta.models.robust_spline import RobustSpline
 from rta.stats.stats import mae, mad, confusion_matrix
 
 
 def cv_search_iterator(data,
                        parameters,
-                       Model=SQSpline,
+                       Model=RobustSpline,
                        fold_stats=(mae, mad),
                        model_stats=(np.mean, np.median, np.std)):
     folds = np.unique(data.fold)
@@ -16,7 +16,7 @@ def cv_search_iterator(data,
         d_run = d_run.sort_values('rt')
         d_run = d_run.drop_duplicates('rt')
         # grid search
-        for param in parameters:-
+        for param in parameters:
             m = Model()
             m.fit(d_run.rt.values, 
                   d_run.rt_median_distance.values,
@@ -60,7 +60,7 @@ def cv_run_param(run,
                  d_run,
                  param,
                  folds,
-                 Model=SQSpline,
+                 Model=RobustSpline,
                  fold_stats=(mae, mad),
                  model_stats=(np.mean, np.median, np.std)):
     """Cross-validate a model under a given 'run' and 'param'."""

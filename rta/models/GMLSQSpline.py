@@ -1,11 +1,11 @@
 import numpy as np
-from scipy.interpolate import LSQUnivariateSpline as Spline
+
 from sklearn.mixture import GaussianMixture as GM
 
 from rta.array_operations.misc import percentiles, percentile_pairs_of_N_integers as percentile_pairs
 from rta.array_operations.misc import overlapped_percentile_pairs
 from rta.models.base_model import Model
-
+from rta.models.splines.beta_splines import beta_spline
 
 def fit_interlapping_mixtures(x, y, chunks_no=20, warm_start=True):
     """Fit mixtures on overlapping sets of data."""
@@ -25,14 +25,6 @@ def fit_interlapping_mixtures(x, y, chunks_no=20, warm_start=True):
         means[i,:] = g_mix.means_.ravel()[idxs]
         covariances[i,:] = g_mix.covariances_.ravel()[idxs]
     return signal, probs, means, covariances
-
-
-
-def fit_spline(x, y, chunks_no=20):
-    """Efficienlty fit spline to the denoined data with the least squares method."""
-    x_inner_percentiles = percentiles(x, chunks_no, inner=True)
-    return Spline(x, y, x_inner_percentiles)
-
 
 
 class GMLSQSpline(Model):
@@ -61,7 +53,9 @@ class GMLSQSpline(Model):
             fit_interlapping_mixtures(self.x, self.y, self.chunks_no, self.warm_start)
         x_signal = self.x[signal].ravel()
         y_signal = self.y[signal].ravel()
-        self.spline = fit_spline(x_signal, y_signal, self.chunks_no)
+        self.spline = beta_spline(x = x_signal,
+                                  y = y_signal,
+                                  chunks_no = self.chunks_no)
         self.signal = signal.reshape(-1, 1)
 
     def predict(self, x):

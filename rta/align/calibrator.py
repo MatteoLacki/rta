@@ -8,7 +8,7 @@ from rta.cv.cv              import cv_run_param
 from rta.cv.folds           import replacement_folds_strata
 from rta.cv.folds           import stratified_group_folds
 from rta.models.base_model  import fitted, predict
-from rta.models.SQSpline    import SQSpline
+from rta.models.robust_spline import RobustSpline
 from rta.stats.stats        import mae, mad, confusion_matrix
 
 
@@ -20,7 +20,7 @@ def cv_run_param(run_no,
                  folds,
                  feature,
                  feature_stat,
-                 Model=SQSpline,
+                 Model=RobustSpline,
                  fold_stats=(mae, mad),
                  model_stats=(np.mean, np.median, np.std)):
     """Cross-validate a model under a given 'run' and 'parameter'."""
@@ -139,7 +139,7 @@ class Calibrator(object):
                      run_no,
                      d_run,
                      parameter,
-                     Model=SQSpline,
+                     Model=RobustSpline,
                      fold_stats=(mae, mad),
                      model_stats=(np.mean, np.median, np.std)):
         """Cross-validate a model under a given 'run' and 'parameter'."""

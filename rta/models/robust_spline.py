@@ -8,9 +8,9 @@ import numpy as np
 import pandas as pd
 
 from rta.array_operations.misc import overlapped_percentile_pairs
-from rta.models.GMLSQSpline import GMLSQSpline, fit_spline
+from rta.models.GMLSQSpline import GMLSQSpline
+from rta.models.splines.beta_splines import beta_spline
 from rta.stats.stats import mad, mae, confusion_matrix
-
 
 def mad_window_filter(x, y, chunks_no=100, sd_cnt=3, x_sorted=False):
     """Some would say, this is madness.
@@ -20,11 +20,13 @@ def mad_window_filter(x, y, chunks_no=100, sd_cnt=3, x_sorted=False):
     if not x_sorted:
         assert all(x[i] <= x[i+1] for i in range(len(x)-1)), \
             "If 'x' ain't sorted, than I don't believe that 'y' is correct."
-    signal = np.empty(len(x), dtype=np.bool_)
-    medians = np.empty(chunks_no, dtype=np.float64)
-    stds = np.empty(chunks_no, dtype=np.float64)
+    signal  = np.empty(len(x),      dtype=np.bool_)
+    medians = np.empty(chunks_no,   dtype=np.float64)
+    stds    = np.empty(chunks_no,   dtype=np.float64)
     x_percentiles = np.empty(chunks_no, dtype=np.float64)
+
     scaling = 1.4826
+
     # NOTE: the control "x" does not appear herek
     # s, e      indices of the are being fitted
     # ss, se    indices used to decide upon denoising
@@ -44,7 +46,7 @@ class RobustSpline(GMLSQSpline):
         d = pd.DataFrame({'x':x, 'y':y})
         d = d.drop_duplicates(subset='x', keep=False)
         d = d.sort_values(['x', 'y'])
-        return d.x, d.y
+        return d.x.values, d.y.values
 
     def fit(self, x, y,
             chunks_no=20,
@@ -53,9 +55,9 @@ class RobustSpline(GMLSQSpline):
         """Fit a denoised spline."""
         assert chunks_no > 0
         assert std_cnt > 0
+        assert len(x) == len(y)
         self.chunks_no = int(chunks_no)
         self.std_cnt = int(std_cnt)
-        assert len(x) == len(y)
         self.x, self.y = self.adjust(x, y) if adjust else (x, y)
         self.signal, self.medians, self.stds, self.x_percentiles = \
             mad_window_filter(self.x,
@@ -63,9 +65,9 @@ class RobustSpline(GMLSQSpline):
                               self.chunks_no,
                               self.std_cnt,
                               x_sorted = True)
-        self.spline = fit_spline(self.x[self.signal],
-                                 self.y[self.signal],
-                                 self.chunks_no)
+        self.spline = beta_spline(self.x[self.signal],
+                                  self.y[self.signal],
+                                  self.chunks_no)
 
     # what about the corner conditions? 
     def is_signal(self, x_new, y_new):

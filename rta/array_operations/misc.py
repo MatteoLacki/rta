@@ -63,6 +63,13 @@ def percentiles_iter(x, k, inner=False):
 
 
 def percentiles(x, k, inner=False):
+    """Get percentiles in numpy array.
+
+    Args:
+        x (np.array):   Array to find percentiles.
+        k (int):        Number of approximate percentiles.
+    """
+    assert len(x) > k - 1, "Too many inner percentiles."
     try:
         dtype = x.dtype
     except AttributeError:

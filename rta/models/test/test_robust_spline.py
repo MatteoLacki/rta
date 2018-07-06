@@ -1,17 +1,26 @@
-import numpy as np
-from rta.models.robust_spline import RobustSpline
-
-# develop a test
 %load_ext autoreload
 %autoreload 2
 %load_ext line_profiler
+
+
+import numpy as np
+from rta.models.robust_spline import RobustSpline
+
 import pandas as pd
 import matplotlib.pyplot as plt
 
 model = RobustSpline()
 x = np.array([1, 2, 3, 4, 5, 6, 7, 8])
 y = np.array([1, 0, 1, 0, 1, 0, 1, 0])
-model.fit(x, y, chunks_no=5)
+chunks_no = 3
+model.adjust(x, y)
+model.fit(x, y, chunks_no=3)
+
+
+
+from rta.array_operations.misc import percentiles
+x_inner_percentiles = percentiles(x, 8, inner=True)
+
 
 
 

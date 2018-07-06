@@ -11,13 +11,13 @@ import pandas as pd
 pd.set_option('display.max_rows', 10)
 pd.set_option('display.max_columns', 4)
 
-from rta.align.calibrator import Calibrator
-from rta.read_in_data import big_data
-from rta.pre.processing import preprocess
+from rta.align.calibrator   import Calibrator
+from rta.read_in_data       import big_data
+from rta.pre.processing     import preprocess
 
 # from rta.models.base_model import Model
 # from rta.models.base_model import predict, fitted, coef, residuals
-from rta.cv.folds import stratified_group_folds
+from rta.cv.folds   import stratified_group_folds
 # from rta.cv.folds import replacement_folds_strata
 
 
