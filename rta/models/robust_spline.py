@@ -1,10 +1,15 @@
+"""The Robust Spline class.
+
+The Robust Spline performs median based denoising using windowing,
+and then fits a beta spline using least squares.
+"""
+
 import numpy as np
-from numpy import logical_and as AND
 import pandas as pd
 
 from rta.array_operations.misc import overlapped_percentile_pairs
 from rta.models.GMLSQSpline import GMLSQSpline, fit_spline
-from rta.stats.stats import mad
+from rta.stats.stats import mad, mae, confusion_matrix
 
 
 def mad_window_filter(x, y, chunks_no=100, sd_cnt=3, x_sorted=False):
@@ -33,10 +38,10 @@ def mad_window_filter(x, y, chunks_no=100, sd_cnt=3, x_sorted=False):
 
 
 
-class SQSpline(GMLSQSpline):
+class RobustSpline(GMLSQSpline):
     def adjust(self, x, y):
         """Remove dupilcate x entries. Sort by x."""
-        d = pd.DataFrame(x=x, y=y)
+        d = pd.DataFrame({'x':x, 'y':y})
         d = d.drop_duplicates(subset='x', keep=False)
         d = d.sort_values(['x', 'y'])
         return d.x, d.y
@@ -117,4 +122,4 @@ class SQSpline(GMLSQSpline):
         m_stats.columns = ["fold_" + fs.__name__ for fs in fold_stats]
         m_stats.index = [ms.__name__ for ms in model_stats]
 
-        return m_stats, cv_out, self.chunks_no, *pass_through_args
+        return (m_stats, cv_out, self.chunks_no) + tuple(pass_through_args)
