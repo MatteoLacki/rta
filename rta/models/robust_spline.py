@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from rta.array_operations.misc import overlapped_percentile_pairs
 from rta.models.splines.spline import Spline
 from rta.models.splines.beta_splines import beta_spline
-from rta.stats.stats import mad, mae, confusion_matrix
+from rta.stats.stats import mad
 
 def mad_window_filter(x, y, chunks_no=100, sd_cnt=3, x_sorted=False):
     """Some would say, this is madness.
@@ -48,11 +48,10 @@ class RobustSpline(Spline):
         """Fit a denoised spline."""
         assert chunks_no > 0
         assert std_cnt > 0
-        assert len(x) == len(y)
         self.chunks_no = int(chunks_no)
         self.std_cnt = int(std_cnt)
-        if drop_duplicates_and_sort:
-            self.drop_duplicates_and_sort(x, y)
+        self.set_xy(x, y, drop_duplicates_and_sort)
+
         self.signal, self.medians, self.stds, self.x_percentiles = \
             mad_window_filter(self.x,
                               self.y,
@@ -78,43 +77,3 @@ class RobustSpline(Spline):
     def __repr__(self):
         """Represent the model."""
         return "This is a RobustSpline super-duper fitting."
-
-    # TODO get rid of params and move it up the object ladder
-    def cv(self, folds,
-                 fold_stats = (mae, mad),
-                 model_stats= (np.mean, np.median, np.std),
-                 confusion  = True,
-                 *pass_through_args):
-        """Run cross-validation."""
-        assert len(self.x) == len(folds)
-        if confusion:
-            self.fit(x, y, chunks_no, std_cnt)
-            signal_fold_free = self.signal.copy()
-
-        m_stats = []
-        cv_out = []
-        for fold in np.unique(folds):
-            x_train = x[folds != fold]
-            y_train = y[folds != fold]
-            x_test  = x[folds == fold]
-            y_test  = y[folds == fold]
-            n = SQSpline()
-            n.fit(x_train,
-                  y_train,
-                  self.chunks_no,
-                  self.std_cnt,
-                  adjust=False)
-            errors = np.abs(n.predict(x_test) - y_test)
-            n_signal = n.is_signal(x_test, y_test)
-            stats = [stat(errors) for stat in fold_stats]
-            m_stats.append(stats)
-            cm = confusion_matrix(m.signal[d_run.fold == fold], n_signal)
-            cv_out.append((n, stats, cm))
-
-        m_stats = np.array(m_stats)
-        m_stats = np.array([stat(m_stats, axis=0) for stat in model_stats])
-        m_stats = pd.DataFrame(m_stats)
-        m_stats.columns = ["fold_" + fs.__name__ for fs in fold_stats]
-        m_stats.index = [ms.__name__ for ms in model_stats]
-
-        return (m_stats, cv_out, self.chunks_no) + tuple(pass_through_args)

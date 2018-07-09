@@ -1,10 +1,9 @@
 import numpy as np
-
 from sklearn.mixture import GaussianMixture as GM
 
 from rta.array_operations.misc import percentiles, percentile_pairs_of_N_integers as percentile_pairs
 from rta.array_operations.misc import overlapped_percentile_pairs
-from rta.models.base_model import Model
+from rta.models.splines.spline import Spline
 from rta.models.splines.beta_splines import beta_spline
 
 def fit_interlapping_mixtures(x, y, chunks_no=20, warm_start=True):
@@ -26,8 +25,8 @@ def fit_interlapping_mixtures(x, y, chunks_no=20, warm_start=True):
         covariances[i,:] = g_mix.covariances_.ravel()[idxs]
     return signal, probs, means, covariances
 
-# Adjust this.
-class GMLSQSpline(Model):
+
+class GaussianMixtureSpline(Model):
     """A general class for this sort of silly things."""
     def df_2_data(self, data, x_name='x', y_name='y'):
         """Prepare data, if not ready."""
