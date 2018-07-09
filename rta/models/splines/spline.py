@@ -55,12 +55,17 @@ class Spline(Model):
     def cv(self, folds,
                  fold_stats = (mae, mad),
                  model_stats= (np.mean, np.median, np.std),
-                 confusion  = True,
-                 *pass_through_args):
+                 confusion  = True):
         """Run cross-validation.
 
         Run it by creating an additional class instance for 
         the comparison of fold parameters.
+
+        Args:
+            folds (np.array) an array of ints marking fold assignment.
+            fold_stats (iterable of callables) statistics to apply to the errors in each fold.
+            model_stats (iterable of callables) statistics to apply to fold_stats
+            confusion (boolean) calculate confusion matrix
         """
         assert len(self.x) == len(folds)
         m_stats = []
