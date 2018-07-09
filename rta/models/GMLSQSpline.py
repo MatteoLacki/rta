@@ -26,7 +26,7 @@ def fit_interlapping_mixtures(x, y, chunks_no=20, warm_start=True):
         covariances[i,:] = g_mix.covariances_.ravel()[idxs]
     return signal, probs, means, covariances
 
-
+# Adjust this.
 class GMLSQSpline(Model):
     """A general class for this sort of silly things."""
     def df_2_data(self, data, x_name='x', y_name='y'):
@@ -63,13 +63,6 @@ class GMLSQSpline(Model):
 
     def fitted(self):
         return self.spline(self.x.ravel()).reshape(-1, 1)
-
-    def res(self):
-        """Get residuals."""
-        return self.y - self.fitted()
-
-    def coef(self):
-        return self.spline.get_coeffs()
 
     def __repr__(self):
         """Represent the model."""

@@ -21,13 +21,16 @@ model.fit(x, z, chunks_no=3)
 mad_window_filter(x, y, chunks_no, 100)
 
 
-plt.scatter(x, y)
-plt.show()
+from rta.models.plot import plot
 
+plot(model)
+plt.show()
 
 from rta.stats.stats import mad
 
 mad(y, return_median=True)
+# write a test for the cv
+
 
 
 # interesting observation: 
@@ -35,10 +38,6 @@ mad(y, return_median=True)
 #   as the distribution is almost entirely based on two values.
 
 
-from rta.array_operations.misc import percentiles
-
-
-x_inner_percentiles = percentiles(x, chunks_no, inner=True)
 
 
 
@@ -59,5 +58,5 @@ plt.show()
 
 
 def test_RobustSpline():
-
+    """Check if the algorithm replicates the old results."""
 

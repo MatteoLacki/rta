@@ -6,9 +6,10 @@ and then fits a beta spline using least squares.
 
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 from rta.array_operations.misc import overlapped_percentile_pairs
-from rta.models.GMLSQSpline import GMLSQSpline
+from rta.models.splines.spline import Spline
 from rta.models.splines.beta_splines import beta_spline
 from rta.stats.stats import mad, mae, confusion_matrix
 
@@ -27,7 +28,7 @@ def mad_window_filter(x, y, chunks_no=100, sd_cnt=3, x_sorted=False):
 
     scaling = 1.4826
 
-    # NOTE: the control "x" does not appear herek
+    # NOTE: the control "x" does not appear here
     # s, e      indices of the are being fitted
     # ss, se    indices used to decide upon denoising
     for i, (s, ss, se, e) in enumerate(overlapped_percentile_pairs(len(x), chunks_no)):
@@ -39,28 +40,19 @@ def mad_window_filter(x, y, chunks_no=100, sd_cnt=3, x_sorted=False):
     return signal, medians, stds, x_percentiles
 
 
-
-class RobustSpline(GMLSQSpline):
-    def adjust(self, x, y):
-        """Remove dupilcate x entries. Sort by x."""
-
-        # TODO: maybe replace by np.unique(return_index=True)?
-        d = pd.DataFrame({'x':x, 'y':y})
-        d = d.drop_duplicates(subset='x', keep=False)
-        d = d.sort_values(['x'])
-        return d.x.values, d.y.values
-
+class RobustSpline(Spline):
     def fit(self, x, y,
             chunks_no=20,
             std_cnt=3,
-            adjust=True):
+            drop_duplicates_and_sort=True):
         """Fit a denoised spline."""
         assert chunks_no > 0
         assert std_cnt > 0
         assert len(x) == len(y)
         self.chunks_no = int(chunks_no)
         self.std_cnt = int(std_cnt)
-        self.x, self.y = self.adjust(x, y) if adjust else (x, y)
+        if drop_duplicates_and_sort:
+            self.drop_duplicates_and_sort(x, y)
         self.signal, self.medians, self.stds, self.x_percentiles = \
             mad_window_filter(self.x,
                               self.y,
@@ -85,7 +77,6 @@ class RobustSpline(GMLSQSpline):
 
     def __repr__(self):
         """Represent the model."""
-        #TODO make this more elaborate.
         return "This is a RobustSpline super-duper fitting."
 
     # TODO get rid of params and move it up the object ladder

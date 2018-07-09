@@ -26,8 +26,9 @@ class Model(object):
     def __repr__(self):
         return 'This is the logic for all models.'
 
-    def plot(self):
-        raise NotImplementedError
+    def plot(self, **kwds):
+        """Plot results."""
+        pass
 
     def cv(self, x, y, folds):
         """Run cross-validation."""
@@ -54,3 +55,6 @@ def res(model):
 
 def cv(model, **kwds):
     return model.cv(**kwds)
+
+def plot(model, **kwds):
+    model.plot(**kwds)
