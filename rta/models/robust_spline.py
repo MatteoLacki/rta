@@ -35,7 +35,7 @@ def mad_window_filter(x, y, chunks_no=100, sd_cnt=3, x_sorted=False):
         medians[i] = median
         stds[i] = sd = scaling * __mad
         x_percentiles[i] = x[ss]
-        signal[ss:se] = np.abs(y[ss:se] - median) < sd * sd_cnt
+        signal[ss:se] = np.abs(y[ss:se] - median) <= sd * sd_cnt
     return signal, medians, stds, x_percentiles
 
 
@@ -43,9 +43,11 @@ def mad_window_filter(x, y, chunks_no=100, sd_cnt=3, x_sorted=False):
 class RobustSpline(GMLSQSpline):
     def adjust(self, x, y):
         """Remove dupilcate x entries. Sort by x."""
+
+        # TODO: maybe replace by np.unique(return_index=True)?
         d = pd.DataFrame({'x':x, 'y':y})
         d = d.drop_duplicates(subset='x', keep=False)
-        d = d.sort_values(['x', 'y'])
+        d = d.sort_values(['x'])
         return d.x.values, d.y.values
 
     def fit(self, x, y,
@@ -84,7 +86,7 @@ class RobustSpline(GMLSQSpline):
     def __repr__(self):
         """Represent the model."""
         #TODO make this more elaborate.
-        return "This is a SQSpline class for super-duper fitting."
+        return "This is a RobustSpline super-duper fitting."
 
     # TODO get rid of params and move it up the object ladder
     def cv(self, folds,
