@@ -3,7 +3,7 @@
 %load_ext line_profiler
 import numpy as np
 
-from rta.models.splines.robust_spline import RobustSpline, mad_window_filter
+from rta.models.splines.robust import RobustSpline, mad_window_filter
 from rta.models import plot
 
 model = RobustSpline()

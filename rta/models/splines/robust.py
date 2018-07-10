@@ -14,9 +14,28 @@ from rta.models.splines.beta_splines import beta_spline
 from rta.stats.stats import mad
 
 def mad_window_filter(x, y, chunks_no=100, sd_cnt=3, x_sorted=False):
-    """Some would say, this is madness.
+    """Filter based on median absolute deviation.
 
-    But this is 'Robust' Statistics!
+    Estimates both the mead and standard deviation of the signal normal
+    distribution using the robust estimates: median and mad.
+    Repeat this in a sliding window strategy.
+    The data is divided into 'chunks_no'-quantiles bins in 'x' variable.
+    The fitting is performed based on 3 bins at a time.
+    Results are projected on the middle bin.
+    The calculation proceeds in a sliding window fashion.
+    Corner cases (first and last quantile) fit to two consecutive bins.
+    
+    Args:
+        x (np.array) 1D control
+        y (np.array) 1D response
+        chunks_no (int) The number of quantile bins.
+        sd_cnt (float) How many standard deviations are considered to be within signal range.
+        x_sorted (logical) Are 'x' and 'y' sorted with respect to 'x'.
+    Returns:
+        signal (np.array of logical values) Is the point considered to be a signal?
+        medians (np.array) Estimates of medians in consecutive bins.
+        stds (np.array) Estimates of standard deviations in consecutive bins.
+        x_percentiles (np.array) Knots of the spline fitting, needed to filter out noise is 'is_signal'.        
     """
     if not x_sorted:
         assert all(x[i] <= x[i+1] for i in range(len(x)-1)), \
