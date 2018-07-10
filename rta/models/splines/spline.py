@@ -68,8 +68,8 @@ class Spline(Model):
             confusion (boolean) calculate confusion matrix
         """
         assert len(self.x) == len(folds)
-        m_stats = []
-        cv_out  = []
+        S = []
+        FS  = []
         n = self.new()
         for fold in np.unique(folds):
             x_train = self.x[folds != fold]
@@ -84,15 +84,16 @@ class Spline(Model):
                   drop_duplicates_and_sort=False)
             errors = np.abs(n.predict(x_test) - y_test)
             n_signal = n.is_signal(x_test, y_test)
-            stats = [stat(errors) for stat in fold_stats]
-            m_stats.append(stats)
+            s = [stat(errors) for stat in fold_stats]
+            S.append(s)
             cm = confusion_matrix(m_signal, n_signal)
-            cv_out.append((n, stats, cm))
+            FS.append((n, s, cm))
 
-        m_stats = np.array(m_stats)
-        m_stats = np.array([stat(m_stats, axis=0) for stat in model_stats])
-        m_stats = pd.DataFrame(m_stats)
-        m_stats.columns = ["fold_" + fs.__name__ for fs in fold_stats]
-        m_stats.index = [ms.__name__ for ms in model_stats]
+        S = np.array(S)
+        S = np.array([stat(S, axis=0) for stat in model_stats])
+        S = pd.DataFrame(S)
+        S.columns = ["fold_" + fs.__name__ for fs in fold_stats]
+        S.index = [ms.__name__ for ms in model_stats]
 
-        return (m_stats, cv_out, self.chunks_no)
+        self.cv_stats = S
+        self.fold_stats = FS

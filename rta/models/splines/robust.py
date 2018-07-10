@@ -100,4 +100,6 @@ class RobustSpline(Spline):
 
     def __repr__(self):
         """Represent the model."""
-        return "This is a RobustSpline super-duper fitting."
+        fit = hasattr(self, 'signal')
+        cv = hasattr(self, 'fold_stats')
+        return "This is a RobustSpline super-duper fitting.\n\tFitted\t\t\t{}\n\tCross-validated\t\t{}".format(fit, cv)
