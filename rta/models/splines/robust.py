@@ -64,7 +64,13 @@ class RobustSpline(Spline):
             chunks_no=20,
             std_cnt=3,
             drop_duplicates_and_sort=True):
-        """Fit a denoised spline."""
+        """Fit a robust spline.
+        Args:
+            x (np.array) 1D control
+            y (np.array) 1D response
+            chunks_no (int) The number of quantile bins.
+
+        """
         assert chunks_no > 0
         assert std_cnt > 0
         self.chunks_no = int(chunks_no)

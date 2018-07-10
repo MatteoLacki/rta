@@ -20,6 +20,9 @@ folds = np.array([0,1,0,1,0,1, 0,1,0,1,0,1, 0])
 model.cv(folds)
 
 
+mad_window_filter(x, y, 3)
+
+
 from rta.models.splines.robust_spline imp
 
 
