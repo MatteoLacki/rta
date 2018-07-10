@@ -117,6 +117,6 @@ def robust_spline(x, y,
     """Fit one robust spline."""
     m = RobustSpline()
     m.fit(x, y, chunks_no, std_cnt, drop_duplicates_and_sort)
-    if folds:
+    if folds is not None:
         m.cv(folds)
     return m

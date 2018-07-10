@@ -21,27 +21,33 @@ d = preprocess(annotated_all, min_runs_no)
 
 c = Calibrator(d, feature='rt', folds_no=folds_no)
 c.fold()
+%%timeit
 c.calibrate()
-c.d.stats
-
-c.D
+# less that 1.3 seconds on default params. 
 
 
-it = c.iter_run_param()
-next(it)
+parameters = [{"chunks_no": n} for n in range(2,50)]
+
+%%timeit
+c.calibrate(parameters)
 
 
-def cv_run_param(run_no,
-                 run_data,
-                 param,
-                 folds,
-                 model=robust_spline):
-    
-D = c.d.D
-D.columns
-D[['id', 'run', ]]
 
-def iter_run_param():
+def cv_run_param(r, x, y, f, p):
+    m = robust_spline(x, y,
+                      drop_duplicates_and_sort=False,
+                      folds = f,
+                      **p)
+    return m
+
+with Pool(16) as p:
+    res = p.starmap(cv_run_param, it)
+
+
+# add simple visualization to Calibrator.
+# 
+
+
 
 
 

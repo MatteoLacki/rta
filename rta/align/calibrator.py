@@ -7,7 +7,17 @@ import pandas as pd
 from rta.cv.folds           import replacement_folds_strata
 from rta.cv.folds           import stratified_group_folds
 from rta.models.base_model  import fitted, predict
-from rta.models.splines.robust import RobustSpline
+from rta.models.splines.robust import robust_spline
+
+
+
+def cv_run_param(r, x, y, f, p):
+    m = robust_spline(x, y,
+                      drop_duplicates_and_sort=False,
+                      folds = f,
+                      **p)
+    return m
+
 
 
 class Calibrator(object):
@@ -60,38 +70,21 @@ class Calibrator(object):
                           left_on='id',
                           right_index=True)
 
-    def iter_run_param(self):
+    def iter_run_param(self, 
+                       sort=True,
+                       drop_duplicates=True):
         """Iterate over the data runs and fitting parameters."""
         # iterate over runs
         folds = np.arange(self.folds_no)
-        for r, d_r in self.D.groupby(self.run):
-            #TODO: what to do with these values?
-            d_r = d_r.sort_values(self.feature)
-            # only one procedure requires the values to be 
-            # ordered and without duplicates...
-            d_r = d_r.drop_duplicates(self.feature)
+        for r, d_r in self.D.groupby('run'):
+            if sort:
+                d_r = d_r.sort_values('x')
+            if drop_duplicates:
+                d_r = d_r.drop_duplicates('x')
             for p in self.parameters:
-                # TODO run and other info should go into _cv_run_args
-                out = [r, d_r, p,
-                       folds,
-                       self.feature,
-                       self.feature_stat]
-                out.extend(self._cv_run_args)
-                yield out
-
-
-    def iter_run_param_v2(self):
-        """Iterate over the data runs and fitting parameters."""
-        # iterate over runs
-        folds = np.arange(self.folds_no)
-        for r, d_r in self.D.groupby(self.run):
-            #TODO: what to do with these values?
-            d_r = d_r.sort_values(self.feature)
-            # only one procedure requires the values to be 
-            # ordered and without duplicates...
-            d_r = d_r.drop_duplicates(self.feature)
-            for p in self.parameters:
-                yield r, d_r.x, d_r.y, d_r.fold, p
+                yield (r, d_r.x.values,
+                          d_r.y.values,
+                          d_r.fold.values, p)
 
     def select_best_model(self):
         """Select the best model from the results."""
@@ -99,21 +92,18 @@ class Calibrator(object):
 
     def calibrate(self,
                   parameters=None,
-                  cores_no=cpu_count(),
-                  _cv_run_args=[]):
+                  cores_no=cpu_count()):
         if not parameters:
             parameters = [{"chunks_no": 2**e} for e in range(2,8)]
         self.parameters = parameters
-        self._cv_run_args = _cv_run_args
 
-    #     with Pool(cores_no) as p:
-    #         self.results = p.starmap(,
-    #                                  self.iter_run_param())
+        with Pool(cores_no) as p:
+            self.results = p.starmap(cv_run_param,
+                                     self.iter_run_param())
 
     #     self.select_best_model()
     #     # align the given dimension
     #     self.d['aligned_' + self.feature] = fitted(best_model)
-
 
 
 def calibrate(preprocessed_data,
