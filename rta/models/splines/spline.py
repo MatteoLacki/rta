@@ -95,4 +95,4 @@ class Spline(Model):
         m_stats.columns = ["fold_" + fs.__name__ for fs in fold_stats]
         m_stats.index = [ms.__name__ for ms in model_stats]
 
-        return (m_stats, cv_out, self.chunks_no) + tuple(pass_through_args)
+        return (m_stats, cv_out, self.chunks_no)
