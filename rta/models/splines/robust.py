@@ -13,6 +13,8 @@ from rta.models.splines.spline import Spline
 from rta.models.splines.beta_splines import beta_spline
 from rta.stats.stats import mad
 
+
+
 def mad_window_filter(x, y, chunks_no=100, sd_cnt=3, x_sorted=False):
     """Filter based on median absolute deviation.
 
@@ -57,6 +59,7 @@ def mad_window_filter(x, y, chunks_no=100, sd_cnt=3, x_sorted=False):
         x_percentiles[i] = x[ss]
         signal[ss:se] = np.abs(y[ss:se] - median) <= sd * sd_cnt
     return signal, medians, stds, x_percentiles
+
 
 
 class RobustSpline(Spline):

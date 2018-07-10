@@ -8,51 +8,7 @@ from rta.cv.cv              import cv_run_param
 from rta.cv.folds           import replacement_folds_strata
 from rta.cv.folds           import stratified_group_folds
 from rta.models.base_model  import fitted, predict
-from rta.models.robust_spline import RobustSpline
-from rta.stats.stats        import mae, mad, confusion_matrix
-
-
-
-
-def cv_run_param(run_no,
-                 d_run,
-                 parameter,
-                 folds,
-                 feature,
-                 feature_stat,
-                 Model=RobustSpline,
-                 fold_stats=(mae, mad),
-                 model_stats=(np.mean, np.median, np.std)):
-    """Cross-validate a model under a given 'run' and 'parameter'."""
-    m = Model()
-    m.fit(d_run[feature].values, 
-          d_run[feature_stat].values,
-          **parameter)
-    m_stats = []
-    cv_out = []
-    for fold in folds:
-        train = d_run.loc[d_run.fold != fold,:]
-        test  = d_run.loc[d_run.fold == fold,:]
-        n = Model()
-        n.fit(x=train[feature].values,
-              y=train[feature_stat].values,
-              **parameter)
-        errors = np.abs(predict(n, test[feature].values) - \
-                        test[feature_stat].values)
-        n_signal = n.is_signal(test.rt, test.rt_median_distance)
-        stats = [stat(errors) for stat in fold_stats]
-        m_stats.append(stats)
-        cm = confusion_matrix(m.signal[d_run.fold == fold], n_signal)
-        cv_out.append((n, stats, cm))
-    # process stats
-    m_stats = np.array(m_stats)
-    m_stats = np.array([stat(m_stats, axis=0) for stat in model_stats])
-    m_stats = pd.DataFrame(m_stats)
-    m_stats.columns = ["fold_" + fs.__name__ for fs in fold_stats]
-    m_stats.index = [ms.__name__ for ms in model_stats]
-
-    return run_no, parameter, m, m_stats, cv_out
-
+from rta.models.splines.robust import RobustSpline
 
 
 class Calibrator(object):
@@ -69,18 +25,18 @@ class Calibrator(object):
         """
         
         # filter out peptides that occur in runs in groups smaller than ''
-        preprocessed_data.filter_unfoldable_strata(folds_no)
+        self.folds_no = folds_no
+        preprocessed_data.filter_unfoldable_strata(self.folds_no)
         self.D = preprocessed_data.D
         self.stats = preprocessed_data.stats
         self.feature = feature
         self.feature_stat = feature + '_' + preprocessed_data.stat_name
-        self.feature_stat_distance = feature_stat + '_distance'
+        self.feature_stat_distance = self.feature_stat + '_distance'
         self.run = run
 
-    def set_folds(self,
-                  folds_no=10,
-                  fold=stratified_group_folds,
-                  shuffle=True):
+    def fold(self,
+             fold=stratified_group_folds,
+             shuffle=True):
         """Assign to folds.
 
         Args:
@@ -88,9 +44,6 @@ class Calibrator(object):
             folds_no (int):     the number of folds to split the data into.
             shuffle (boolean):  shuffle the points while folding?
         """
-        # TODO: this should really be some wrapper around the silly method.
-        self.folds_no = folds_no # write a setter to check for proper type and value
-
         if fold.__name__ == 'stratified_group_folds':
             # we want the result to be sorted w.r.t. median rt.
             self.stats.sort_values(["runs", self.feature_stat], inplace=True)
@@ -132,46 +85,6 @@ class Calibrator(object):
     def select_best_model(self):
         """Select the best model from the results."""
         pass
-
-
-    # definately, the cv should be part of the model.
-    def cv_run_param(self,
-                     run_no,
-                     d_run,
-                     parameter,
-                     Model=RobustSpline,
-                     fold_stats=(mae, mad),
-                     model_stats=(np.mean, np.median, np.std)):
-        """Cross-validate a model under a given 'run' and 'parameter'."""
-        m = Model()
-        m.fit(d_run[self.feature].values, 
-              d_run[self.feature_stat].values,
-              **parameter)
-        m_stats = []
-        cv_out = []
-        for fold in self.folds:
-            train = d_run.loc[d_run.fold != fold,:]
-            test  = d_run.loc[d_run.fold == fold,:]
-            n = Model()
-            n.fit(x=train[self.feature].values,
-                  y=train[self.feature_stat].values,
-                  **parameter)
-            errors = np.abs(predict(n, test[self.feature].values) - \
-                            test[self.feature_stat].values)
-            n_signal = n.is_signal(test.rt, test.rt_median_distance)
-            stats = [stat(errors) for stat in fold_stats]
-            m_stats.append(stats)
-            cm = confusion_matrix(m.signal[d_run.fold == fold], n_signal)
-            cv_out.append((n, stats, cm))
-        # process stats
-        m_stats = np.array(m_stats)
-        m_stats = np.array([stat(m_stats, axis=0) for stat in model_stats])
-        m_stats = pd.DataFrame(m_stats)
-        m_stats.columns = ["fold_" + fs.__name__ for fs in fold_stats]
-        m_stats.index = [ms.__name__ for ms in model_stats]
-
-        return run_no, parameter, m, m_stats, cv_out
-
 
     def calibrate(self,
                   parameters=None,

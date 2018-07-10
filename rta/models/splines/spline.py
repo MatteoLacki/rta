@@ -58,8 +58,7 @@ class Spline(Model):
                  confusion  = True):
         """Run cross-validation.
 
-        Run it by creating an additional class instance for 
-        the comparison of fold parameters.
+        Results are saved as class fields.
 
         Args:
             folds (np.array) an array of ints marking fold assignment.

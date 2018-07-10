@@ -1,6 +1,9 @@
 import numpy as np
 import pandas as pd
 
+#TODO: this whole file should be in the main folder.
+# there will never be anything like 'pre'
+
 
 #TODO: replace this with C.
 def ordered_str(x):
@@ -115,7 +118,7 @@ def preprocess(annotated_peptides,
                _DataPreprocessor={},
                _get_stats={}):
     """Wrapper around preprocessing of the annotated peptides.""" 
-    dp = DataPreprocessor(annotated_peptides, **_DataPreprocessor)
-    dp.get_stats(min_runs_no=5, **_get_stats)
-    dp.get_distances_to_stats()
-    return dp
+    d = DataPreprocessor(annotated_peptides, **_DataPreprocessor)
+    d.get_stats(min_runs_no=5, **_get_stats)
+    d.get_distances_to_stats()
+    return d
