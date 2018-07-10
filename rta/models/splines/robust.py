@@ -69,7 +69,7 @@ class RobustSpline(Spline):
             x (np.array) 1D control
             y (np.array) 1D response
             chunks_no (int) The number of quantile bins.
-
+            drop_duplicates_and_sort (logical) Should we drop duplicates in 'x' and sort 'x' and 'y' w.r.t. 'x'?
         """
         assert chunks_no > 0
         assert std_cnt > 0
@@ -87,7 +87,6 @@ class RobustSpline(Spline):
                                   self.y[self.signal],
                                   self.chunks_no)
 
-    # what about the corner conditions? 
     def is_signal(self, x_new, y_new):
         """Denoise the new data."""
         i = np.searchsorted(self.x_percentiles, x_new) - 1
