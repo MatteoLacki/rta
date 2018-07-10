@@ -106,3 +106,17 @@ class RobustSpline(Spline):
         fit = hasattr(self, 'signal')
         cv = hasattr(self, 'fold_stats')
         return "This is a RobustSpline super-duper fitting.\n\tFitted\t\t\t{}\n\tCross-validated\t\t{}".format(fit, cv)
+
+
+
+def robust_spline(x, y,
+                  chunks_no=20,
+                  std_cnt=3,
+                  drop_duplicates_and_sort=True,
+                  folds=None):
+    """Fit one robust spline."""
+    m = RobustSpline()
+    m.fit(x, y, chunks_no, std_cnt, drop_duplicates_and_sort)
+    if folds:
+        m.cv(folds)
+    return m
