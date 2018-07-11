@@ -28,58 +28,16 @@ c.calibrate()
 parameters = [{"chunks_no": n} for n in range(2,200)]
 # c.calibrate(parameters)
 
-r, p, m = c.cal_res[10]
-m.plot()
-m.cv_stats
-m.fold_stats
-
-
-m.cv_stats.loc['std', 'fold_mad']
-
-
 c.plot()
 
-from collections import defaultdict
+m = c.cal_res[0][2]
+m.plot()
+m.cv_stats
 
-parameters = c.parameters
-opt_var = 'chunks_no'
-opt_var_vals = sorted([p[opt_var] for p in parameters])
-
-mad_mean = defaultdict(list)
-mad_std  = defaultdict(list)
-for r, p, m in c.cal_res:
-    cvs = m.cv_stats
-    mad_mean[r].append(cvs.loc['mean', 'fold_mae'])
-    mad_std[r].append(cvs.loc['std', 'fold_mae'])
+dt_cal = Calibrator(d, feature='dt', folds_no=folds_no)
+dt_cal.fold()
+dt_cal.calibrate()
+dt_cal.plot()
 
 
-for r in c.d.runs:
-    x, y = opt_var_vals, mad_mean[r]
-    plt.plot(x, y, label=r)
-    plt.text(x[ 0], y[ 0], 'Run {}'.format(r))
-    plt.text(x[-1], y[-1], 'Run {}'.format(r))
-
-plt.show()
-
-
-
-def cv_run_param(r, x, y, f, p):
-    m = robust_spline(x, y,
-                      drop_duplicates_and_sort=False,
-                      folds = f,
-                      **p)
-    return m
-
-with Pool(16) as p:
-    res = p.starmap(cv_run_param, it)
-
-
-# add simple visualization to Calibrator.
-# 
-
-
-
-
-
-%%timeit
-c.fold()
+dt_cal.cal_res[10][2].plot()

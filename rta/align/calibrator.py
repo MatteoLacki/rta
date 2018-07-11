@@ -58,7 +58,7 @@ class Calibrator(object):
             shuffle (boolean):  shuffle the points while folding?
         """
         if fold.__name__ == 'stratified_group_folds':
-            # we want the result to be sorted w.r.t. median rt.
+            # we want the result to be sorted w.r.t. the applied statistic
             self.d.stats.sort_values(["runs", self.feature_stat], inplace=True)
 
         # get fold assignments for pept-id groups
