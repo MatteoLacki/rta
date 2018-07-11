@@ -1,5 +1,7 @@
 """A class for calibrating the parameters of the model. """
 
+from collections import defaultdict
+import matplotlib.pyplot as plt
 from multiprocessing import Pool, cpu_count
 import numpy as np
 import pandas as pd
@@ -16,10 +18,10 @@ def cv_run_param(r, x, y, f, p):
                       drop_duplicates_and_sort=False,
                       folds = f,
                       **p)
-    return m
+    return r, p, m
 
 
-
+# TODO: shouldn't this be an instance of the Model?
 class Calibrator(object):
     def __init__(self, 
                  preprocessed_data,
@@ -98,24 +100,49 @@ class Calibrator(object):
         self.parameters = parameters
 
         with Pool(cores_no) as p:
-            self.results = p.starmap(cv_run_param,
+            self.cal_res = p.starmap(cv_run_param,
                                      self.iter_run_param())
 
     #     self.select_best_model()
     #     # align the given dimension
     #     self.d['aligned_' + self.feature] = fitted(best_model)
 
+    def plot(self,
+             opt_var = 'chunks_no',
+             plt_style = 'dark_background',
+             show = True,
+             **kwds):
+        """Plot calibration error curves."""
+        plt.style.use(plt_style)
+        opt_var_vals = sorted([p[opt_var] for p in self.parameters])
+        mad_mean = defaultdict(list)
+        mad_std  = defaultdict(list)
+        for r, p, m in self.cal_res:
+            s = m.cv_stats
+            mad_mean[r].append(s.loc['mean', 'fold_mae'])
+            mad_std[r].append( s.loc['std',  'fold_mae'])
 
-def calibrate(preprocessed_data,
-              feature='rt',
-              folds_no=10,
-              fold=stratified_group_folds,
-              shuffle=True):
-    """Calibrate the given feature of the data."""
-    self.feature = feature
-    calibrator = Calibrator(preprocessed_data, self.feature)
-    calibrator.set_folds(folds_no, fold, shuffle)
-    calibrator.calibrate()
-    return calibrator.dp, calibrator.results
-    # return calibrator.dp, calibrator.best_model
+        for r in self.d.runs:
+            x, y = opt_var_vals, mad_mean[r]
+            plt.plot(x, y, label=r)
+            plt.text(x[ 0], y[ 0], 'Run {}'.format(r))
+            plt.text(x[-1], y[-1], 'Run {}'.format(r))
+
+        if show:
+            plt.show()
+
+
+# TODO: get this running.
+# def calibrate(preprocessed_data,
+#               feature='rt',
+#               folds_no=10,
+#               fold=stratified_group_folds,
+#               shuffle=True):
+#     """Calibrate the given feature of the data."""
+#     self.feature = feature
+#     calibrator = Calibrator(preprocessed_data, self.feature)
+#     calibrator.set_folds(folds_no, fold, shuffle)
+#     calibrator.calibrate()
+#     return calibrator.dp, calibrator.results
+#     # return calibrator.dp, calibrator.best_model
 

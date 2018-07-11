@@ -11,8 +11,7 @@ import matplotlib.pyplot as plt
 from rta.array_operations.misc import overlapped_percentile_pairs
 from rta.models.splines.spline import Spline
 from rta.models.splines.beta_splines import beta_spline
-from rta.stats.stats import mad
-
+from rta.stats.stats import mad, mae
 
 
 def mad_window_filter(x, y, chunks_no=100, sd_cnt=3, x_sorted=False):
@@ -113,10 +112,12 @@ def robust_spline(x, y,
                   chunks_no=20,
                   std_cnt=3,
                   drop_duplicates_and_sort=True,
-                  folds=None):
+                  folds=None,
+                  fold_stats  = (mae, mad),
+                  model_stats = (np.mean, np.median, np.std)):
     """Fit one robust spline."""
     m = RobustSpline()
     m.fit(x, y, chunks_no, std_cnt, drop_duplicates_and_sort)
     if folds is not None:
-        m.cv(folds)
+        m.cv(folds, fold_stats, model_stats)
     return m

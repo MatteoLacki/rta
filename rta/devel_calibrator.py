@@ -21,15 +21,45 @@ d = preprocess(annotated_all, min_runs_no)
 
 c = Calibrator(d, feature='rt', folds_no=folds_no)
 c.fold()
-%%timeit
 c.calibrate()
+
 # less that 1.3 seconds on default params. 
+# c.results[0].plot()
+parameters = [{"chunks_no": n} for n in range(2,200)]
+# c.calibrate(parameters)
+
+r, p, m = c.cal_res[10]
+m.plot()
+m.cv_stats
+m.fold_stats
 
 
-parameters = [{"chunks_no": n} for n in range(2,50)]
+m.cv_stats.loc['std', 'fold_mad']
 
-%%timeit
-c.calibrate(parameters)
+
+c.plot()
+
+from collections import defaultdict
+
+parameters = c.parameters
+opt_var = 'chunks_no'
+opt_var_vals = sorted([p[opt_var] for p in parameters])
+
+mad_mean = defaultdict(list)
+mad_std  = defaultdict(list)
+for r, p, m in c.cal_res:
+    cvs = m.cv_stats
+    mad_mean[r].append(cvs.loc['mean', 'fold_mae'])
+    mad_std[r].append(cvs.loc['std', 'fold_mae'])
+
+
+for r in c.d.runs:
+    x, y = opt_var_vals, mad_mean[r]
+    plt.plot(x, y, label=r)
+    plt.text(x[ 0], y[ 0], 'Run {}'.format(r))
+    plt.text(x[-1], y[-1], 'Run {}'.format(r))
+
+plt.show()
 
 
 

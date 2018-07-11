@@ -25,10 +25,12 @@ class Spline(Model):
              **kwds):
         """Plot the spline."""
         plt.style.use(plt_style)
-        plt.scatter(self.x, self.y)
+        colors = np.full(self.signal.shape, "blue", dtype='<U30')
+        colors[self.signal] = 'papayawhip'
+        plt.scatter(self.x, self.y, c=colors)
         xs = np.linspace(min(self.x), max(self.x), knots_no)
         ys = self.spline(xs)
-        plt.plot(xs, ys, c='orange')
+        plt.plot(xs, ys, c='orangered', linewidth=4)
         if show:
             plt.show()
 
@@ -86,7 +88,7 @@ class Spline(Model):
             s = [stat(errors) for stat in fold_stats]
             S.append(s)
             cm = confusion_matrix(m_signal, n_signal)
-            FS.append((n, s, cm))
+            FS.append((s, cm))
 
         S = np.array(S)
         S = np.array([stat(S, axis=0) for stat in model_stats])

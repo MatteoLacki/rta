@@ -40,15 +40,11 @@ class DataPreprocessor(object):
         """Calculate basic statistics conditional on peptide-id.
 
         Args:
-            D_all (pandas.DataFrame): The DataFrame with identified peptides.
+            stat (function):   A statistic to apply to the selected features.
             min_runs_no (int): Analyze only peptides that appear at least in that number of runs.
-            var_names (iter of strings): names of columns for which to obtain the statistic.
-            pept_id (str): name of column that identifies peptides in different runs.
-            stat (function): a statistic to apply to the selected features.
 
         Return:
             D_stats (pandas.DataFrame): A DataFrame summarizing the selected features of peptides. Filtered for peptides appearing at least in a given minimal number of runs. 
-
         """
         self.min_runs_no = min_runs_no
         self.stat_name = stat.__name__
@@ -59,6 +55,7 @@ class DataPreprocessor(object):
         # this should be rewritten in C.
         stats['runs'] = D_id.run.agg(ordered_str)
         self.stats = stats[stats.runs_no >= self.min_runs_no].copy()
+        self.runs = self.D[self.run_name].unique()
 
     def get_distances_to_stats(self):
         """Calculate the distances of selected features to their summarizing statistic."""
