@@ -39,5 +39,12 @@ dt_cal.fold()
 dt_cal.calibrate()
 dt_cal.plot()
 
-
 dt_cal.cal_res[10][2].plot()
+
+# add the preprocessing step for the calibrator for dt:
+# it should remove from the analysis proteins that are bloody repeating
+# in different charges.
+
+
+
+
