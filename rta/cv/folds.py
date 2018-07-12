@@ -5,6 +5,14 @@ import pandas as pd
 
 
 def K_folds(N, folds_no=10):
+    """Simple K-folds with shuffling.
+
+    Args:
+        N (int):        number of elements to shuffle.
+        folds_no (int): number of folds to generate.
+    Returns:
+        np.array:       fold assignemt.
+    """
     K = folds_no
     groups = np.full((N,), 0)
     # produce an array of K numbers repeated 

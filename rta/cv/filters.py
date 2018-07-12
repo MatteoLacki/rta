@@ -5,6 +5,12 @@ def filter_K_foldable(annotated, annotated_stats, K):
     """Filter peptides divisible into K cv-folds.
 
     Returns sparser copies of the original DF and its statistics.
+    Derprecated.
+
+    Args:
+        annotated (pd.DataFrame):       Annotated peptides.
+        annotated_stats (pd.DataFrame): Statistics on peptide groups.
+        K (int):                        Number of folds.
     """
     run_counts = count(annotated_stats.runs)
     infrequent_runs = set(el for el, cnt in run_counts.items() if cnt < K)

@@ -124,6 +124,7 @@ def percentiles(x, k, inner=False):
         x (np.array):      Array to find percentiles.
         k (int):           Number of approximate percentiles.
         inner (logical):   Skip 0 and N-1.
+
     """
     assert len(x) > k - 1, "Too many inner percentiles."
     try:

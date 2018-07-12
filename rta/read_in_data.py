@@ -53,6 +53,10 @@ def big_data(path = "",
                                 'LiftOffRT',
                                 'InfUpRT',
                                 'TouchDownRT']):
+    """Read in the big data for the project.
+
+    TODO: this might be turned into some example set.
+    """
     path = data_folder(path)
     annotated  = pd.read_csv(path+'annotated_data.csv',
                              usecols=vars_annotated)

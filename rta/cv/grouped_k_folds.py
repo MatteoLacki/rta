@@ -15,7 +15,8 @@ def grouped_K_folds(x, K):
         K (int) : number of folds
 
     Return:
-        out (dict) : mapping between unique x and their 
+        dict: mapping between unique x and their folds.
+
     """
     ids = np.unique(x)
     N = len(ids)

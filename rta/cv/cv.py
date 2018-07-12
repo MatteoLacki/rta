@@ -6,11 +6,15 @@ from rta.models.splines.robust  import RobustSpline
 from rta.stats.stats            import mae, mad, confusion_matrix
 
 
-def cv_search_iterator(data,
-                       parameters,
-                       Model=RobustSpline,
-                       fold_stats=(mae, mad),
-                       model_stats=(np.mean, np.median, np.std)):
+def __cv_search_iterator(data,
+                         parameters,
+                         Model=RobustSpline,
+                         fold_stats=(mae, mad),
+                         model_stats=(np.mean, np.median, np.std)):
+    """Simple, non-parallel iterator over cross-validation tasks.
+
+    Deprecated.
+    """
     folds = np.unique(data.fold)
     for run, d_run in data.groupby('run'):
         d_run = d_run.sort_values('rt')
@@ -44,7 +48,11 @@ def cv_search_iterator(data,
             yield run, param, m, m_stats, 'model'
 
 
-def tasks_run_param(data, parameters, *other_worker_args):
+def __tasks_run_param(data, parameters, *other_worker_args):
+    """Iterate over runs and parameters of a data-frame containing the 'rt' column.
+
+    Deprecated.
+    """
     folds = np.unique(data.fold)
     for run, d_run in data.groupby('run'):
         d_run = d_run.sort_values('rt')
@@ -54,42 +62,42 @@ def tasks_run_param(data, parameters, *other_worker_args):
             out.extend(other_worker_args)
             yield out
 
-# # this looks more like a fit method for the bloody model
-# # tasks_run_param pipes in parameters for this.
-# def cv_run_param(run,
-#                  d_run,
-#                  param,
-#                  folds,
-#                  Model=RobustSpline,
-#                  fold_stats=(mae, mad),
-#                  model_stats=(np.mean, np.median, np.std)):
-#     """Cross-validate a model under a given 'run' and 'param'."""
-#     m = Model()
-#     m.fit(d_run.rt.values, 
-#           d_run.rt_median_distance.values,
-#           **param)
-#     m_stats = []
-#     cv_out = []
-#     for fold in folds:
-#         train = d_run.loc[d_run.fold != fold,:]
-#         test  = d_run.loc[d_run.fold == fold,:]
-#         n = Model()
-#         n.fit(x=train.rt.values,
-#               y=train.rt_median_distance.values,
-#               **param)
-#         errors = np.abs(predict(n, test.rt.values) - test.rt_median_distance.values)
-#         n_signal = n.is_signal(test.rt, test.rt_median_distance)
-#         stats = [stat(errors) for stat in fold_stats]
-#         m_stats.append(stats)
-#         cm = confusion_matrix(m.signal[d_run.fold == fold], n_signal)
-#         cv_out.append((n, stats, cm))
-#     # process stats
-#     m_stats = np.array(m_stats)
-#     m_stats = np.array([stat(m_stats, axis=0) for stat in model_stats])
-#     m_stats = pd.DataFrame(m_stats)
-#     m_stats.columns = ["fold_" + fs.__name__ for fs in fold_stats]
-#     m_stats.index = [ms.__name__ for ms in model_stats]
 
-#     return run, param, m, m_stats, cv_out
+def cv_run_param(run,
+                 d_run,
+                 param,
+                 folds,
+                 Model=RobustSpline,
+                 fold_stats=(mae, mad),
+                 model_stats=(np.mean, np.median, np.std)):
+    """Cross-validate a model under a given 'run' and 'param'.
 
-# TODO: write a test to check if it will work.
+    Deprecated.
+    """
+    m = Model()
+    m.fit(d_run.rt.values, 
+          d_run.rt_median_distance.values,
+          **param)
+    m_stats = []
+    cv_out = []
+    for fold in folds:
+        train = d_run.loc[d_run.fold != fold,:]
+        test  = d_run.loc[d_run.fold == fold,:]
+        n = Model()
+        n.fit(x=train.rt.values,
+              y=train.rt_median_distance.values,
+              **param)
+        errors = np.abs(predict(n, test.rt.values) - test.rt_median_distance.values)
+        n_signal = n.is_signal(test.rt, test.rt_median_distance)
+        stats = [stat(errors) for stat in fold_stats]
+        m_stats.append(stats)
+        cm = confusion_matrix(m.signal[d_run.fold == fold], n_signal)
+        cv_out.append((n, stats, cm))
+    # process stats
+    m_stats = np.array(m_stats)
+    m_stats = np.array([stat(m_stats, axis=0) for stat in model_stats])
+    m_stats = pd.DataFrame(m_stats)
+    m_stats.columns = ["fold_" + fs.__name__ for fs in fold_stats]
+    m_stats.index = [ms.__name__ for ms in model_stats]
+
+    return run, param, m, m_stats, cv_out
