@@ -12,10 +12,6 @@ build
 dist
 *.egg-info
 *.swp
-
+rta/.ipynb_checkpoints/
 # VIM
 *.swo
-
-# Other's projects
-rta/LGM
-rta/regression_mixtures

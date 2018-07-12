@@ -1,140 +1,121 @@
-"""Cross validate the input model."""
-
-%load_ext autoreload
-%autoreload 2
-%load_ext line_profiler
-
-import matplotlib.pyplot as plt
-from multiprocessing import Pool, cpu_count
 import numpy as np
 import pandas as pd
-pd.set_option('display.max_rows', 10)
-pd.set_option('display.max_columns', 4)
 
-from rta.align.calibrator   import Calibrator
-from rta.read_in_data       import big_data
-from rta.pre.processing     import preprocess
-
-# from rta.models.base_model import Model
-# from rta.models.base_model import predict, fitted, coef, residuals
-from rta.cv.folds   import stratified_group_folds
-# from rta.cv.folds import replacement_folds_strata
+#TODO: this whole file should be in the main folder.
+# there will never be anything like 'pre'
 
 
-folds_no = 10
-annotated_all, unlabelled_all = big_data()
-
-d = preprocess(annotated_peptides=annotated_all)
-
-d.D
-d.stats.columns
-feature = 'rt'
-
-calibrator = Calibrator(d, feature)
-calibrator.set_folds(folds_no, stratified_group_folds, True)
-
-
-from rta.models.SQSpline import SQSpline
+#TODO: replace this with C.
+def ordered_str(x):
+    x = x.values
+    x.sort()
+    return "_".join(str(i) for i in x)
 
 
 
-calibrator.d.D
+class DataPreprocessor(object):
+    def __init__(self,
+                 annotated_peptides,
+                 var_names=('rt', 'dt', 'mass'),
+                 pept_id='id',
+                 run_name='run'):
+        """Initialize the DataPreprocessor.
+
+        Args:
+            annotated_peptides (pandas.DataFrame): A DataFrame with identified peptides.
+            var_names (iter of strings): names of columns for which to obtain the statistic.
+            pept_id (str): name of column that identifies peptides in different runs.
+        """
+        all_col_names = list((pept_id,run_name) + var_names)
+        assert all(vn in annotated_peptides.columns for vn in all_col_names),\
+             "Not all variable names are among the column names of the supplied data frame."
+        self.var_names = var_names
+        self.run_name  = run_name
+        self.pept_id   = pept_id
+        # the slimmed data-set: copy is quick and painless.
+        self.D = annotated_peptides[all_col_names].copy()
+        self.filtered_unfoldable = False
+
+    def get_stats(self, stat=np.median, min_runs_no=5):
+        """Calculate basic statistics conditional on peptide-id.
+
+        Args:
+            stat (function):   A statistic to apply to the selected features.
+            min_runs_no (int): Analyze only peptides that appear at least in that number of runs.
+
+        Return:
+            D_stats (pandas.DataFrame): A DataFrame summarizing the selected features of peptides. Filtered for peptides appearing at least in a given minimal number of runs. 
+        """
+        self.min_runs_no = min_runs_no
+        self.stat_name = stat.__name__
+        D_id = self.D.groupby('id')
+        stats = D_id[self.var_names].agg(stat)
+        stats.columns = [n + "_" + self.stat_name for n in self.var_names]
+        stats['runs_no'] = D_id.id.count()
+        # this should be rewritten in C.
+        stats['runs'] = D_id.run.agg(ordered_str)
+        self.stats = stats[stats.runs_no >= self.min_runs_no].copy()
+        self.runs = self.D[self.run_name].unique()
+
+    def get_distances_to_stats(self):
+        """Calculate the distances of selected features to their summarizing statistic."""
+
+        # filter the runs that did not appear more than 'min_runs_no'.
+        self.D = pd.merge(self.D, self.stats, left_on="id", right_index=True)
+        distances = {}
+        for n in self.var_names:
+            var_stat = n + "_" + self.stat_name
+            distances[var_stat + "_distance"] = self.D[n] - self.D[var_stat]
+        self.D = self.D.assign(**distances)
+
+    def filter_unfoldable_strata(self, folds_no):
+        """Filter peptides that cannot be folded.
+
+        Trim both stats on peptides and run data of all peptides
+        that are not appearing in the same runs in a group of at
+        least 'folds_no' other peptides.
+        Do it once only per dataset.
+
+        Args:
+            folds_no (int): the number of folds to divide the data into.
+        """
+        if not self.filtered_unfoldable:
+            self.folds_no = folds_no
+            self.folds = np.arange(folds_no)
+            strata_cnts = self.stats.groupby("runs").runs.count()
+            self.strata_cnts = strata_cnts[strata_cnts >= self.folds_no].copy()
+            # filtering stats
+            self.stats = self.stats[np.isin(self.stats.runs,
+                                    self.strata_cnts.index)].copy()
+            # filtering data
+            self.D = self.D[self.D[self.pept_id].isin(self.stats.index)].copy()
+            self.filtered_unfoldable = True
+
+    # def fold(self, folds_no,
+    #                feature='rt',
+    #                fold=stratified_folds,
+    #                fold_kwds={'shuffle': True}):
+    #     self.folds_no = folds_no
+    #     # no sense to make foldable unless folds are prepared too
+    #     self.__filter_unfoldable_strata()
+    #     if fold.__name__ == 'stratified_folds':
+    #         # we want the result to be sorted w.r.t. median rt.
+    #         sort_vars = ["runs", self.stat_name + '_' + feature]
+    #         self.stats.sort_values(sort_vars, inplace=True)
+    #     self.stats['fold'] = fold(self.strata_cnts,
+    #                               self.folds_no,
+    #                               **fold_kwds)
+    #     self.D = pd.merge(self.D, self.stats[['fold']],
+    #                       left_on='id', right_index=True)
 
 
-model = SQSpline()
-model.fit()
 
-calibrator.parameters = [{"chunks_no": 2**e} for e in range(2,8)]
-calibrator._cv_run_args = []
-calibrator.calibrate()
-
-
-it = calibrator.iter_run_param()
-next(it)
-
-
-from rta.align.calibrator import cv_run_param
-
-
-cv_run_param(*next(it))
-run_no, d_run, parameter, folds, feature, feature_stat = next(it)
-
-
-
-# tests for what the methods should be returning.
-
-
-
-#TODO: this part should have the possibility to change the fitting procedure.
-# So as to make it possible to refit the data.
-def calibrate(preprocessed_data,
-              parameters=None,
-              feature='rt',
-              run='run',
-              folds_no=10,
-              cores_no=cpu_count(),
-              _cv_run_args=[]):
-    """Calibrate the model for a given feature.
-
-    Args:
-        preprocessed_data (pandas.DataFrame): data including folds.
-        parameters (iterable): parameters for the individual run models.
-        folds_no (int): number of folds to test the model's generalization capabilities.
-
-    Returns:
-        a list of models fitted to runs.
-    """
-    dp = preprocessed_data
-
-    if not parameters:
-        parameters = [{"chunks_no": 2**e} for e in range(2,8)]
-
-    # run calibration on runs and parameters
-    def tasks_run_param():
-        """Iterate over the data runs and fitting parameters."""
-        for r, d_r in dp.D.groupby(run):
-            d_r = d_r.sort_values(feature)
-            d_r = d_r.drop_duplicates(feature)
-            for p in parameters:
-                out = [r, d_r, p, dp.folds]
-                out.extend(_cv_run_args)
-                yield out
-
-    with Pool(cores_no) as p:
-        results = p.starmap(cv_run_param, tasks_run_param())
-    best_model = select_best_model(results)
-    # align the given dimension
-    dp['aligned_'+feature_name] = fitted(best_model)
-    return dp, results
-
-
-def align(annotated_peptides,
-          features          = ('rt', 'dt'),
-          min_runs_no       = 5,
-          fold              = stratified_group_folds,
-          folds_no          = 10,
-          parameters        = {},
-          _DataPreprocessor = {},
-          _get_stats        = {},
-          _set_fold         = {}):
-    """Align features."""
-
-    # preprocessing common to all the features under alignment
-    dp = preprocess(annotated_peptides, 
-                    min_runs_no,
-                    _DataPreprocessor,
-                    _get_stats)
-
-    calibrated_alignments = {}
-    for feature in features:
-        # put set_folds to init of the calibrator class?
-        dp = set_folds(dp,
-                       feature,
-                       folds_no = folds_no,
-                       **_set_fold)
-
-        dp, calibrated_alignments[feature] = calibrate()
-
-    return calibrated_alignments
-
-
+def preprocess(annotated_peptides,
+               min_runs_no=5,
+               _DataPreprocessor={},
+               _get_stats={}):
+    """Wrapper around preprocessing of the annotated peptides.""" 
+    d = DataPreprocessor(annotated_peptides, **_DataPreprocessor)
+    d.get_stats(min_runs_no=5, **_get_stats)
+    d.get_distances_to_stats()
+    return d

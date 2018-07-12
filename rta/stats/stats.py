@@ -166,3 +166,21 @@ def describe_runs(data,
     """
     v = var_names if isinstance(var_names, list) else [var_names]
     return {n:__describe_runs(data, n, quantiles) for n in v}
+
+
+
+def max_space(x, sort=False):
+    """Calculate the maximal space between a set of 1D points.
+
+    If there is only one point, return 0.
+
+    Args:
+        x (np.array) The array for which we have to find the maximal space.
+    """
+    if len(x) == 1:
+        return 0
+    else:
+        if sort:
+            return np.diff(np.sort(x)).max()
+        else:
+            return np.diff(x).max()

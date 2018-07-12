@@ -1,9 +1,7 @@
 # To Do
-* write tests for the spline fitting method
-    how should this work?
-* implement the CV that sends things to different groups within small consecutive batches
-* realign the points and redo the calculations:
-    
+* refactor the old 'robust spline' code to the new class structure. 
+    * I want to have them working just in case
+    * no Patsy 
 
 
 # Done
