@@ -31,7 +31,7 @@ class Calibrator(object):
 
         Args:
             preprocessed_data (pandas.DataFrame): data to assign folds to.
-            feature (string):   the name of the feature in the column space of the preprocessed_data that will be aligned.
+            feature (string): the name of the feature in the column space of the preprocessed_data that will be aligned.
         """
         
         # filter out peptides that occur in runs in groups smaller than ''
@@ -75,8 +75,13 @@ class Calibrator(object):
     def iter_run_param(self, 
                        sort=True,
                        drop_duplicates=True):
-        """Iterate over the data runs and fitting parameters."""
-        # iterate over runs
+        """Iterate over the data runs and fitting parameters.
+
+        Args:
+            sort (logical):             sort the data by the control variable 'x'?
+            drop_duplicates (logical):  drop duplicates in the control variable 'x'?
+
+        """
         folds = np.arange(self.folds_no)
         for r, d_r in self.D.groupby('run'):
             if sort:
@@ -95,6 +100,12 @@ class Calibrator(object):
     def calibrate(self,
                   parameters=None,
                   cores_no=cpu_count()):
+        """Calibrate the selected dimension of the data.
+
+        Args:
+            parameters (iterable):  dictionaries with parameter-value entries.
+            cores_no (int):         number of cores use by multiprocessing.
+        """
         if not parameters:
             parameters = [{"chunks_no": 2**e} for e in range(2,8)]
         self.parameters = parameters
@@ -108,11 +119,17 @@ class Calibrator(object):
     #     self.d['aligned_' + self.feature] = fitted(best_model)
 
     def plot(self,
-             opt_var = 'chunks_no',
-             plt_style = 'dark_background',
-             show = True,
+             opt_var    = 'chunks_no',
+             plt_style  = 'dark_background',
+             show       = True,
              **kwds):
-        """Plot calibration error curves."""
+        """Plot calibration error curves.
+
+        Args:
+            opt_var (str):   The name of the variable to optimize.
+            plt_style (str): Matplotlib style to apply to the plot. This probably should be a global setting.
+            show (logical):  Should we show the plot immediately, or do you want to add some more things before running "plt.show"?
+        """
         plt.style.use(plt_style)
         opt_var_vals = sorted([p[opt_var] for p in self.parameters])
         mad_mean = defaultdict(list)
@@ -127,6 +144,10 @@ class Calibrator(object):
             plt.plot(x, y, label=r)
             plt.text(x[ 0], y[ 0], 'Run {}'.format(r))
             plt.text(x[-1], y[-1], 'Run {}'.format(r))
+
+        plt.xlabel(opt_var)
+        plt.ylabel('MAD')
+        plt.title('Training-Test Median Absolute Deviation')
 
         if show:
             plt.show()
