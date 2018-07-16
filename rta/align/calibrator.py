@@ -32,8 +32,8 @@ class Calibrator(object):
         Args:
             preprocessed_data (pandas.DataFrame): data to assign folds to.
             feature (string): the name of the feature in the column space of the preprocessed_data that will be aligned.
+
         """
-        
         # filter out peptides that occur in runs in groups smaller than ''
         self.folds_no = folds_no
         self.d = preprocessed_data
@@ -107,7 +107,7 @@ class Calibrator(object):
             cores_no (int):         number of cores use by multiprocessing.
         """
         if not parameters:
-            parameters = [{"chunks_no": 2**e} for e in range(2,8)]
+            parameters = [{"chunks_no": 2**e} for e in range(2,10)]
         self.parameters = parameters
 
         with Pool(cores_no) as p:
@@ -141,7 +141,8 @@ class Calibrator(object):
 
         for r in self.d.runs:
             x, y = opt_var_vals, mad_mean[r]
-            plt.plot(x, y, label=r)
+            # plt.plot(x, y, label=r)
+            plt.semilogx(x, y, basex=2, label=r)
             plt.text(x[ 0], y[ 0], 'Run {}'.format(r))
             plt.text(x[-1], y[-1], 'Run {}'.format(r))
 
