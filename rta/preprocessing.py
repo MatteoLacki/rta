@@ -72,11 +72,6 @@ class DataPreprocessor(object):
         self.runs = self.D[self.run_name].unique()
 
 
-    def _filter_D_based_on_stats_indices(self):
-        """Filter peptides that are not in 'self.stats.index'."""
-        self.D = self.D[self.D[self.pept_id].isin(self.stats.index)].copy()
-
-
     def get_distances_to_stats(self):
         """Calculate the distances of selected features to their summarizing statistic."""
 
@@ -87,6 +82,16 @@ class DataPreprocessor(object):
             var_stat = n + "_" + self.stat_name
             distances[var_stat + "_distance"] = self.D[n] - self.D[var_stat]
         self.D = self.D.assign(**distances)
+
+
+    def _trim_stats_and_D(self, retain):
+        """Filter peptides that are not in 'self.stats.index'.
+
+        Args:
+            retain (np.array of logicals): retain these peptides within 'self.stats'
+        """
+        self.stats = self.stats[retain].copy()
+        self.D = self.D[self.D[self.pept_id].isin(self.stats.index)].copy()
 
 
     def filter_unfoldable_strata(self, folds_no):
@@ -105,18 +110,15 @@ class DataPreprocessor(object):
             self.folds = np.arange(folds_no)
             strata_cnts = self.stats.groupby("runs").runs.count()
             self.strata_cnts = strata_cnts[strata_cnts >= self.folds_no].copy()
-            # filtering stats
-            self.stats = self.stats[np.isin(self.stats.runs,
-                                    self.strata_cnts.index)].copy()
-            self._filter_D_based_on_stats_indices()
+            self._trim_stats_and_D(np.isin(self.stats.runs,
+                                           self.strata_cnts.index))
             self.filtered_unfoldable = True
 
 
     def filter_multiply_charged(self):
         """Filter peptides that appear in different charge states across different runs of the experiment."""
         if not self.filtered_different_charges_across_runs:
-            self.stats = self.stats[self.stats.charges == 1,].copy()
-            self._filter_D_based_on_stats_indices()
+            self._trim_stats_and_D(self.stats.charges == 1)
             self.filtered_different_charges_across_runs = True
 
     # def fold(self, folds_no,

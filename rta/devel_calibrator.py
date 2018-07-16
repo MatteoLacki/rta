@@ -47,13 +47,20 @@ if __name__ == "__main__":
 from rta.align.calibrator import Calibrator
 
 
+d = preprocess(annotated_all, min_runs_no,
+               _get_stats = {'retain_all_stats': True})
 d.all_stats.head()
 d.D.head()
 d.D.columns
 # remove peptides with different charges across runs entirely
+d.stats.head()
+# d.filter_multiply_charged()
 
-d.D.groupby(['id']).charge.nunique()
-sum(d.stats.charges == 1)
+dpp = d.D[d.D[d.pept_id].isin(d.stats[d.stats.charges > 1].index)].copy()
+dpp.columns
+dpp.head(30)
+dpp.to_csv('/home/matteo/Projects/retentiontimealignment/Data/multiply_charged_peptides.csv',
+           index=False)
 
 
 
@@ -84,8 +91,36 @@ class DTcalibrator(Calibrator):
         self.feature = feature
         self.feature_stat = feature + '_' + preprocessed_data.stat_name
         self.feature_stat_distance = self.feature_stat + '_distance'
-        self.D = self.d.D[[self.d.pept_id,
-                           self.d.run_name,
-                           self.feature,
-                           self.feature_stat_distance]]
+        self.D = self.d.D
+        self.pept_id = self.d.pept_id
+        self.stats = self.d.stats
+        self._trim_stats_and_D(self.stats.charges == 1)
+        self.D = self.D[[self.d.pept_id,
+                         self.d.run_name,
+                         self.feature,
+                         self.feature_stat_distance]]
         self.D.columns = ['id', 'run', 'x', 'y']
+
+    def _trim_stats_and_D(self, retain):
+        """Filter peptides that are not in 'self.stats.index'.
+
+        Args:
+            retain (np.array of logicals): retain these peptides within 'self.stats'
+        """
+        self.stats = self.stats[retain].copy()
+        self.D = self.D[self.D[self.pept_id].isin(self.stats.index)].copy()
+
+d = preprocess(annotated_all, min_runs_no,
+               _get_stats = {'retain_all_stats': True})
+dt_c = DTcalibrator(d, feature='dt', folds_no=folds_no)
+dt_c.fold()
+dt_c.calibrate()
+# less that 1.3 seconds on default params. 
+# c.results[0].plot()
+# parameters = [{"chunks_no": n} for n in range(2,200)]
+# c.calibrate(parameters)
+dt_c.plot()
+
+
+m = dt_c.cal_res[0][2]
+m.plot()
