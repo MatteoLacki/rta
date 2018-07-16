@@ -116,27 +116,14 @@ class DataPreprocessor(object):
 
 
     def filter_multiply_charged(self):
-        """Filter peptides that appear in different charge states across different runs of the experiment."""
+        """Filter peptides that appear in different charge states across different runs of the experiment.
+
+        I still feel that this should not belong here.
+        This function will not be used by all alligners.
+        """
         if not self.filtered_different_charges_across_runs:
             self._trim_stats_and_D(self.stats.charges == 1)
             self.filtered_different_charges_across_runs = True
-
-    # def fold(self, folds_no,
-    #                feature='rt',
-    #                fold=stratified_folds,
-    #                fold_kwds={'shuffle': True}):
-    #     self.folds_no = folds_no
-    #     # no sense to make foldable unless folds are prepared too
-    #     self.__filter_unfoldable_strata()
-    #     if fold.__name__ == 'stratified_folds':
-    #         # we want the result to be sorted w.r.t. median rt.
-    #         sort_vars = ["runs", self.stat_name + '_' + feature]
-    #         self.stats.sort_values(sort_vars, inplace=True)
-    #     self.stats['fold'] = fold(self.strata_cnts,
-    #                               self.folds_no,
-    #                               **fold_kwds)
-    #     self.D = pd.merge(self.D, self.stats[['fold']],
-    #                       left_on='id', right_index=True)
 
 
 

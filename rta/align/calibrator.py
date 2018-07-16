@@ -98,8 +98,8 @@ class Calibrator(object):
         pass
 
     def calibrate(self,
-                  parameters=None,
-                  cores_no=cpu_count()):
+                  parameters = None,
+                  cores_no   = cpu_count()):
         """Calibrate the selected dimension of the data.
 
         Args:
@@ -119,9 +119,9 @@ class Calibrator(object):
     #     self.d['aligned_' + self.feature] = fitted(best_model)
 
     def plot(self,
-             opt_var    = 'chunks_no',
-             plt_style  = 'dark_background',
-             show       = True,
+             opt_var   = 'chunks_no',
+             plt_style = 'dark_background',
+             show      = True,
              **kwds):
         """Plot calibration error curves.
 
@@ -152,6 +152,46 @@ class Calibrator(object):
 
         if show:
             plt.show()
+
+
+
+class DTcalibrator(Calibrator):
+    def __init__(self,
+                 preprocessed_data,
+                 feature='dt',
+                 folds_no=10):
+        """Initialize the Calibrator.
+
+        Args:
+            preprocessed_data (pandas.DataFrame): data to assign folds to.
+            feature (string): the name of the feature in the column space of the preprocessed_data that will be aligned.
+
+        """
+        self.folds_no = folds_no
+        self.d = preprocessed_data
+        self.d.filter_unfoldable_strata(self.folds_no)
+        self.feature = feature
+        self.feature_stat = feature + '_' + preprocessed_data.stat_name
+        self.feature_stat_distance = self.feature_stat + '_distance'
+        self.D = self.d.D
+        self.pept_id = self.d.pept_id
+        self.stats = self.d.stats
+        self._trim_stats_and_D(self.stats.charges == 1)
+        self.D = self.D[[self.d.pept_id,
+                         self.d.run_name,
+                         self.feature,
+                         self.feature_stat_distance]]
+        self.D.columns = ['id', 'run', 'x', 'y']
+
+    def _trim_stats_and_D(self, retain):
+        """Filter peptides that are not in 'self.stats.index'.
+
+        Args:
+            retain (np.array of logicals): retain these peptides within 'self.stats'
+        """
+        self.stats = self.stats[retain].copy()
+        self.D = self.D[self.D[self.pept_id].isin(self.stats.index)].copy()
+
 
 
 # TODO: get this running.

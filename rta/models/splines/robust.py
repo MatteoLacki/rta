@@ -41,9 +41,9 @@ def mad_window_filter(x, y, chunks_no=100, sd_cnt=3, x_sorted=False):
     if not x_sorted:
         assert all(x[i] <= x[i+1] for i in range(len(x)-1)), \
             "If 'x' ain't sorted, than I don't believe that 'y' is correct."
-    signal  = np.empty(len(x),      dtype=np.bool_)
-    medians = np.empty(chunks_no,   dtype=np.float64)
-    stds    = np.empty(chunks_no,   dtype=np.float64)
+    signal  = np.empty(len(x),    dtype = np.bool_)
+    medians = np.empty(chunks_no, dtype = np.float64)
+    stds    = np.empty(chunks_no, dtype = np.float64)
     x_percentiles = np.empty(chunks_no, dtype=np.float64)
 
     scaling = 1.4826
@@ -52,7 +52,7 @@ def mad_window_filter(x, y, chunks_no=100, sd_cnt=3, x_sorted=False):
     # s, e      indices of the are being fitted
     # ss, se    indices used to decide upon denoising
     for i, (s, ss, se, e) in enumerate(overlapped_percentile_pairs(len(x), chunks_no)):
-        __mad, median = mad(y[s:e], return_median=True)
+        __mad, median = mad(y[s:e], return_median = True)
         medians[i] = median
         stds[i] = sd = scaling * __mad
         x_percentiles[i] = x[ss]
@@ -67,11 +67,13 @@ class RobustSpline(Spline):
             std_cnt=3,
             drop_duplicates_and_sort=True):
         """Fit a robust spline.
+        
         Args:
-            x (np.array) 1D control
-            y (np.array) 1D response
-            chunks_no (int) The number of quantile bins.
-            drop_duplicates_and_sort (logical) Should we drop duplicates in 'x' and sort 'x' and 'y' w.r.t. 'x'?
+            x (np.array): 1D control
+            y (np.array): 1D response
+            chunks_no (int): The number of quantile bins.
+            std_cnt (float): The number of standard deviations beyond which points are considered noise.
+            drop_duplicates_and_sort (logical) Drop duplicates in 'x' and sort 'x' and 'y' w.r.t. 'x'?
         """
         assert chunks_no > 0
         assert std_cnt > 0
@@ -115,7 +117,21 @@ def robust_spline(x, y,
                   folds=None,
                   fold_stats  = (mae, mad),
                   model_stats = (np.mean, np.median, np.std)):
-    """Fit one robust spline."""
+    """Fit the robust spline.
+
+    Args:
+        x (np.array): 1D control
+        y (np.array): 1D response
+        chunks_no (int): The number of quantile bins.
+        std_cnt (float): The number of standard deviations beyond which points are considered noise.
+        drop_duplicates_and_sort (logical): Drop duplicates in 'x' and sort 'x' and 'y' w.r.t. 'x'?
+        folds (np.array of ints): Assignments of data points to folds to test model's generalization capabilities.
+        folds_stats (tuple of functions): Statistics of the absolute values of errors on the test sets.
+        model_stats (tuple of functions): Statistics of fold statistics.
+
+    Returns:
+        RobustSpline: a fitted instance of 'RobustSpline'.
+    """
     m = RobustSpline()
     m.fit(x, y, chunks_no, std_cnt, drop_duplicates_and_sort)
     if folds is not None:
