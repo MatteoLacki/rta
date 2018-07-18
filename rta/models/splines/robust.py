@@ -19,13 +19,13 @@ def mad_window_filter(x, y, chunks_no=100, sd_cnt=3, x_sorted=False):
 
     Estimates both the mead and standard deviation of the signal normal
     distribution using the robust estimates: median and mad.
-    Repeat this in a sliding window strategy.
-    The data is divided into 'chunks_no'-quantiles bins in 'x' variable.
-    The fitting is performed based on 3 bins at a time.
-    Results are projected on the middle bin.
-    The calculation proceeds in a sliding window fashion.
-    Corner cases (first and last quantile) fit to two consecutive bins.
-    
+    For each chunk, estimate the boundary between noise and signal.
+    The estimation applies a sliding window approach based on 3 chunks.
+    For example, if chunks_no = 5 and E stands for set that takes part in estimation, F is the 
+    set on which we fit, and N is a set not taken into consideration,
+    then subsequent fittings for 5-chunk division look like this:
+    FENNN, EFENN, NEFEN, NNEFE, NNNEF.
+ 
     Args:
         x (np.array) 1D control
         y (np.array) 1D response

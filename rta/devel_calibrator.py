@@ -31,6 +31,9 @@ if __name__ == "__main__":
     m = c.cal_res[0][2]
     m.plot()
     m.cv_stats
+    # finish off the collection of stats for purpose of choosing
+    # the best models
+
 
     dt_cal = Calibrator(d, feature='dt', folds_no=folds_no)
     dt_cal.fold()
@@ -66,10 +69,6 @@ y = R1.y.values
 # y.shape = (y.shape[0], 1)
 
 
-
-dedup_sort(x, y)
-
-
 gms = GaussianMixtureSpline()
 gms.fit(x, y, chunks_no = 20)
 gms.signal
@@ -77,8 +76,6 @@ gms.is_signal(np.array([10, 40]),
               np.array([10, 40]))
 
 gms.x_percentiles
-
-
 gms = GaussianMixtureSpline()
 gms.fit(x, y, chunks_no = 20)
 gms.signal

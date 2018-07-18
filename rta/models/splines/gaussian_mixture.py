@@ -9,8 +9,36 @@ from rta.models.splines.beta_splines import beta_spline
 
 
 
-def fit_interlapping_mixtures(x, y, chunks_no=20, warm_start=True):
-    """Fit mixtures on overlapping sets of data."""
+def fit_interlapping_mixtures(x, y,
+                              chunks_no  = 20,
+                              warm_start = True,
+                              x_sorted   = False ):
+    """Filter based on two-components gaussian models.
+
+    Divides m/z values and intensities into chunks.
+    For each chunk, estimate the boundary between noise and signal.
+    The estimation applies a sliding window approach based on 3 chunks.
+    For example, if chunks_no = 5 and E stands for set that takes part in estimation, F is the 
+    set on which we fit, and N is a set not taken into consideration,
+    then subsequent fittings for 5-chunk division look like this:
+    FENNN, EFENN, NEFEN, NNEFE, NNNEF.
+
+    Args:
+        x (np.array) 1D control
+        y (np.array) 1D response
+        chunks_no (int) The number of quantile bins.
+        warm_start (logical): should consecutive gaussian mixture models start from the previously estimated values of paramters. Speeds up computations, but sometimes produces nonsensical values.
+        sd_cnt (float) How many standard deviations are considered to be within signal range.
+        x_sorted (logical) Are 'x' and 'y' sorted with respect to 'x'.
+    Returns:
+        signal (np.array of logical values) Is the point considered to be a signal?
+        medians (np.array) Estimates of medians in consecutive bins.
+        stds (np.array) Estimates of standard deviations in consecutive bins.
+        x_percentiles (np.array) Knots of the spline fitting, needed to filter out noise is 'is_signal'.        
+    """
+    if not x_sorted:
+    assert all(x[i] <= x[i+1] for i in range(len(x)-1)), \
+        "If 'x' ain't sorted, than I don't believe that 'y' is correct."
     signal = np.empty(len(x), dtype=np.bool_)
     g_mix = GM(n_components = 2, warm_start=warm_start)
     probs = np.empty((chunks_no, 2), dtype=np.float64)
