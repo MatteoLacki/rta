@@ -1,14 +1,13 @@
 """Gaussian mixture based denoising. """
 
 import numpy as np
-from sklearn.mixture import GaussianMixture as GM
 
 from rta.array_operations.misc import percentiles, percentile_pairs_of_N_integers as percentile_pairs
 from rta.array_operations.misc import overlapped_percentile_pairs
 from rta.models.denoising.window_based import sort_by_x
 from rta.models.splines.spline import Spline
 from rta.models.splines.beta_splines import beta_spline
-
+from rta.models.mixtures.two_component_gaussian_mixture import TwoComponentGaussianMixture as GM
 
 
 def fit_interlapping_mixtures(x, y,
@@ -40,10 +39,11 @@ def fit_interlapping_mixtures(x, y,
     """
     x, y = sort_by_x(x, y) if sort else (x, y)
     signal = np.empty(len(x), dtype = np.bool_)
-    g_mix = GM(n_components = 2, warm_start = warm_start)
+    g_mix = GM(warm_start = warm_start)
+    # mixtures' probabilies
     probs = np.empty((chunks_no, 2), dtype = np.float64)
-    means = probs.copy()
-    variances = probs.copy()
+    means = probs.copy() 
+    sds   = probs.copy() # mixtures' standard deviations.
     x_percentiles = np.empty(chunks_no, dtype = np.float64)
 
     # NOTE: the control "x" does not appear here
@@ -51,21 +51,13 @@ def fit_interlapping_mixtures(x, y,
     # ss, se    indices used to decide upon denoising
     for i, (s, ss, se, e) in enumerate(overlapped_percentile_pairs(len(x), chunks_no)):
         g_mix.fit(y[s:e])
-        idxs = signal_idx, noise_idx = np.argsort(g_mix.covariances_.ravel()) # signal's variance is small
-        signal[ss:se] = g_mix.predict(y[ss:se]) == signal_idx
-        probs[i,:] = g_mix.weights_[idxs]
-        means[i,:] = g_mix.means_.ravel()[idxs]
+        signal[ss:se] = g_mix.is_signal(y[ss:se])
+        probs[i,:] = g_mix.probabilities()
+        means[i,:] = g_mix.means()
         x_percentiles[i] = x[ss]
-        variances[i,:] = g_mix.covariances_.ravel()[idxs]
-    return signal, probs, means, variances, x_percentiles
+        sds[i,:] = g_mix.standard_deviations()
+    return signal, probs, means, sds, x_percentiles
 
-
-def get_inflection_point(sd_signal,
-                         sd_noise,
-                         prob_signal,
-                         prob_noise):
-    """This function will compute points of equal density of the two components."""
-    pass
 
 
 class GaussianMixtureSpline(Spline):
@@ -87,7 +79,7 @@ class GaussianMixtureSpline(Spline):
         x, y = self.x, self.y
         x.shape = x.shape[0], 1
         y.shape = y.shape[0], 1
-        self.signal, self.probs, self.means, self.variances, self.x_percentiles = \
+        self.signal, self.probs, self.means, self.sds, self.x_percentiles = \
             fit_interlapping_mixtures(x, y,
                                       self.chunks_no,
                                       warm_start,
