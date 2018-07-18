@@ -102,8 +102,8 @@ gms.is_signal(np.array([10, 40]),
 
 # Intersection of two normal distributions:
 # https://stats.stackexchange.com/questions/311592/how-to-find-the-point-where-two-normal-distributions-intersect
-mean_s, mean_n = gms.means[2,]
-prob_s, prob_n = gms.probs[2,]
+m_s, m_n = gms.means[2,]
+p_s, p_n = gms.probs[2,]
 W, V = gms.variances[2,]
 sd_s, sd_n = sqrt(W), sqrt(V)
 
@@ -115,6 +115,10 @@ def sign(x):
         return 1.0
     else:
         return -1.0
+
+class NoRoot(Exception):
+    """No roots exception."""
+    pass
 
 def roots_of_binomial(A, B, C):
     """Compute the roots of binomial Ax**2+Bx+C.
@@ -136,7 +140,7 @@ def roots_of_binomial(A, B, C):
     assert A != 0.0, "The degree of the input must equal 2."
     delta = B**2 - 4*A*C
     if delta < 0.0:
-        raise ValueError("The determinant is negative: {}".format(delta))
+        raise NoRoot("The determinant is negative: {}".format(delta))
     elif delta == 0.0:
         return -B/(2.0*A)
     else:
@@ -144,6 +148,7 @@ def roots_of_binomial(A, B, C):
         x1, x2 = Q/A, C/Q 
         return (x1, x2) if x1 <= x2 else (x2, x1)
 
+# roots_of_binomial(1, 0, 1)
 # A, B, C = (-1, 0, 1)
 # roots_of_binomial(-1, 0, 1)
 
@@ -151,7 +156,7 @@ from math import inf
 
 
 
-def signal_region(mean_s, mean_n, sd_s, sd_n, prob_s, prob_n):
+def signal_region(m_s, m_n, sd_s, sd_n, p_s, p_n):
     """Establish the region where signal dominates noise.
 
     Assume that both singal and noise follow normal distrubutions,
@@ -159,72 +164,131 @@ def signal_region(mean_s, mean_n, sd_s, sd_n, prob_s, prob_n):
     Find the region where the signal dominates probabilitically over noise.
 
     Args:
-        mean_s (float): the mean of the signal distributions.
-        mean_n (float): the mean of the noise distributions.
+        m_s (float): the mean of the signal distributions.
+        m_n (float): the mean of the noise distributions.
         sd_s (float):   the standard deviation of the signal distributions.
         sd_n (float):   the standard deviation of the noise distributions.
-        prob_s (float): the probability of the signal.
-        prob_n (float): the standard deviation of the noise.
+        p_s (float):    the probability of the signal.
+        p_n (float):    the standard deviation of the noise.
     Returns:
         tuple: left and right end of the region where signal dominates probabilistically.
     """
-    if mean_s == mean_n and sd_s == sd_n:
+    if m_s == m_n and sd_s == sd_n:
         # these cases require no root finding
-        if prob_s > prob_n:
+        if p_s > p_n:
             # signal dominates over noise
             return (-inf, inf)
-        elif prob_s < prob_n:
+        elif p_s < p_n:
             # noise dominates over signal
             return (inf, -inf)
         else:
             raise ValueError("Knife-edge condition: noise and signal parameters are equal. Too dangerous to decide what is noise, what is signal.")
-    else:
-        # comparing normal log-densities requires finding roots of a binomial
-        sum_sds = sd_s + sd_n
-        dif_sds = sd_n - sd_s
-        # parameters of the binomial A x**2 + B x + C
+    else:# binomial A x**2 + B x + C
         A = 1.0/sd_n**2 - 1.0/sd_s**2
-        B = 2.0*(mean_s/sd_s**2 - mean_n/sd_n**2)
-        C = 2.0*(l(prob_s) - l(prob_n) + l(sd_n) - l(sd_s)) - B/2.0
-        x = roots_of_binomial(A, B, C)
-        if len(x) == 2:
-            return x
-        elif len(x) == 1:
-            x = x[0]
-            if mean_s > mean_n:
+        if A == 0: # the same as: sd_s == sd_n
+            x = (m_s + m_n)/2.0 + sd_s**2 * (l(p_s) - l(p_n))/(m_n-m_s)
+            if m_s > m_n:
                 return (x, inf)
-            elif mean_s < mean_n:
+            elif m_s < m_n:
                 return (-inf, x)
-            else: raise ValueError("Impossible that under equal means there is only one point of equal denisty.")
-        elif len(x) == 0:
-            if sd_n * prob_s > sd_s * prob_n:
-                # signal dominates over noise
-                return (-inf, inf)
-            elif sd_n * prob_s < sd_s * prob_n:
-                # noise dominates over signal
-                return (inf, -inf)
+        else:# comparing normal log-densities -> find binomial roots
+            sum_sds = sd_s + sd_n
+            dif_sds = sd_n - sd_s
+            B = 2.0*(m_s/sd_s**2 - m_n/sd_n**2)
+            C = 2.0*(l(p_s) - l(p_n) + l(sd_n) - l(sd_s)) - B/2.0
+            try:
+                x = roots_of_binomial(A, B, C)
+            except NoRoot:
+                if sd_n * p_s > sd_s * p_n:
+                    # signal dominates over noise
+                    return (-inf, inf)
+                elif sd_n * p_s < sd_s * p_n:
+                    # noise dominates over signal
+                    return (inf, -inf)
+                else:
+                    raise ValueError("Knife-edge condition: too dangerous to decide what is noise, what is signal.")
+            if len(x) == 2:
+                return x
+            elif len(x) == 1:
+                x = x[0]
+                if m_s > m_n:
+                    return (x, inf)
+                elif m_s < m_n:
+                    return (-inf, x)
+                else:
+                    raise ValueError("Impossible that under equal means there is only one point of equal denisty.")
             else:
-                raise ValueError("Knife-edge condition: too dangerous to decide what is noise, what is signal.")
-        else:
-            raise ValueError("I don't know how, but 'roots_of_binomial' behaved unpredictable.")
+                raise ValueError("It's impossible to get here.")
 
-#TODO: write tests for this function.
+def test_signal_region():
+    # equally probable densities with the same standard deviations
+    # should have equal densities only precisely between the two modes.
+    m_s, sd_s, p_s = 0.0, 1.0, 0.5
+    m_n, sd_n, p_n = 1.0, 1.0, 0.5
+    L, R = signal_region(m_s, m_n, sd_s, sd_n, p_s, p_n)
+    assert L == -inf and R == .5
+
+    # signal density entirely dominating the noise density:
+    m_s, sd_s, p_s = 0.0, 1.0, 0.9
+    m_n, sd_n, p_n = 0.1, 0.2, 0.1
+    L, R = signal_region(m_s, m_n, sd_s, sd_n, p_s, p_n)
+    assert L == -inf and R == inf
+
+test_signal_region()
 
 
-srs = []
-for i in range(gms.chunks_no):
-    mean_s, mean_n = gms.means[i,]
-    prob_s, prob_n = gms.probs[i,]
-    W, V = gms.variances[i,]
-    sd_s, sd_n = sqrt(W), sqrt(V)
-    sr = signal_region(mean_s,
-                       mean_n,
-                       sd_s,
-                       sd_n,
-                       prob_s,
-                       prob_n,
-                       simple_calc=True)
-    srs.append(sr)
+# plotting
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.stats import norm
+import math
+
+
+def plot_two_components(m_s, m_n, sd_s, sd_n, p_s, p_n,
+                        st_cnt = 3,
+                        show = True,
+                        plt_style = 'dark_background'):
+    """Plot the two densities of that form a mixture.
+
+    Args:
+        m_s (float):    the mean of the signal distributions.
+        m_n (float):    the mean of the noise distributions.
+        sd_s (float):   the standard deviation of the signal distributions.
+        sd_n (float):   the standard deviation of the noise distributions.
+        p_s (float):    the probability of the signal.
+        p_n (float):    the standard deviation of the noise.
+        st_cnt (float): the number of standard deviations the plot should focus on.
+    Returns:
+        plt: some plot object that no-one sees, unless plt.show is executed.
+    """
+    limit = st_cnt*max(sd_s, sd_n)
+    x = np.linspace(m_s - limit, m_n + limit, 1000)
+    plt.style.use(plt_style)
+    plt.plot(x, p_s * norm.pdf(x, m_s, sd_s), c='blue', label='signal')
+    plt.plot(x, p_n * norm.pdf(x, m_n, sd_n), c='red', label='noise')
+    plt.legend()
+    if show:
+        plt.show()
+
+
+plot_two_components(m_s, m_n, sd_s, sd_n, p_s, p_n)
+
+
+
+# srs = []
+# for i in range(gms.chunks_no):
+#     m_s, m_n = gms.means[i,]
+#     p_s, p_n = gms.probs[i,]
+#     W, V = gms.variances[i,]
+#     sd_s, sd_n = sqrt(W), sqrt(V)
+#     sr = signal_region(m_s,
+#                        m_n,
+#                        sd_s,
+#                        sd_n,
+#                        p_s,
+#                        p_n,
+#                        simple_calc=True)
+#     srs.append(sr)
 
 import numpy as np
 from sklearn.mixture import GaussianMixture
@@ -289,11 +353,21 @@ class TwoComponentGaussianMixture(GaussianMixture):
             tuple: left and right ends of the signal region. (+∞,-∞) if it is empty.
         """
         
-        mean_s, mean_n = self.means()
+        m_s, m_n = self.means()
         sd_s, sd_n     = self.standard_deviations()
-        prob_s, prob_n = self.probabilities()
+        p_s, p_n = self.probabilities()
 
-        return signal_region(mean_s, mean_n, sd_s, sd_n, prob_s, prob_n)
+        return signal_region(m_s, m_n, sd_s, sd_n, p_s, p_n)
+
+    def plot(self, st_cnt=3):
+        """Plot the noise and the signal curves.
+
+        Args:
+            st_cnt (float): the number of standard deviations the plot should focus on.
+            show (logical): should the plot be immediately shown?
+        Returns:
+            plt : a plot, if show = False
+        """
 
 def fit_2_component_mixture(x, warm_start=False, *args, **kwds):
     gm = TwoComponentGaussianMixture(warm_start=warm_start, *args, **kwds)
