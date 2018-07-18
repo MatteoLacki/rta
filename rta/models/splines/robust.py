@@ -9,12 +9,16 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from rta.array_operations.misc import overlapped_percentile_pairs
+from rta.models.denoising.window_based import sort_by_x
 from rta.models.splines.spline import Spline
 from rta.models.splines.beta_splines import beta_spline
 from rta.stats.stats import mad, mae
 
 
-def mad_window_filter(x, y, chunks_no=100, sd_cnt=3, x_sorted=False):
+def mad_window_filter(x, y,
+                      chunks_no = 100,
+                      sd_cnt    = 3,
+                      sort      = True):
     """Filter based on median absolute deviation.
 
     Estimates both the mead and standard deviation of the signal normal
@@ -38,9 +42,7 @@ def mad_window_filter(x, y, chunks_no=100, sd_cnt=3, x_sorted=False):
         stds (np.array) Estimates of standard deviations in consecutive bins.
         x_percentiles (np.array) Knots of the spline fitting, needed to filter out noise is 'is_signal'.        
     """
-    if not x_sorted:
-        assert all(x[i] <= x[i+1] for i in range(len(x)-1)), \
-            "If 'x' ain't sorted, than I don't believe that 'y' is correct."
+    x, y = sort_by_x(x, y) if sort else (x, y)
     signal  = np.empty(len(x),    dtype = np.bool_)
     medians = np.empty(chunks_no, dtype = np.float64)
     stds    = np.empty(chunks_no, dtype = np.float64)
@@ -86,7 +88,7 @@ class RobustSpline(Spline):
                               self.y,
                               self.chunks_no,
                               self.std_cnt,
-                              x_sorted = True)
+                              sort = False)
         self.spline = beta_spline(self.x[self.signal],
                                   self.y[self.signal],
                                   self.chunks_no)

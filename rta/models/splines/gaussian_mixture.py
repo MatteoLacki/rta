@@ -1,9 +1,11 @@
 """Gaussian mixture based denoising. """
+
 import numpy as np
 from sklearn.mixture import GaussianMixture as GM
 
 from rta.array_operations.misc import percentiles, percentile_pairs_of_N_integers as percentile_pairs
 from rta.array_operations.misc import overlapped_percentile_pairs
+from rta.models.denoising.window_based import sort_by_x
 from rta.models.splines.spline import Spline
 from rta.models.splines.beta_splines import beta_spline
 
@@ -12,7 +14,7 @@ from rta.models.splines.beta_splines import beta_spline
 def fit_interlapping_mixtures(x, y,
                               chunks_no  = 20,
                               warm_start = True,
-                              x_sorted   = False ):
+                              sort       = True):
     """Filter based on two-components gaussian models.
 
     Divides m/z values and intensities into chunks.
@@ -36,15 +38,13 @@ def fit_interlapping_mixtures(x, y,
         stds (np.array) Estimates of standard deviations in consecutive bins.
         x_percentiles (np.array) Knots of the spline fitting, needed to filter out noise is 'is_signal'.        
     """
-    if not x_sorted:
-    assert all(x[i] <= x[i+1] for i in range(len(x)-1)), \
-        "If 'x' ain't sorted, than I don't believe that 'y' is correct."
-    signal = np.empty(len(x), dtype=np.bool_)
-    g_mix = GM(n_components = 2, warm_start=warm_start)
-    probs = np.empty((chunks_no, 2), dtype=np.float64)
+    x, y = sort_by_x(x, y) if sort else (x, y)
+    signal = np.empty(len(x), dtype = np.bool_)
+    g_mix = GM(n_components = 2, warm_start = warm_start)
+    probs = np.empty((chunks_no, 2), dtype = np.float64)
     means = probs.copy()
-    covariances = probs.copy()
-    x_percentiles = np.empty(chunks_no, dtype=np.float64)
+    variances = probs.copy()
+    x_percentiles = np.empty(chunks_no, dtype = np.float64)
 
     # NOTE: the control "x" does not appear here
     # s, e      indices of the are being fitted
@@ -56,8 +56,8 @@ def fit_interlapping_mixtures(x, y,
         probs[i,:] = g_mix.weights_[idxs]
         means[i,:] = g_mix.means_.ravel()[idxs]
         x_percentiles[i] = x[ss]
-        covariances[i,:] = g_mix.covariances_.ravel()[idxs]
-    return signal, probs, means, covariances, x_percentiles
+        variances[i,:] = g_mix.covariances_.ravel()[idxs]
+    return signal, probs, means, variances, x_percentiles
 
 
 def get_inflection_point(sd_signal,
@@ -87,8 +87,11 @@ class GaussianMixtureSpline(Spline):
         x, y = self.x, self.y
         x.shape = x.shape[0], 1
         y.shape = y.shape[0], 1
-        self.signal, self.probs, self.means, self.covariances, self.x_percentiles = \
-            fit_interlapping_mixtures(x, y, self.chunks_no, warm_start)
+        self.signal, self.probs, self.means, self.variances, self.x_percentiles = \
+            fit_interlapping_mixtures(x, y,
+                                      self.chunks_no,
+                                      warm_start,
+                                      sort = False)
         x_signal = self.x[self.signal].ravel()
         y_signal = self.y[self.signal].ravel()
         self.spline = beta_spline(x = x_signal,
