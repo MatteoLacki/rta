@@ -24,7 +24,7 @@ if __name__ == "__main__":
     c.calibrate()
     # less that 1.3 seconds on default params. 
     # c.results[0].plot()
-    # parameters = [{"chunks_no": n} for n in range(2,200)]
+    # parameters = [{"chunks_no": n }for n in range(2,200)]
     # c.calibrate(parameters)
     c.plot()
 

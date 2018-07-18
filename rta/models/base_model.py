@@ -28,7 +28,7 @@ class Model(object):
 
     def plot(self, **kwds):
         """Plot results."""
-        pass
+        raise NotImplementedError
 
     def cv(self, x, y, folds):
         """Run cross-validation."""
