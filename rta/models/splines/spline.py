@@ -54,6 +54,12 @@ class Spline(Model):
         assert len(x) == len(y)
         self.x, self.y = dedup_sort(x, y, drop_duplicates, sort)
 
+    def predict(self, x):
+        return self.spline(x)
+
+    def fitted(self):
+        return self.spline(self.x)
+
     def res(self):
         """Get residuals."""
         return self.y - self.fitted()
@@ -88,7 +94,7 @@ class Spline(Model):
         assert len(self.x) == len(folds)
         S = []
         FS  = []
-        n = self.new()
+        n = self.copy()
         for fold in np.unique(folds):
             x_train = self.x[folds != fold]
             y_train = self.y[folds != fold]
@@ -98,8 +104,7 @@ class Spline(Model):
             n.fit(x_train,
                   y_train,
                   drop_duplicates=False,
-                  sort=False,
-                  **self.parameters)
+                  sort=False)
             errors = np.abs(n.predict(x_test) - y_test)
             n_signal = n.is_signal(x_test, y_test)
             s = [stat(errors) for stat in fold_stats]

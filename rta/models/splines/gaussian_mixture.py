@@ -26,17 +26,18 @@ def fit_interlapping_mixtures(x, y,
     FENNN, EFENN, NEFEN, NNEFE, NNNEF.
 
     Args:
-        x (np.array) 1D control
-        y (np.array) 1D response
-        chunks_no (int) The number of quantile bins.
+        x (np.array): 1D control
+        y (np.array): 1D response
+        chunks_no (int): The number of quantile bins.
         warm_start (logical): should consecutive gaussian mixture models start from the previously estimated values of paramters. Speeds up computations, but sometimes produces nonsensical values.
-        sd_cnt (float) How many standard deviations are considered to be within signal range.
-        x_sorted (logical) Are 'x' and 'y' sorted with respect to 'x'.
+        sort (logical): Are 'x' and 'y' sorted with respect to 'x'.
     Returns:
-        signal (np.array of logical values) Is the point considered to be a signal?
-        medians (np.array) Estimates of medians in consecutive bins.
-        stds (np.array) Estimates of standard deviations in consecutive bins.
-        x_percentiles (np.array) Knots of the spline fitting, needed to filter out noise is 'is_signal'.        
+        signal (np.array of logical values): Is the point considered to be a signal?
+        medians (np.array): Estimates of medians in consecutive bins.
+        stds (np.array): Estimates of standard deviations in consecutive bins.
+        x_percentiles (np.array): Knots of the spline fitting, needed to filter out noise is 'is_signal'.
+        signal_regions (np.array):
+
     """
     x, y = sort_by_x(x, y) if sort else (x, y)
     signal = np.empty(len(x), dtype = np.bool_)
@@ -79,6 +80,10 @@ class GaussianMixtureSpline(Spline):
         """Initialize the class.
 
         Similarly to SKLearn, pass the fitting arguments here.
+
+        Args:
+            chunks_no (int) The number of quantile bins.
+            warm_start (logical): should consecutive gaussian mixture models start from the previously estimated values of paramters. Speeds up computations, but sometimes produces nonsensical values.
         """
         assert chunks_no > 0
         self.chunks_no   = int(chunks_no)
@@ -94,8 +99,9 @@ class GaussianMixtureSpline(Spline):
         """Fit a denoised spline.
 
         Args:
-            x
-            y
+            x (np.array): 1D control
+            y (np.array): 1D response
+            sort (logical): Are 'x' and 'y' sorted with respect to 'x'.
         """
         self.set_xy(x, y, drop_duplicates, sort)
         self.signal, self.probs, self.means, self.sds,\
@@ -105,9 +111,9 @@ class GaussianMixtureSpline(Spline):
                                       self.chunks_no,
                                       self.warm_start,
                                       sort = False)
-        self.spline = beta_spline(x = self.x[self.signal],
-                                  y = self.y[self.signal],
-                                  chunks_no = self.chunks_no)
+        self.spline = beta_spline(self.x[self.signal],
+                                  self.y[self.signal],
+                                  self.chunks_no)
 
     def is_signal(self, x, y):
         """Denoise the new data.
@@ -131,12 +137,6 @@ class GaussianMixtureSpline(Spline):
         top    = self.signal_regions[i,1] # top-line values for y
         is_signal[in_range] = (bottom <= y) & (y <= top)
         return is_signal
-
-    def predict(self, x):
-        return self.spline(x).reshape(-1, 1)
-
-    def fitted(self):
-        return self.spline(self.x.ravel()).reshape(-1, 1)
 
     def __repr__(self):
         """Represent the model."""
@@ -171,6 +171,7 @@ class GaussianMixtureSpline(Spline):
                 plt.show()
 
 
+
 def gaussian_mixture_spline(x, y,
                             chunks_no       = 20,
                             warm_start      = True,
@@ -179,6 +180,22 @@ def gaussian_mixture_spline(x, y,
                             folds           = None,
                             fold_stats      = (mae, mad),
                             model_stats     = (np.mean, np.median, np.std)):
+    """Fit the gaussian mixture spline.
+
+    Args:
+        x (np.array): 1D control
+        y (np.array): 1D response
+        chunks_no (int): The number of quantile bins.
+        warm_start (logical): should consecutive gaussian mixture models start from the previously estimated values of paramters. Speeds up computations, but sometimes produces nonsensical values.
+        drop_duplicates (logical): Drop duplicates in 'x' in both 'x' and 'y' arrays. 
+        sort (logical): Sort 'x' and 'y' w.r.t. 'x'.
+        folds (np.array of ints): Assignments of data points to folds to test model's generalization capabilities.
+        folds_stats (tuple of functions): Statistics of the absolute values of errors on the test sets.
+        model_stats (tuple of functions): Statistics of fold statistics.
+
+    Returns:
+        GaussianMixtureSpline: a fitted instance of 'GaussianMixtureSpline'.
+    """
     m = GaussianMixtureSpline(chunks_no, warm_start)
     m.fit(x, y, drop_duplicates, sort)
     if folds is not None:

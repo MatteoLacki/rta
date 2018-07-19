@@ -70,12 +70,16 @@ gms.signal
 gms.plot()
 # plt.show()
 
+# Analysing the problem of incompatibility of noise vs signal for GMS
+
+
+
+
+
 from rta.models.mixtures.two_component_gaussian_mixture import TwoComponentGaussianMixture as GM
 
 g = GM()
 from rta.models.denoising.window_based import sort_by_x
-
-
 
 
 x_new = np.array([10, 40,  76,  -100, 200, 160])
@@ -101,21 +105,3 @@ signal[in_range] = (bottom_lines <= y_new) & (y_new <= top_lines)
 # dist_to_means = np.abs(gms.means[i, 0] - y_new[in_range])
 # signal[in_range] = dist_to_means <= 
 #     gms.sds[i] * gms.std_cnt
-
-from rta.models.splines.robust import RobustSpline
-
-%%timeit
-rs = RobustSpline()
-rs.fit(x,y,chunks_no=20)
-
-rs.plot()
-
-c = rs.is_signal(x_new, y_new)
-rs.plot(show=False)
-plt.scatter(x_new, y_new, c=c)
-plt.show()
-
-
-from rta.models.splines.robust import robust_spline
-rb = robust_spline(x, y)
-rb.plot()

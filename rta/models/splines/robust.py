@@ -66,9 +66,20 @@ def mad_window_filter(x, y,
 
 
 class RobustSpline(Spline):
+    def __init__(self,
+                 chunks_no = 20,
+                 sd_cnt    = 3):
+        """Constructor."""
+        assert chunks_no > 0
+        assert sd_cnt > 0
+        self.chunks_no = int(chunks_no)
+        self.sd_cnt = int(sd_cnt)
+
+    def copy(self):
+        """Copy constructor."""
+        return RobustSpline(self.chunks_no, self.sd_cnt)
+
     def fit(self, x, y,
-            chunks_no       = 20,
-            sd_cnt          = 3,
             drop_duplicates = True,
             sort            = True):
         """Fit a robust spline.
@@ -80,14 +91,7 @@ class RobustSpline(Spline):
             sd_cnt (float): The number of standard deviations beyond which points are considered noise.
             drop_duplicates_and_sort (logical) Drop duplicates in 'x' and sort 'x' and 'y' w.r.t. 'x'?
         """
-        assert chunks_no > 0
-        assert sd_cnt > 0
-        self.chunks_no = int(chunks_no)
-        self.sd_cnt = int(sd_cnt)
-        self.parameters = {'chunks_no': self.chunks_no,
-                           'sd_cnt':    self.sd_cnt}
         self.set_xy(x, y, drop_duplicates, sort)
-
         self.signal, self.medians, self.sds, self.x_percentiles = \
             mad_window_filter(self.x,
                               self.y,
@@ -119,12 +123,6 @@ class RobustSpline(Spline):
         is_signal[in_range] = np.abs(self.medians[i] - y) <=\
                               self.sds[i] * self.sd_cnt
         return is_signal
-
-    def predict(self, x):
-        return self.spline(x)
-
-    def fitted(self):
-        return self.spline(self.x.ravel())
 
     def __repr__(self):
         """Represent the model."""
@@ -160,6 +158,7 @@ class RobustSpline(Spline):
             # and want to see it :)
             if show:
                 plt.show()
+
 
 
 def robust_spline(x, y,
