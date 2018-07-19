@@ -1,5 +1,5 @@
 """Gaussian mixture based denoising. """
-
+import matplotlib.pyplot as plt
 import numpy as np
 
 from rta.array_operations.misc import percentiles, percentile_pairs_of_N_integers as percentile_pairs
@@ -8,6 +8,7 @@ from rta.models.denoising.window_based import sort_by_x
 from rta.models.mixtures.two_component_gaussian_mixture import TwoComponentGaussianMixture as GM
 from rta.models.splines.spline import Spline
 from rta.models.splines.beta_splines import beta_spline
+from rta.plotters.plot_signal_fence import plot_signal_fence
 from rta.stats.stats import mad, mae
 
 def fit_interlapping_mixtures(x, y,
@@ -45,7 +46,7 @@ def fit_interlapping_mixtures(x, y,
     means = probs.copy() 
     sds   = probs.copy() # mixtures' standard deviations.
     signal_regions = probs.copy() # points where densities times mixture probabilities equalize.
-    x_percentiles = np.empty(chunks_no, dtype = np.float64)
+    x_percentiles = np.empty(chunks_no + 1, dtype = np.float64)
 
     # NOTE: the control "x" does not appear here
     # s, e      indices of the are being fitted
@@ -59,6 +60,7 @@ def fit_interlapping_mixtures(x, y,
         means[i,:]          = gm.means()
         sds[i,:]            = gm.standard_deviations()
         signal_regions[i,:] = gm.signal_region()
+    x_percentiles[i+1] = x[se] # the maximal value
     return signal, probs, means, sds, x_percentiles, signal_regions
 
 
@@ -96,10 +98,18 @@ class GaussianMixtureSpline(Spline):
                                   chunks_no = self.chunks_no)
 
     def is_signal(self, x, y):
-        """Denoise the new data."""
-        i = np.searchsorted(self.x_percentiles, x)-1
+        """Denoise the new data.
+
+        Args:
+            x (np.array of floats): x-coordinates of points to classify as signal or noise.
+            y (np.array of floats): y-coordinates of points to classify as signal or noise.
+        
+        Returns:
+            np.array of logicals: should the points be considered signal?
+        """
+        i = np.searchsorted(self.x_percentiles, x) - 1
         # check, if signal is within the borders of the algorithm.
-        in_range = (i > -1) & (i < self.chunks_no - 1)
+        in_range = (i > -1) & (i < self.chunks_no)
         is_signal = np.full(shape      = x.shape,
                             fill_value = False,
                             dtype      = np.bool_)
@@ -124,20 +134,29 @@ class GaussianMixtureSpline(Spline):
     def plot(self,
              knots_no = 1000,
              plt_style = 'dark_background',
-             show = True, 
-             **kwds):
+             show = True,
+             fence = True,
+             fence_color = 'gold'):
         """Plot the spline.
 
         Args:
-            knots_no (int):  number of points used to plot the fitted spline?
-            plt_style (str): the matplotlib style used for plotting.
-            show (logical):  show the plot immediately. Alternatively, add some more elements on the canvas before using it.
+            knots_no (int):    number of points used to plot the fitted spline?
+            plt_style (str):   the matplotlib style used for plotting.
+            fence_color (str): the color of the fence around signal region.
+            show (logical):    show the plot immediately. Alternatively, add some more elements on the canvas before using it.
         """
         super().plot(knots_no, plt_style, show=False)
-        plt.scatter()
-        if show:
-            plt.show()
-
+        if fence:
+            plot_signal_fence(self.x_percentiles,
+                              self.signal_regions[:,0],
+                              self.signal_regions[:,1],
+                              color = fence_color,
+                              show  = show)
+        else:
+            # making show that we see a plot if we don't want and a fence
+            # and want to see it :)
+            if show:
+                plt.show()
 
 
 def gaussian_mixture_spline(x, y,

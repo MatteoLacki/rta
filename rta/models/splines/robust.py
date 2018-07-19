@@ -95,10 +95,18 @@ class RobustSpline(Spline):
                                   self.chunks_no)
 
     def is_signal(self, x, y):
-        """Denoise the new data."""
+        """Denoise the new data.
+
+        Args:
+            x (np.array of floats): x-coordinates of points to classify as signal or noise.
+            y (np.array of floats): y-coordinates of points to classify as signal or noise.
+        
+        Returns:
+            np.array of logicals: should the points be considered signal?
+        """
         i = np.searchsorted(self.x_percentiles, x) - 1
         # check, if signal is within the borders of the algorithm.
-        in_range = (i > -1) & (i < self.chunks_no - 1)
+        in_range = (i > -1) & (i < self.chunks_no)
         is_signal = np.full(shape      = x.shape,
                             fill_value = False,
                             dtype      = np.bool_)

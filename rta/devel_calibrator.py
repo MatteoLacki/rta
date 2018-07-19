@@ -57,34 +57,39 @@ if __name__ == "__main__":
     m.plot()
 
 
-c.cal_res
-
 from rta.models.splines.gaussian_mixture import GaussianMixtureSpline
 from rta.models.splines.robust import RobustSpline
 
+from rta.plotters.plot_signal_fence import plot_signal_fence
+
 R1 = c.D[c.D.run == 1].copy()
 x = R1.x.values
-# x.shape = (x.shape[0], 1)
 y = R1.y.values
-# y.shape = (y.shape[0], 1)
-
-# TODO finish off the procedure is_signal for GaussianMixtureSpline
 
 gms = GaussianMixtureSpline()
 gms.fit(x, y, chunks_no = 20)
 gms.signal
-gms.plot()
+gms.plot(fence=False)
+# plt.show()
+
+bottom = gms.signal_regions[:,0]
+top = gms.signal_regions[:,1]
+
+
+plot_signal_fence(gms.x_percentiles, bottom, top)
+
+
 gms.is_signal(np.array([10, 40]),
               np.array([10, 40]))
 
 
 x_new = np.array([10, 40,  76,  -100, 200, 160])
 y_new = np.array([1.0,4.0, 0.1, -100, 200, -.5])
-
 gms.is_signal(x_new, y_new)
 
+
 i = np.searchsorted(gms.x_percentiles, x_new) - 1
-in_range = np.logical_and(i > -1, i < gms.chunks_no - 1)
+in_range = np.logical_and(i > -1, i < gms.chunks_no)
 signal = np.full(shape = x_new.shape,
                  fill_value = False,
                  dtype = np.bool_)
