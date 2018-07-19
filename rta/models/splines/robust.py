@@ -137,13 +137,13 @@ class RobustSpline(Spline):
 
 
 def robust_spline(x, y,
-                  chunks_no=20,
-                  std_cnt=3,
+                  chunks_no       = 20,
+                  std_cnt         = 3,
                   drop_duplicates = True,
-                  _and_sort=True,
-                  folds=None,
-                  fold_stats  = (mae, mad),
-                  model_stats = (np.mean, np.median, np.std)):
+                  sort            = True,
+                  folds           = None,
+                  fold_stats      = (mae, mad),
+                  model_stats     = (np.mean, np.median, np.std)):
     """Fit the robust spline.
 
     Args:
@@ -151,7 +151,8 @@ def robust_spline(x, y,
         y (np.array): 1D response
         chunks_no (int): The number of quantile bins.
         std_cnt (float): The number of standard deviations beyond which points are considered noise.
-        drop_duplicates_and_sort (logical): Drop duplicates in 'x' and sort 'x' and 'y' w.r.t. 'x'?
+        drop_duplicates (logical): Drop duplicates in 'x' in both 'x' and 'y' arrays. 
+        sort (logical): Sort 'x' and 'y' w.r.t. 'x'.
         folds (np.array of ints): Assignments of data points to folds to test model's generalization capabilities.
         folds_stats (tuple of functions): Statistics of the absolute values of errors on the test sets.
         model_stats (tuple of functions): Statistics of fold statistics.

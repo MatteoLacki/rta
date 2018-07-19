@@ -141,14 +141,15 @@ class GaussianMixtureSpline(Spline):
 
 
 def gaussian_mixture_spline(x, y,
-                            chunks_no=20,
-                            warm_start=True,
-                            drop_duplicates_and_sort=True,
-                            folds=None,
-                            fold_stats  = (mae, mad),
-                            model_stats = (np.mean, np.median, np.std)):
+                            chunks_no       = 20,
+                            warm_start      = True,
+                            drop_duplicates = True,
+                            sort            = True,
+                            folds           = None,
+                            fold_stats      = (mae, mad),
+                            model_stats     = (np.mean, np.median, np.std)):
     m = GaussianMixtureSpline()
-    m.fit(x, y, chunks_no, warm_start, drop_duplicates_and_sort)
+    m.fit(x, y, chunks_no, warm_start, drop_duplicates, sort)
     if folds is not None:
         m.cv(folds, fold_stats, model_stats)
     return m

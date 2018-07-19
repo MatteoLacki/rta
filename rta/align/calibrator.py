@@ -15,8 +15,9 @@ from rta.models.splines.robust import robust_spline
 
 def cv_run_param(r, x, y, f, p):
     m = robust_spline(x, y,
-                      drop_duplicates_and_sort=False,
-                      folds = f,
+                      drop_duplicates = False,
+                      sort            = False,
+                      folds           = f,
                       **p)
     return r, p, m
 
@@ -73,8 +74,8 @@ class Calibrator(object):
                           right_index=True)
 
     def iter_run_param(self, 
-                       sort=True,
-                       drop_duplicates=True):
+                       sort            = True,
+                       drop_duplicates = True):
         """Iterate over the data runs and fitting parameters.
 
         Args:

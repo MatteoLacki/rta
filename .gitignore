@@ -13,5 +13,9 @@ dist
 *.egg-info
 *.swp
 rta/.ipynb_checkpoints/
+.pytest_cache/
+
+rta/data/
+
 # VIM
 *.swo

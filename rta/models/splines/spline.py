@@ -21,6 +21,7 @@ def dedup_sort(x, y,
     else:
         return x, y
 
+
 class Spline(Model):
     """Abstract class for splines."""
 
@@ -29,6 +30,8 @@ class Spline(Model):
              plt_style = 'dark_background',
              show = True):
         """Plot the spline.
+
+        Noise points are blue, signal has the color of papaya.
 
         Args:
             knots_no (int):  number of points used to plot the fitted spline?
@@ -95,7 +98,8 @@ class Spline(Model):
                   y_train,
                   self.chunks_no,
                   self.std_cnt,
-                  drop_duplicates_and_sort=False)
+                  drop_duplicates=False,
+                  sort=False)
             errors = np.abs(n.predict(x_test) - y_test)
             n_signal = n.is_signal(x_test, y_test)
             s = [stat(errors) for stat in fold_stats]
