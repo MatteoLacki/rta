@@ -1,5 +1,5 @@
 """Ordered code for the two component guassian mixture model."""
-from math import inf
+from math import inf, log as l, exp as e
 import numpy as np
 from sklearn.mixture import GaussianMixture
 
@@ -9,8 +9,7 @@ from rta.plotters.gaussian_two_components import plot_two_components
 
 class TwoComponentGaussianMixture(GaussianMixture):
     def __init__(self, *args, **kwds):
-        super(TwoComponentGaussianMixture,
-              self).__init__(n_components=2, *args, **kwds)
+        super().__init__(n_components=2, *args, **kwds)
 
     def fit(self, x):
         """Fit the two component gaussian mixture model.
@@ -20,7 +19,7 @@ class TwoComponentGaussianMixture(GaussianMixture):
         """
         if len(x.shape) == 1:
             x.shape = x.shape[0], 1
-        super(TwoComponentGaussianMixture, self).fit(x)
+        super().fit(x)
 
     def _i(self):
         """Get indices of signal and noise.

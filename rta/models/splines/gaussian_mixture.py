@@ -5,10 +5,10 @@ import numpy as np
 from rta.array_operations.misc import percentiles, percentile_pairs_of_N_integers as percentile_pairs
 from rta.array_operations.misc import overlapped_percentile_pairs
 from rta.models.denoising.window_based import sort_by_x
+from rta.models.mixtures.two_component_gaussian_mixture import TwoComponentGaussianMixture as GM
 from rta.models.splines.spline import Spline
 from rta.models.splines.beta_splines import beta_spline
-from rta.models.mixtures.two_component_gaussian_mixture import TwoComponentGaussianMixture as GM
-
+from rta.stats.stats import mad, mae
 
 def fit_interlapping_mixtures(x, y,
                               chunks_no  = 20,
@@ -39,24 +39,27 @@ def fit_interlapping_mixtures(x, y,
     """
     x, y = sort_by_x(x, y) if sort else (x, y)
     signal = np.empty(len(x), dtype = np.bool_)
-    g_mix = GM(warm_start = warm_start)
+    gm = GM(warm_start = warm_start)
     # mixtures' probabilies
     probs = np.empty((chunks_no, 2), dtype = np.float64)
     means = probs.copy() 
     sds   = probs.copy() # mixtures' standard deviations.
+    signal_regions = probs.copy() # points where densities times mixture probabilities equalize.
     x_percentiles = np.empty(chunks_no, dtype = np.float64)
 
     # NOTE: the control "x" does not appear here
     # s, e      indices of the are being fitted
     # ss, se    indices used to decide upon denoising
     for i, (s, ss, se, e) in enumerate(overlapped_percentile_pairs(len(x), chunks_no)):
-        g_mix.fit(y[s:e])
-        signal[ss:se] = g_mix.is_signal(y[ss:se])
-        probs[i,:] = g_mix.probabilities()
-        means[i,:] = g_mix.means()
+        gm.fit(y[s:e])
         x_percentiles[i] = x[ss]
-        sds[i,:] = g_mix.standard_deviations()
-    return signal, probs, means, sds, x_percentiles
+        # all the info we can get from a two-component gaussian mixture model
+        signal[ss:se]       = gm.is_signal(y[ss:se])
+        probs[i,:]          = gm.probabilities()
+        means[i,:]          = gm.means()
+        sds[i,:]            = gm.standard_deviations()
+        signal_regions[i,:] = gm.signal_region()
+    return signal, probs, means, sds, x_percentiles, signal_regions
 
 
 
@@ -68,18 +71,20 @@ class GaussianMixtureSpline(Spline):
 
     """
     def fit(self, x, y,
-            chunks_no=20,
-            warm_start=True,
-            drop_duplicates_and_sort=True,
+            chunks_no       = 20,
+            warm_start      = True,
+            drop_duplicates = True,
+            sort            = True,
             **kwds):
         """Fit a denoised spline."""
         assert chunks_no > 0
         self.chunks_no = int(chunks_no)
-        self.set_xy(x, y, drop_duplicates_and_sort)
+        self.set_xy(x, y, drop_duplicates, sort)
         x, y = self.x, self.y
         x.shape = x.shape[0], 1
         y.shape = y.shape[0], 1
-        self.signal, self.probs, self.means, self.sds, self.x_percentiles = \
+        self.signal, self.probs, self.means, self.sds,\
+        self.x_percentiles, self.signal_regions = \
             fit_interlapping_mixtures(x, y,
                                       self.chunks_no,
                                       warm_start,
@@ -90,10 +95,20 @@ class GaussianMixtureSpline(Spline):
                                   y = y_signal,
                                   chunks_no = self.chunks_no)
 
-    def is_signal(self, x_new, y_new):
+    def is_signal(self, x, y):
         """Denoise the new data."""
-        i = np.searchsorted(self.x_percentiles, x_new) - 1
-        return np.abs(self.medians[i] - y_new) <= self.stds[i] * self.std_cnt
+        i = np.searchsorted(self.x_percentiles, x)-1
+        # check, if signal is within the borders of the algorithm.
+        in_range = (i > -1) & (i < self.chunks_no - 1)
+        is_signal = np.full(shape      = x.shape,
+                            fill_value = False,
+                            dtype      = np.bool_)
+        i = i[in_range]
+        y = y[in_range]
+        bottom = self.signal_regions[i,0] # bottom-line values for y
+        top    = self.signal_regions[i,1] # top-line values for y
+        is_signal[in_range] = (bottom <= y) & (y <= top)
+        return is_signal
 
     def predict(self, x):
         return self.spline(x).reshape(-1, 1)
@@ -106,3 +121,34 @@ class GaussianMixtureSpline(Spline):
         #TODO make this more elaborate.
         return "This is a spline model with gaussian mixture denoising."
 
+    def plot(self,
+             knots_no = 1000,
+             plt_style = 'dark_background',
+             show = True, 
+             **kwds):
+        """Plot the spline.
+
+        Args:
+            knots_no (int):  number of points used to plot the fitted spline?
+            plt_style (str): the matplotlib style used for plotting.
+            show (logical):  show the plot immediately. Alternatively, add some more elements on the canvas before using it.
+        """
+        super().plot(knots_no, plt_style, show=False)
+        plt.scatter()
+        if show:
+            plt.show()
+
+
+
+def gaussian_mixture_spline(x, y,
+                            chunks_no=20,
+                            warm_start=True,
+                            drop_duplicates_and_sort=True,
+                            folds=None,
+                            fold_stats  = (mae, mad),
+                            model_stats = (np.mean, np.median, np.std)):
+    m = GaussianMixtureSpline()
+    m.fit(x, y, chunks_no, warm_start, drop_duplicates_and_sort)
+    if folds is not None:
+        m.cv(folds, fold_stats, model_stats)
+    return m

@@ -65,9 +65,10 @@ def mad_window_filter(x, y,
 
 class RobustSpline(Spline):
     def fit(self, x, y,
-            chunks_no=20,
-            std_cnt=3,
-            drop_duplicates_and_sort=True):
+            chunks_no       = 20,
+            std_cnt         = 3,
+            drop_duplicates = True,
+            sort            = True):
         """Fit a robust spline.
         
         Args:
@@ -81,7 +82,7 @@ class RobustSpline(Spline):
         assert std_cnt > 0
         self.chunks_no = int(chunks_no)
         self.std_cnt = int(std_cnt)
-        self.set_xy(x, y, drop_duplicates_and_sort)
+        self.set_xy(x, y, drop_duplicates, sort)
 
         self.signal, self.medians, self.stds, self.x_percentiles = \
             mad_window_filter(self.x,
@@ -93,10 +94,19 @@ class RobustSpline(Spline):
                                   self.y[self.signal],
                                   self.chunks_no)
 
-    def is_signal(self, x_new, y_new):
+    def is_signal(self, x, y):
         """Denoise the new data."""
-        i = np.searchsorted(self.x_percentiles, x_new) - 1
-        return np.abs(self.medians[i] - y_new) <= self.stds[i] * self.std_cnt
+        i = np.searchsorted(self.x_percentiles, x) - 1
+        # check, if signal is within the borders of the algorithm.
+        in_range = (i > -1) & (i < self.chunks_no - 1)
+        is_signal = np.full(shape      = x.shape,
+                            fill_value = False,
+                            dtype      = np.bool_)
+        i = i[in_range]
+        y = y[in_range]
+        is_signal[in_range] = np.abs(self.medians[i] - y) <=\
+                              self.stds[i] * self.std_cnt
+        return is_signal
 
     def predict(self, x):
         return self.spline(x)
@@ -110,12 +120,27 @@ class RobustSpline(Spline):
         cv = hasattr(self, 'fold_stats')
         return "This is a RobustSpline super-duper fitting.\n\tFitted\t\t\t{}\n\tCross-validated\t\t{}".format(fit, cv)
 
+    def plot(self,
+             knots_no = 1000,
+             plt_style = 'dark_background',
+             show = True, 
+             **kwds):
+        """Plot the spline.
+
+        Args:
+            knots_no (int):  number of points used to plot the fitted spline?
+            plt_style (str): the matplotlib style used for plotting.
+            show (logical):  show the plot immediately. Alternatively, add some more elements on the canvas before using it.
+        """
+        raise NotImplementedError
+
 
 
 def robust_spline(x, y,
                   chunks_no=20,
                   std_cnt=3,
-                  drop_duplicates_and_sort=True,
+                  drop_duplicates = True,
+                  _and_sort=True,
                   folds=None,
                   fold_stats  = (mae, mad),
                   model_stats = (np.mean, np.median, np.std)):
@@ -135,7 +160,7 @@ def robust_spline(x, y,
         RobustSpline: a fitted instance of 'RobustSpline'.
     """
     m = RobustSpline()
-    m.fit(x, y, chunks_no, std_cnt, drop_duplicates_and_sort)
+    m.fit(x, y, chunks_no, std_cnt, drop_duplicates, sort)
     if folds is not None:
         m.cv(folds, fold_stats, model_stats)
     return m

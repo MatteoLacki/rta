@@ -6,14 +6,20 @@ from rta.models.base_model import Model
 from rta.stats.stats import mad, mae, confusion_matrix
 
 
-def dedup_sort(x, y):
+def dedup_sort(x, y, 
+               drop_duplicates=True,
+               sort=True):
     """Remove dulicate x entries in x and for the corresponding y indices. 
     Sort by x."""
-    d = pd.DataFrame({'x':x, 'y':y})
-    d = d.drop_duplicates(subset='x', keep=False)
-    d = d.sort_values(['x'])
-    return d.x.values, d.y.values
-
+    if drop_duplicates or sort:
+        d = pd.DataFrame({'x':x, 'y':y})
+        if drop_duplicates:
+            d = d.drop_duplicates(subset='x', keep=False)
+        if sort:
+            d = d.sort_values(['x'])
+        return d.x.values, d.y.values
+    else:
+        return x, y
 
 class Spline(Model):
     """Abstract class for splines."""
@@ -21,9 +27,14 @@ class Spline(Model):
     def plot(self,
              knots_no = 1000,
              plt_style = 'dark_background',
-             show = True, 
-             **kwds):
-        """Plot the spline."""
+             show = True):
+        """Plot the spline.
+
+        Args:
+            knots_no (int):  number of points used to plot the fitted spline?
+            plt_style (str): the matplotlib style used for plotting.
+            show (logical):  show the plot immediately. Alternatively, add some more elements on the canvas before using it.
+        """
         plt.style.use(plt_style)
         colors = np.full(self.signal.shape, "blue", dtype='<U30')
         colors[self.signal] = 'papayawhip'
@@ -34,9 +45,11 @@ class Spline(Model):
         if show:
             plt.show()
 
-    def set_xy(self, x, y, drop_duplicates_and_sort=True):
+    def set_xy(self, x, y,
+               drop_duplicates=True,
+               sort=True):
         assert len(x) == len(y)
-        self.x, self.y = dedup_sort(x, y) if drop_duplicates_and_sort else (x, y)
+        self.x, self.y = dedup_sort(x, y, drop_duplicates, sort)
 
     def res(self):
         """Get residuals."""

@@ -78,15 +78,31 @@ gms.is_signal(np.array([10, 40]),
               np.array([10, 40]))
 
 
+x_new = np.array([10, 40,  76,  -100, 200, 160])
+y_new = np.array([1.0,4.0, 0.1, -100, 200, -.5])
 
-x_new = np.array([10, 40, 76, -100, 200, 160])
+gms.is_signal(x_new, y_new)
+
 i = np.searchsorted(gms.x_percentiles, x_new) - 1
-indices_out_of_range = np.isin(i, (-1, 19))
+in_range = np.logical_and(i > -1, i < gms.chunks_no - 1)
 signal = np.full(shape = x_new.shape,
                  fill_value = False,
                  dtype = np.bool_)
-# for these the anser is fuck off.
-signal[~indices_out_of_range]
+i = i[in_range]
+y_new = y_new[in_range]
+# we have made the roots to solve this problem. Use that function!!!
+# To select the signal from noise.
+bottom_lines = gms.signal_regions[i,0]
+top_lines = gms.signal_regions[i,1]
+signal[in_range] = (bottom_lines <= y_new) & (y_new <= top_lines)
+
+# we can add this to the plot, to show how nice it works.
+
+# dist_to_means = np.abs(gms.means[i, 0] - y_new[in_range])
+# signal[in_range] = dist_to_means <= 
+#     gms.sds[i] * gms.std_cnt
+
+
 x_new[~indices_out_of_range]
 
 # It still have to sort out the problem of these values...
@@ -106,10 +122,12 @@ x_new[~indices_out_of_range]
 #                        simple_calc=True)
 #     srs.append(sr)
 
-
-
 rs = RobustSpline()
 rs.fit(x,y,chunks_no=20)
 rs.x_percentiles
+c = rs.is_signal(x_new, y_new)
+rs.plot(show=False)
+plt.scatter(x_new, y_new, c=c)
+plt.show()
 
-x.shape
+
