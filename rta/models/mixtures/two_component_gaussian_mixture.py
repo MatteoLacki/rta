@@ -37,6 +37,8 @@ class TwoComponentGaussianMixture(GaussianMixture):
         new_x (np.array of floats): points to classify as signal (True) or noise (False).
         """
         signal_idx,_ = self._i()
+        if len(new_x.shape) == 1:
+            new_x.shape = new_x.shape[0], 1
         return self.predict(new_x) == signal_idx
 
     def means(self):

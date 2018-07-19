@@ -66,14 +66,15 @@ class Spline(Model):
         #TODO make this more elaborate.
         return "This is the Spline."
 
-    def new(self):
-        """Create an instance of the same class."""
-        return self.__class__()
+    def copy(self):
+        """Copy constructor."""
+        raise NotImplementedError("This has to be coded subclass-specifical: they do differ in parametrization.")
 
-    def cv(self, folds,
-                 fold_stats = (mae, mad),
-                 model_stats= (np.mean, np.median, np.std),
-                 confusion  = True):
+    def cv(self,
+           folds,
+           fold_stats = (mae, mad),
+           model_stats= (np.mean, np.median, np.std),
+           confusion  = True):
         """Run cross-validation.
 
         Results are saved as class fields.
@@ -96,10 +97,9 @@ class Spline(Model):
             m_signal = self.signal[folds == fold]
             n.fit(x_train,
                   y_train,
-                  self.chunks_no,
-                  self.std_cnt,
                   drop_duplicates=False,
-                  sort=False)
+                  sort=False,
+                  **self.parameters)
             errors = np.abs(n.predict(x_test) - y_test)
             n_signal = n.is_signal(x_test, y_test)
             s = [stat(errors) for stat in fold_stats]

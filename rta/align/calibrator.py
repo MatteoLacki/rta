@@ -22,7 +22,6 @@ def cv_run_param(r, x, y, f, p):
     return r, p, m
 
 
-# TODO: shouldn't this be an instance of the Model?
 class Calibrator(object):
     def __init__(self, 
                  preprocessed_data,

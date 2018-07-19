@@ -27,7 +27,8 @@ if __name__ == "__main__":
     # parameters = [{"chunks_no": n }for n in range(2,200)]
     # c.calibrate(parameters)
     c.plot()
-
+    it = c.iter_run_param()
+    next(it)
     m = c.cal_res[0][2]
     m.plot()
     m.cv_stats
@@ -58,29 +59,23 @@ if __name__ == "__main__":
 
 
 from rta.models.splines.gaussian_mixture import GaussianMixtureSpline
-from rta.models.splines.robust import RobustSpline
-
-from rta.plotters.plot_signal_fence import plot_signal_fence
 
 R1 = c.D[c.D.run == 1].copy()
 x = R1.x.values
 y = R1.y.values
 
-gms = GaussianMixtureSpline()
-gms.fit(x, y, chunks_no = 20)
+gms = GaussianMixtureSpline(chunks_no = 20, warm_start=False)
+gms.fit(x, y)
 gms.signal
-gms.plot(fence=False)
+gms.plot()
 # plt.show()
 
-bottom = gms.signal_regions[:,0]
-top = gms.signal_regions[:,1]
+from rta.models.mixtures.two_component_gaussian_mixture import TwoComponentGaussianMixture as GM
+
+g = GM()
+from rta.models.denoising.window_based import sort_by_x
 
 
-plot_signal_fence(gms.x_percentiles, bottom, top)
-
-
-gms.is_signal(np.array([10, 40]),
-              np.array([10, 40]))
 
 
 x_new = np.array([10, 40,  76,  -100, 200, 160])
@@ -107,32 +102,20 @@ signal[in_range] = (bottom_lines <= y_new) & (y_new <= top_lines)
 # signal[in_range] = dist_to_means <= 
 #     gms.sds[i] * gms.std_cnt
 
+from rta.models.splines.robust import RobustSpline
 
-x_new[~indices_out_of_range]
-
-# It still have to sort out the problem of these values...
-
-# srs = []
-# for i in range(gms.chunks_no):
-#     m_s, m_n = gms.means[i,]
-#     p_s, p_n = gms.probs[i,]
-#     W, V = gms.variances[i,]
-#     sd_s, sd_n = sqrt(W), sqrt(V)
-#     sr = signal_region(m_s,
-#                        m_n,
-#                        sd_s,
-#                        sd_n,
-#                        p_s,
-#                        p_n,
-#                        simple_calc=True)
-#     srs.append(sr)
-
+%%timeit
 rs = RobustSpline()
 rs.fit(x,y,chunks_no=20)
-rs.x_percentiles
+
+rs.plot()
+
 c = rs.is_signal(x_new, y_new)
 rs.plot(show=False)
 plt.scatter(x_new, y_new, c=c)
 plt.show()
 
 
+from rta.models.splines.robust import robust_spline
+rb = robust_spline(x, y)
+rb.plot()

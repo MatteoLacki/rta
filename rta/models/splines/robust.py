@@ -12,6 +12,7 @@ from rta.array_operations.misc import overlapped_percentile_pairs
 from rta.models.denoising.window_based import sort_by_x
 from rta.models.splines.spline import Spline
 from rta.models.splines.beta_splines import beta_spline
+from rta.plotters.plot_signal_fence import plot_signal_fence
 from rta.stats.stats import mad, mae
 
 
@@ -39,14 +40,14 @@ def mad_window_filter(x, y,
     Returns:
         signal (np.array of logical values) Is the point considered to be a signal?
         medians (np.array) Estimates of medians in consecutive bins.
-        stds (np.array) Estimates of standard deviations in consecutive bins.
+        sts (np.array) Estimates of standard deviations in consecutive bins.
         x_percentiles (np.array) Knots of the spline fitting, needed to filter out noise is 'is_signal'.        
     """
     x, y = sort_by_x(x, y) if sort else (x, y)
     signal  = np.empty(len(x),    dtype = np.bool_)
     medians = np.empty(chunks_no, dtype = np.float64)
-    stds    = np.empty(chunks_no, dtype = np.float64)
-    x_percentiles = np.empty(chunks_no, dtype=np.float64)
+    sds     = np.empty(chunks_no, dtype = np.float64)
+    x_percentiles = np.empty(chunks_no + 1, dtype=np.float64)
 
     scaling = 1.4826
 
@@ -56,17 +57,18 @@ def mad_window_filter(x, y,
     for i, (s, ss, se, e) in enumerate(overlapped_percentile_pairs(len(x), chunks_no)):
         __mad, median = mad(y[s:e], return_median = True)
         medians[i] = median
-        stds[i] = sd = scaling * __mad
+        sds[i] = sd = scaling * __mad
         x_percentiles[i] = x[ss]
         signal[ss:se] = np.abs(y[ss:se] - median) <= sd * sd_cnt
-    return signal, medians, stds, x_percentiles
+    x_percentiles[i+1] = x[se] # the maximal value
+    return signal, medians, sds, x_percentiles
 
 
 
 class RobustSpline(Spline):
     def fit(self, x, y,
             chunks_no       = 20,
-            std_cnt         = 3,
+            sd_cnt          = 3,
             drop_duplicates = True,
             sort            = True):
         """Fit a robust spline.
@@ -75,20 +77,22 @@ class RobustSpline(Spline):
             x (np.array): 1D control
             y (np.array): 1D response
             chunks_no (int): The number of quantile bins.
-            std_cnt (float): The number of standard deviations beyond which points are considered noise.
+            sd_cnt (float): The number of standard deviations beyond which points are considered noise.
             drop_duplicates_and_sort (logical) Drop duplicates in 'x' and sort 'x' and 'y' w.r.t. 'x'?
         """
         assert chunks_no > 0
-        assert std_cnt > 0
+        assert sd_cnt > 0
         self.chunks_no = int(chunks_no)
-        self.std_cnt = int(std_cnt)
+        self.sd_cnt = int(sd_cnt)
+        self.parameters = {'chunks_no': self.chunks_no,
+                           'sd_cnt':    self.sd_cnt}
         self.set_xy(x, y, drop_duplicates, sort)
 
-        self.signal, self.medians, self.stds, self.x_percentiles = \
+        self.signal, self.medians, self.sds, self.x_percentiles = \
             mad_window_filter(self.x,
                               self.y,
                               self.chunks_no,
-                              self.std_cnt,
+                              self.sd_cnt,
                               sort = False)
         self.spline = beta_spline(self.x[self.signal],
                                   self.y[self.signal],
@@ -113,7 +117,7 @@ class RobustSpline(Spline):
         i = i[in_range]
         y = y[in_range]
         is_signal[in_range] = np.abs(self.medians[i] - y) <=\
-                              self.stds[i] * self.std_cnt
+                              self.sds[i] * self.sd_cnt
         return is_signal
 
     def predict(self, x):
@@ -129,24 +133,38 @@ class RobustSpline(Spline):
         return "This is a RobustSpline super-duper fitting.\n\tFitted\t\t\t{}\n\tCross-validated\t\t{}".format(fit, cv)
 
     def plot(self,
-             knots_no = 1000,
-             plt_style = 'dark_background',
-             show = True, 
-             **kwds):
+             knots_no    = 1000,
+             plt_style   = 'dark_background',
+             show        = True,
+             fence       = True,
+             fence_color = 'gold'):
         """Plot the spline.
 
         Args:
-            knots_no (int):  number of points used to plot the fitted spline?
-            plt_style (str): the matplotlib style used for plotting.
-            show (logical):  show the plot immediately. Alternatively, add some more elements on the canvas before using it.
+            knots_no (int):    number of points used to plot the fitted spline?
+            plt_style (str):   the matplotlib style used for plotting.
+            fence_color (str): the color of the fence around signal region.
+            show (logical):    show the plot immediately. Alternatively, add some more elements on the canvas before using it.
         """
-        raise NotImplementedError
-
+        super().plot(knots_no, plt_style, show=False)
+        if fence:
+            bottom = self.medians - self.sds * self.sd_cnt
+            top =    self.medians + self.sds * self.sd_cnt
+            plot_signal_fence(self.x_percentiles,
+                              bottom,
+                              top,
+                              color = fence_color,
+                              show  = show)
+        else:
+            # making show that we see a plot if we don't want and a fence
+            # and want to see it :)
+            if show:
+                plt.show()
 
 
 def robust_spline(x, y,
                   chunks_no       = 20,
-                  std_cnt         = 3,
+                  sd_cnt          = 3,
                   drop_duplicates = True,
                   sort            = True,
                   folds           = None,
@@ -158,7 +176,7 @@ def robust_spline(x, y,
         x (np.array): 1D control
         y (np.array): 1D response
         chunks_no (int): The number of quantile bins.
-        std_cnt (float): The number of standard deviations beyond which points are considered noise.
+        sd_cnt (float): The number of standard deviations beyond which points are considered noise.
         drop_duplicates (logical): Drop duplicates in 'x' in both 'x' and 'y' arrays. 
         sort (logical): Sort 'x' and 'y' w.r.t. 'x'.
         folds (np.array of ints): Assignments of data points to folds to test model's generalization capabilities.
@@ -168,8 +186,8 @@ def robust_spline(x, y,
     Returns:
         RobustSpline: a fitted instance of 'RobustSpline'.
     """
-    m = RobustSpline()
-    m.fit(x, y, chunks_no, std_cnt, drop_duplicates, sort)
+    m = RobustSpline(chunks_no, sd_cnt)
+    m.fit(x, y, drop_duplicates, sort)
     if folds is not None:
         m.cv(folds, fold_stats, model_stats)
     return m

@@ -50,10 +50,13 @@ class GaussianMixtureSpline(Model):
         self.process_input(x, y, chunks_no)
         signal, self.probs, self.means, self.covariances = \
             fit_interlapping_mixtures(self.x, self.y, self.chunks_no, self.warm_start)
-        x_signal = self.x[signal].ravel()
-        y_signal = self.y[signal].ravel()
-        self.spline = beta_spline(x = x_signal,
-                                  y = y_signal,
+        # x_signal = self.x[signal].ravel()
+        # y_signal = self.y[signal].ravel()
+        # self.spline = beta_spline(x = x_signal,
+        #                           y = y_signal,
+        #                           chunks_no = self.chunks_no)
+        self.spline = beta_spline(x = self.x[signal],
+                                  y = self.x[signal],
                                   chunks_no = self.chunks_no)
         self.signal = signal.reshape(-1, 1)
 
@@ -67,4 +70,46 @@ class GaussianMixtureSpline(Model):
         """Represent the model."""
         #TODO make this more elaborate.
         return "This is a GMM_OLS combo class for super-duper fitting."
+
+
+    def plot(self,
+             knots_no = 1000,
+             plt_style = 'dark_background',
+             show = True,
+             fence = True,
+             fence_color = 'gold'):
+        """Plot the spline.
+        Args:
+            knots_no (int):    number of points used to plot the fitted spline?
+            plt_style (str):   the matplotlib style used for plotting.
+            fence_color (str): the color of the fence around signal region.
+            show (logical):    show the plot immediately. Alternatively, add some more elements on the canvas before using it.
+        """
+        super().plot(knots_no, plt_style, show=False)
+        if fence:
+            plot_signal_fence(self.x_percentiles,
+                              self.signal_regions[:,0],
+                              self.signal_regions[:,1],
+                              color = fence_color,
+                              show  = show)
+        else:
+            # making show that we see a plot if we don't want and a fence
+            # and want to see it :)
+            if show:
+                plt.show()
+
+
+    def gaussian_mixture_spline(x, y,
+                                chunks_no       = 20,
+                                warm_start      = True,
+                                drop_duplicates = True,
+                                sort            = True,
+                                folds           = None,
+                                fold_stats      = (mae, mad),
+                                model_stats     = (np.mean, np.median, np.std)):
+        m = GaussianMixtureSpline()
+        m.fit(x, y, chunks_no, warm_start, drop_duplicates, sort)
+        if folds is not None:
+            m.cv(folds, fold_stats, model_stats)
+    return m
 

@@ -72,29 +72,41 @@ class GaussianMixtureSpline(Spline):
     Each chunk is denoised individually by a two-component gaussian mixture model.
 
     """
-    def fit(self, x, y,
-            chunks_no       = 20,
-            warm_start      = True,
-            drop_duplicates = True,
-            sort            = True,
-            **kwds):
-        """Fit a denoised spline."""
+
+    def __init__(self,
+                 chunks_no  = 20,
+                 warm_start = True):
+        """Initialize the class.
+
+        Similarly to SKLearn, pass the fitting arguments here.
+        """
         assert chunks_no > 0
-        self.chunks_no = int(chunks_no)
+        self.chunks_no   = int(chunks_no)
+        self.warm_start  = warm_start
+
+    def copy(self):
+        """Copy constructor."""
+        return GaussianMixtureSpline(self.chunks_no, self.warm_start)
+
+    def fit(self, x, y,
+            drop_duplicates = True,
+            sort            = True):
+        """Fit a denoised spline.
+
+        Args:
+            x
+            y
+        """
         self.set_xy(x, y, drop_duplicates, sort)
-        x, y = self.x, self.y
-        x.shape = x.shape[0], 1
-        y.shape = y.shape[0], 1
         self.signal, self.probs, self.means, self.sds,\
         self.x_percentiles, self.signal_regions = \
-            fit_interlapping_mixtures(x, y,
+            fit_interlapping_mixtures(self.x,
+                                      self.y,
                                       self.chunks_no,
-                                      warm_start,
+                                      self.warm_start,
                                       sort = False)
-        x_signal = self.x[self.signal].ravel()
-        y_signal = self.y[self.signal].ravel()
-        self.spline = beta_spline(x = x_signal,
-                                  y = y_signal,
+        self.spline = beta_spline(x = self.x[self.signal],
+                                  y = self.y[self.signal],
                                   chunks_no = self.chunks_no)
 
     def is_signal(self, x, y):
@@ -167,8 +179,8 @@ def gaussian_mixture_spline(x, y,
                             folds           = None,
                             fold_stats      = (mae, mad),
                             model_stats     = (np.mean, np.median, np.std)):
-    m = GaussianMixtureSpline()
-    m.fit(x, y, chunks_no, warm_start, drop_duplicates, sort)
+    m = GaussianMixtureSpline(chunks_no, warm_start)
+    m.fit(x, y, drop_duplicates, sort)
     if folds is not None:
         m.cv(folds, fold_stats, model_stats)
     return m

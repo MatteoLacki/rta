@@ -1,7 +1,11 @@
 class Model(object):
     """A container for storing results of fitting."""
     def fit(self, x, y, **kwds):
-        """Patsy API,"""
+        """Fit the model."""
+        raise NotImplementedError
+
+    def refit(self, **kwds):
+        """Refit the model."""
         raise NotImplementedError
 
     def predict(self, newdata={}, *args, **kwds):
