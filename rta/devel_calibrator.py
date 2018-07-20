@@ -51,21 +51,17 @@ if __name__ == "__main__":
     m.plot()
 
 
-from rta.models.splines.gaussian_mixture import GaussianMixtureSpline
+import os
 
-gms = GaussianMixtureSpline(chunks_no = 20, warm_start = False)
-gms.fit(x, y)
-gms.plot()
-# plt.show()
+def save_arr(name, x):
+    data_path = os.path.join(os.getcwd(), 'rta/data/')
+    np.save(file=os.path.join(data_path, name), arr=x)
 
-gms.means
-gms.signal_regions
-
-# Analysing the problem of incompatibility of noise vs signal for GMS
+save_arr('x', x)
+save_arr('y', y)
 
 
 
-plt.plot([3,1,4,1,5], 'ks-', mec='w', mew=5, ms=20)
 
 
 

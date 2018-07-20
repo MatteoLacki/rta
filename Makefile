@@ -1,8 +1,14 @@
-doc:
+PYTHON = ../py3_6/bin/python3
+
+gaussian_mixture_spline_plot: ## Plot of a gaussian mixture model fit.
+	../py3_6/bin/python3 ./rta/models/splines/run/gaussian_mixture_model.py
+
+robust_spline_plot: ## Plot of a robust spline fit.
+	../py3_6/bin/python3 ./rta/models/splines/run/robust_model.py
 
 pypi: ## deploy (haha, no it won't... need to write it first ;)
-    - git tag -d GutenTag
-    - git push gh :refs/tags/GutenTag
+	git tag -d GutenTag
+	git push gh :refs/tags/GutenTag
 
 projectName = rta
 
@@ -24,5 +30,5 @@ GREEN       = \033[36m
 BLUE        = \033[34m
 DIM         = \033[2m
 help:
-    @printf '\n\n$(DIM)Commands:$(NO_COLOR)\n'
-    @grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "$(GREEN) % $(BIGINDENT)$(NO_COLOR) - %s\n", $$1, $$2}'
+	@printf '\n\n$(DIM)Commands:$(NO_COLOR)\n'
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "$(GREEN) % $(BIGINDENT)$(NO_COLOR) - %s\n", $$1, $$2}'
