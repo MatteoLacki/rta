@@ -40,7 +40,7 @@ class Spline(Model):
         """
         plt.style.use(plt_style)
         colors = np.full(self.signal.shape, "blue", dtype='<U30')
-        colors[self.signal] = 'papayawhip'
+        colors[self.signal] = 'grey'
         plt.scatter(self.x, self.y, c=colors)
         xs = np.linspace(min(self.x), max(self.x), knots_no)
         ys = self.spline(xs)

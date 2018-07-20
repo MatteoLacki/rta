@@ -148,6 +148,7 @@ class GaussianMixtureSpline(Spline):
              plt_style = 'dark_background',
              show = True,
              fence = True,
+             medians = True,
              fence_color = 'gold'):
         """Plot the spline.
 
@@ -163,12 +164,16 @@ class GaussianMixtureSpline(Spline):
                               self.signal_regions[:,0],
                               self.signal_regions[:,1],
                               color = fence_color,
-                              show  = show)
-        else:
-            # making show that we see a plot if we don't want and a fence
-            # and want to see it :)
-            if show:
-                plt.show()
+                              show = False)
+        if medians:
+            x = self.x_percentiles
+            plt.hlines(y = self.means[:,0],
+                       xmin = x[0:-1],
+                       xmax = x[1:],
+                       color= 'gold',
+                       linestyles = 'dashed')
+        if show:
+            plt.show()
 
 
 

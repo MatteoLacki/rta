@@ -1,5 +1,5 @@
 """Ordered code for the two component guassian mixture model."""
-from math import inf, log as l, exp as e
+from math import inf, log as l, exp as e, pi
 import numpy as np
 from sklearn.mixture import GaussianMixture
 
@@ -168,6 +168,8 @@ def signal_region(m_s, m_n, sd_s, sd_n, p_s, p_n):
                 return (x, inf)
             elif m_s < m_n:
                 return (-inf, x)
+            else:
+
         else:# comparing normal log-densities -> find binomial roots
             sum_sds = sd_s + sd_n
             dif_sds = sd_n - sd_s
@@ -212,3 +214,40 @@ def test_signal_region():
     L, R = signal_region(m_s, m_n, sd_s, sd_n, p_s, p_n)
     assert L == -inf and R == inf
 
+
+def approximate_signal_region(m_s, m_n, sd_s, sd_n, p_s, p_n):
+    """Establish the region where signal dominates noise.
+
+    Assume that both singal and noise follow normal distrubutions,
+    weighted by some probabilities, i.e. a gaussian mixture model.
+    Find the approximate region where the signal dominates probabilitically over noise.
+    The approximation: the region should correspond to finding the two points,
+    at which the signal intensity equals the height of the noise peak
+    evaluated at the mode of the signal distribution.
+
+    Args:
+        m_s (float): the mean of the signal distributions.
+        m_n (float): the mean of the noise distributions.
+        sd_s (float):   the standard deviation of the signal distributions.
+        sd_n (float):   the standard deviation of the noise distributions.
+        p_s (float):    the probability of the signal.
+        p_n (float):    the standard deviation of the noise.
+
+    Returns:
+        tuple: left and right end of the region where signal dominates probabilistically.
+    """
+    # evaluate the noise log-distribution at signal's mode: neglect 2pi factor.
+    noise_level = l(p_N) - 0.5*l(sd_n) - 0.5 * (m_s - m_n)**2 / sd_n**2
+    A =  1.0
+    B = -2.0 * m_s
+    C =  m_s **2 + 2*sd_s**2 * ( l(sd_s) + noise_level - l(p_s) )
+    try:
+        x = binomial_roots(A, B, C)
+    except NoRootError:
+        # All is noise.
+        return (inf, -inf)
+    if len(x) == 1:
+        # All is noise.
+        return (inf, -inf)
+    else:
+        return x

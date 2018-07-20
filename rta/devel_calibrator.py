@@ -34,16 +34,11 @@ if __name__ == "__main__":
     m.cv_stats
     # finish off the collection of stats for purpose of choosing
     # the best models
-
-
     dt_cal = Calibrator(d, feature='dt', folds_no=folds_no)
     dt_cal.fold()
     dt_cal.calibrate()
     dt_cal.plot()
-
     dt_cal.cal_res[10][2].plot()
-    # 
-
     dt_c = DTcalibrator(d, feature='dt', folds_no=folds_no)
     dt_c.fold()
     dt_c.calibrate()
@@ -52,8 +47,6 @@ if __name__ == "__main__":
     # parameters = [{"chunks_no": n} for n in range(2,200)]
     # c.calibrate(parameters)
     dt_c.plot()
-
-
     m = dt_c.cal_res[0][2]
     m.plot()
 
@@ -69,6 +62,9 @@ gms.fit(x, y)
 gms.signal
 gms.plot()
 # plt.show()
+
+gms.means
+
 
 # Analysing the problem of incompatibility of noise vs signal for GMS
 
