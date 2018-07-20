@@ -1,5 +1,3 @@
-PYTHON = ../py3_6/bin/python3
-
 gaussian_mixture_spline_plot: ## Plot of a gaussian mixture model fit.
 	../py3_6/bin/python3 ./rta/models/splines/run/gaussian_mixture_model.py
 
