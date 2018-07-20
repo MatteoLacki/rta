@@ -68,7 +68,7 @@ class TwoComponentGaussianMixture(GaussianMixture):
         i = self._i()
         return np.sqrt(self.covariances_.ravel()[i])
 
-    def signal_region(self):
+    def signal_region(self, approximate=False):
         """Establish left and right ends of the signal region.
 
         The signal region is defined as the region where 
@@ -81,7 +81,10 @@ class TwoComponentGaussianMixture(GaussianMixture):
         m_s, m_n   = self.means()
         sd_s, sd_n = self.standard_deviations()
         p_s, p_n   = self.probabilities()
-        return signal_region(m_s, m_n, sd_s, sd_n, p_s, p_n)
+        if approximate:
+            return approximate_signal_region(m_s, m_n, sd_s, sd_n, p_s, p_n)
+        else:
+            return signal_region(m_s, m_n, sd_s, sd_n, p_s, p_n)
 
     def plot(self, st_cnt=3, show=True, plt_style='dark_background'):
         """Plot the noise and the signal curves.
@@ -169,12 +172,12 @@ def signal_region(m_s, m_n, sd_s, sd_n, p_s, p_n):
             elif m_s < m_n:
                 return (-inf, x)
             else:
-
+                raise ValueError("Impossible to be here. Hahaha.")
         else:# comparing normal log-densities -> find binomial roots
             sum_sds = sd_s + sd_n
             dif_sds = sd_n - sd_s
             B = 2.0*(m_s/sd_s**2 - m_n/sd_n**2)
-            C = 2.0*(l(p_s) - l(p_n) + l(sd_n) - l(sd_s)) - B/2.0
+            C = 2.0*(l(p_s) - l(p_n) + l(sd_n) - l(sd_s)) - ((m_s/sd_s)**2 - (m_n/sd_n)**2)/2.0
             try:
                 x = binomial_roots(A, B, C)
             except NoRootError:
@@ -237,10 +240,10 @@ def approximate_signal_region(m_s, m_n, sd_s, sd_n, p_s, p_n):
         tuple: left and right end of the region where signal dominates probabilistically.
     """
     # evaluate the noise log-distribution at signal's mode: neglect 2pi factor.
-    noise_level = l(p_N) - 0.5*l(sd_n) - 0.5 * (m_s - m_n)**2 / sd_n**2
+    noise_level = l(p_n) - 0.5*l(sd_n) - 0.5 * (m_s - m_n)**2 / sd_n**2
     A =  1.0
     B = -2.0 * m_s
-    C =  m_s **2 + 2*sd_s**2 * ( l(sd_s) + noise_level - l(p_s) )
+    C =  m_s **2 + 2*sd_s**2 * (l(sd_s) + noise_level - l(p_s))
     try:
         x = binomial_roots(A, B, C)
     except NoRootError:

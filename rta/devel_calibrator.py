@@ -57,18 +57,25 @@ R1 = c.D[c.D.run == 1].copy()
 x = R1.x.values
 y = R1.y.values
 
+from rta.math.binomial import binomial_roots
+
+A, B, C = 1.0, 1.5713103005881432, -0.39419118400936826
+binomial_roots(A, B, C)
+
+
 gms = GaussianMixtureSpline(chunks_no = 20, warm_start=False)
 gms.fit(x, y)
-gms.signal
-gms.plot()
+gms.plot(show=False)
 # plt.show()
 
 gms.means
-
+gms.signal_regions
 
 # Analysing the problem of incompatibility of noise vs signal for GMS
 
 
+
+plt.plot([3,1,4,1,5], 'ks-', mec='w', mew=5, ms=20)
 
 
 

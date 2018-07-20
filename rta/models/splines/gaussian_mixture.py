@@ -73,7 +73,6 @@ class GaussianMixtureSpline(Spline):
     Each chunk is denoised individually by a two-component gaussian mixture model.
 
     """
-
     def __init__(self,
                  chunks_no  = 20,
                  warm_start = True):
