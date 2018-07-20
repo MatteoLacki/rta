@@ -56,11 +56,13 @@ def fit_interlapping_mixtures(x, y,
         gm.fit(y[s:e])
         x_percentiles[i] = x[ss]
         # all the info we can get from a two-component gaussian mixture model
-        signal[ss:se]       = gm.is_signal(y[ss:se])
         probs[i,:]          = gm.probabilities()
         means[i,:]          = gm.means()
         sds[i,:]            = gm.standard_deviations()
-        signal_regions[i,:] = gm.signal_region()
+        bottom, top         = gm.signal_region()
+        signal_regions[i,:] = bottom, top
+        signal[ss:se]       = (bottom <= y[ss:se]) & (y[ss:se] <= top) 
+
     x_percentiles[i+1] = x[se] # the maximal value
     return signal, probs, means, sds, x_percentiles, signal_regions
 
@@ -98,8 +100,8 @@ class GaussianMixtureSpline(Spline):
         """Fit a denoised spline.
 
         Args:
-            x (np.array): 1D control
-            y (np.array): 1D response
+            x (np.array):   1D control
+            y (np.array):   1D response
             sort (logical): Are 'x' and 'y' sorted with respect to 'x'.
         """
         self.set_xy(x, y, drop_duplicates, sort)
@@ -143,11 +145,11 @@ class GaussianMixtureSpline(Spline):
         return "This is a spline model with gaussian mixture denoising."
 
     def plot(self,
-             knots_no = 1000,
-             plt_style = 'dark_background',
-             show = True,
-             fence = True,
-             medians = True,
+             knots_no    = 1000,
+             plt_style   = 'dark_background',
+             show        = True,
+             fence       = True,
+             medians     = True,
              fence_color = 'gold'):
         """Plot the spline.
 
@@ -156,6 +158,9 @@ class GaussianMixtureSpline(Spline):
             plt_style (str):   the matplotlib style used for plotting.
             fence_color (str): the color of the fence around signal region.
             show (logical):    show the plot immediately. Alternatively, add some more elements on the canvas before using it.
+            fence (logical):   plot the signal fence: region considered to be belonging to the signal.
+            medians (logical): plot estimates of the medians.
+            fence_color (str): the color of the fence
         """
         super().plot(knots_no, plt_style, show=False)
         if fence:
@@ -169,7 +174,7 @@ class GaussianMixtureSpline(Spline):
             plt.hlines(y = self.means[:,0],
                        xmin = x[0:-1],
                        xmax = x[1:],
-                       color= 'gold',
+                       color= fence_color,
                        linestyles = 'dashed')
         if show:
             plt.show()

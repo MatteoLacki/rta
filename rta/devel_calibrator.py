@@ -53,19 +53,9 @@ if __name__ == "__main__":
 
 from rta.models.splines.gaussian_mixture import GaussianMixtureSpline
 
-R1 = c.D[c.D.run == 1].copy()
-x = R1.x.values
-y = R1.y.values
-
-from rta.math.binomial import binomial_roots
-
-A, B, C = 1.0, 1.5713103005881432, -0.39419118400936826
-binomial_roots(A, B, C)
-
-
-gms = GaussianMixtureSpline(chunks_no = 20, warm_start=False)
+gms = GaussianMixtureSpline(chunks_no = 20, warm_start = False)
 gms.fit(x, y)
-gms.plot(show=False)
+gms.plot()
 # plt.show()
 
 gms.means

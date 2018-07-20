@@ -31,6 +31,23 @@ class TwoComponentGaussianMixture(GaussianMixture):
         signal_idx, noise_idx = np.argsort(self.covariances_.ravel())
         return [signal_idx, noise_idx]
 
+    def is_signal_gmm(self, new_x):
+        """Is the new point noise or signal.
+
+        Procedure uses the evalutation of the normal densities.
+        This can be done once much faster by estimating (once)
+        the region where signal's generalized denstity is lower
+        than that of noise. 
+        Generalized density = density x mixture probability.
+        So, better use the 'is_signal' method.
+
+        new_x (np.array of floats): points to classify as signal (True) or noise (False).
+        """
+        signal_idx,_ = self._i()
+        if len(new_x.shape) == 1:
+            new_x.shape = new_x.shape[0], 1
+        return self.predict(new_x) == signal_idx
+
     def is_signal(self, new_x):
         """Is the new point noise or signal.
 
@@ -74,6 +91,9 @@ class TwoComponentGaussianMixture(GaussianMixture):
         The signal region is defined as the region where 
         the density of signal times its probability is greater
         than the density of noise times its probability.
+
+        Args:
+            approximate (logical): Should we return the approximate region, which can be only smaller.
 
         Returns:
             tuple: left and right ends of the signal region. (+∞,-∞) if it is empty.
