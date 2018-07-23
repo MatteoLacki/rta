@@ -63,8 +63,8 @@ def mad_window_filter(x, y,
     x_percentiles[i+1] = x[se] # the maximal value
     return signal, medians, sds, x_percentiles
 
-
-
+# TODO
+# check if the whole stuff will be faster with set_smoothing_factor
 class RobustSpline(Spline):
     def __init__(self,
                  chunks_no = 20,

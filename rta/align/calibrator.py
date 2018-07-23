@@ -13,8 +13,16 @@ from rta.models.base_model     import fitted, predict
 from rta.models.splines.robust import robust_spline
 
 
-
 def cv_run_param(r, x, y, f, p):
+    """Little wrapper around the robust splines.
+
+    Args:
+        r (int or str) : The number of given run.
+        x (np.array):    Control (usually retention time or drift time).
+        y (np.array):    Response (usually distance to the median retention time or drift time).
+        f (np.array):    Assignments to different folds.
+        p (dict):        A dictionary of additional parameters for the robust spline.
+    """
     m = robust_spline(x, y,
                       drop_duplicates = False,
                       sort            = False,
@@ -33,7 +41,7 @@ class Calibrator(object):
         Args:
             preprocessed_data (pandas.DataFrame): data to assign folds to.
             feature (string): the name of the feature in the column space of the preprocessed_data that will be aligned.
-
+            folds_no (int):     the number of folds to split the data into.
         """
         # filter out peptides that occur in runs in groups smaller than ''
         self.folds_no = folds_no
@@ -56,7 +64,6 @@ class Calibrator(object):
 
         Args:
             fold (function):    the folding function.
-            folds_no (int):     the number of folds to split the data into.
             shuffle (boolean):  shuffle the points while folding?
         """
         if fold.__name__ == 'stratified_group_folds':
@@ -83,7 +90,6 @@ class Calibrator(object):
         Args:
             sort (logical):             sort the data by the control variable 'x'?
             drop_duplicates (logical):  drop duplicates in the control variable 'x'?
-
         """
         folds = np.arange(self.folds_no)
         for r, d_r in self.D.groupby('run'):
@@ -185,9 +191,9 @@ class DTcalibrator(Calibrator):
         """Initialize the Calibrator.
 
         Args:
-            preprocessed_data (pd.DataFrame): data to assign folds to.
-            feature (string): the name of the feature in the column space of the preprocessed_data that will be aligned.
-
+            preprocessed_data (pd.DataFrame): Data to assign folds to.
+            feature (string):                 The name of the feature in the column space of the preprocessed_data that will be aligned.
+            folds_no (int):                   The number of folds to split the data into.
         """
         self.folds_no = folds_no
         self.d = preprocessed_data
@@ -204,6 +210,7 @@ class DTcalibrator(Calibrator):
                          self.feature,
                          self.feature_stat_distance]]
         self.D.columns = ['id', 'run', 'x', 'y']
+
 
     def _trim_stats_and_D(self, retain):
         """Filter peptides that are not in 'self.stats.index'.
