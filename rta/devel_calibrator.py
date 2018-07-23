@@ -19,6 +19,8 @@ if __name__ == "__main__":
     annotated_all, unlabelled_all = big_data()
     d = preprocess(annotated_all, min_runs_no,
                    _get_stats = {'retain_all_stats': True})
+
+
     c = Calibrator(d, feature='rt', folds_no=folds_no)
     c.fold()
     c.calibrate()
@@ -48,4 +50,13 @@ if __name__ == "__main__":
     dt_c.plot()
     m = dt_c.cal_res[0][2]
     m.plot()
+
+
+# should the calibrator have a routing for multiple fitting?
+# it can use the same folding then: convenient and saves time.
+# maybe we could even save on sorting values?
+
+# problem: recalculate the statistics of the preprocessed data 
+
+
 

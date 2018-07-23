@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from rta.array.operations   import dedup_sort
 from rta.models.base_model  import Model
 from rta.stats.stats        import mad, mae, confusion_matrix
 

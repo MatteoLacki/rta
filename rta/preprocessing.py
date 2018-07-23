@@ -13,7 +13,7 @@ def ordered_str(x):
 
 
 
-class DataPreprocessor(object):
+class Data(object):
     def __init__(self,
                  annotated_peptides,
                  var_names   = ('rt', 'dt', 'mass'),
@@ -37,6 +37,8 @@ class DataPreprocessor(object):
         self.D = annotated_peptides[all_col_names].copy()
         self.filtered_unfoldable = False
         self.filtered_different_charges_across_runs = False
+        # self.calibration_cnt = {vn: 0 for vn in var_names}
+
 
     def get_stats(self, stat = np.median,
                         min_runs_no = 5,
@@ -54,22 +56,25 @@ class DataPreprocessor(object):
             retain_all_stats (logical): retain general statistics on peptides without focus on those that appear at least in 'min_runs_no'?
         """
         self.min_runs_no = min_runs_no
-        self.stat_name = stat.__name__
-        D_id = self.D.groupby('id')
+        self.stat_name   = stat.__name__
+
+        D_id  = self.D.groupby('id')
         stats = D_id[self.var_names].agg(stat)
-        stats.columns = [n + "_" + self.stat_name for n in self.var_names]
+
+        stats.columns    = [n + "_" + self.stat_name for n in self.var_names]
         stats['runs_no'] = D_id.id.count()
         # this should be rewritten in C.
-        stats['runs'] = D_id.run.agg(ordered_str)
+        stats['runs']    = D_id.run.agg(ordered_str)
+
         # counting unique charge states per peptide group
         stats['charges'] = D_id.charge.nunique()
         if retain_all_stats:
             self.all_stats = stats
-        runs_no_stats = stats.groupby('runs_no').size().values
-        peptides_no = np.flip(runs_no_stats, 0).cumsum()
+        runs_no_stats    = stats.groupby('runs_no').size().values
+        peptides_no      = np.flip(runs_no_stats, 0).cumsum()
         self.peptides_no = {i + 1:peptides_no[-i-1] for i in range(len(runs_no_stats))}
-        self.stats = stats[stats.runs_no >= self.min_runs_no].copy()
-        self.runs = self.D[self.run_name].unique()
+        self.stats       = stats[stats.runs_no >= self.min_runs_no].copy()
+        self.runs        = self.D[self.run_name].unique()
 
 
     def get_distances_to_stats(self):
@@ -132,7 +137,7 @@ def preprocess(annotated_peptides,
                _DataPreprocessor={},
                _get_stats={}):
     """Wrapper around preprocessing of the annotated peptides.""" 
-    d = DataPreprocessor(annotated_peptides, **_DataPreprocessor)
+    d = Data(annotated_peptides, **_DataPreprocessor)
     d.get_stats(min_runs_no=min_runs_no, **_get_stats)
     d.get_distances_to_stats()
     return d

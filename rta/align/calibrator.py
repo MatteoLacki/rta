@@ -1,11 +1,11 @@
 """A class for calibrating the parameters of the model. """
 
-import matplotlib.pyplot as plt
+import matplotlib.pyplot  as plt
 from collections      import defaultdict
 from math             import inf
 from multiprocessing  import Pool, cpu_count
-import numpy  as np
-import pandas as pd
+import numpy              as np
+import pandas             as pd
 
 from rta.cv.folds              import replacement_folds_strata
 from rta.cv.folds              import stratified_group_folds
@@ -33,22 +33,22 @@ def cv_run_param(r, x, y, f, p):
 
 class Calibrator(object):
     def __init__(self, 
-                 preprocessed_data,
+                 data,
                  feature='rt',
                  folds_no=10):
         """Initialize the Calibrator.
 
         Args:
-            preprocessed_data (pandas.DataFrame): data to assign folds to.
-            feature (string): the name of the feature in the column space of the preprocessed_data that will be aligned.
+            data (pandas.DataFrame): data to assign folds to.
+            feature (string): the name of the feature in the column space of the data that will be aligned.
             folds_no (int):     the number of folds to split the data into.
         """
         # filter out peptides that occur in runs in groups smaller than ''
         self.folds_no = folds_no
-        self.d = preprocessed_data
+        self.d = data
         self.d.filter_unfoldable_strata(self.folds_no)
         self.feature = feature
-        self.feature_stat = feature + '_' + preprocessed_data.stat_name
+        self.feature_stat = feature + '_' + data.stat_name
         self.feature_stat_distance = self.feature_stat + '_distance'
         self.D = self.d.D[[self.d.pept_id,
                            self.d.run_name,
@@ -142,6 +142,8 @@ class Calibrator(object):
             self.cal_res = p.starmap(cv_run_param,
                                      self.iter_run_param())
 
+
+
     def plot(self,
              opt_var   = 'chunks_no',
              fold_stat = 'fold_mad',
@@ -185,21 +187,21 @@ class Calibrator(object):
 
 class DTcalibrator(Calibrator):
     def __init__(self,
-                 preprocessed_data,
+                 data,
                  feature='dt',
                  folds_no=10):
         """Initialize the Calibrator.
 
         Args:
-            preprocessed_data (pd.DataFrame): Data to assign folds to.
-            feature (string):                 The name of the feature in the column space of the preprocessed_data that will be aligned.
+            data (pd.DataFrame): Data to assign folds to.
+            feature (string):                 The name of the feature in the column space of the data that will be aligned.
             folds_no (int):                   The number of folds to split the data into.
         """
         self.folds_no = folds_no
-        self.d = preprocessed_data
+        self.d = data
         self.d.filter_unfoldable_strata(self.folds_no)
         self.feature = feature
-        self.feature_stat = feature + '_' + preprocessed_data.stat_name
+        self.feature_stat = feature + '_' + data.stat_name
         self.feature_stat_distance = self.feature_stat + '_distance'
         self.D = self.d.D
         self.pept_id = self.d.pept_id
@@ -223,7 +225,7 @@ class DTcalibrator(Calibrator):
 
 
 
-def calibrate_rt(preprocessed_data,
+def calibrate_rt(data,
                  folds_no   = 10,
                  fold       = stratified_group_folds,
                  shuffle    = True,
@@ -234,18 +236,19 @@ def calibrate_rt(preprocessed_data,
     """Calibrate the retention time.
 
     Args:
-        preprocessed_data (pd.DataFrame): Data to assign folds to.
-        folds_no (int):                   Number of folds to split the data into.
-        fold (function):                  The function producing folds.
-        shuffle (boolean):                Shuffle the points while folding?
-        parameters (iterable):            Dictionaries with parameter-value entries.
-        cores_no (int):                   Number of cores use by multiprocessing.
-        fold_stat (str):                  Name of the statistic used to summarize errors on the test set on one fold.
-        stat (str):                       Name of the statistic used to summarize fold statistics.
+        data (Data):           Data to assign folds to.
+        folds_no (int):        Number of folds to split the data into.
+        fold (function):       The function producing folds.
+        shuffle (boolean):     Shuffle the points while folding?
+        parameters (iterable): Dictionaries with parameter-value entries.
+        cores_no (int):        Number of cores use by multiprocessing.
+        fold_stat (str):       Name of the statistic used to summarize errors on the test set on one fold.
+        stat (str):            Name of the statistic used to summarize fold statistics.
+    
     Returns:
         Calibrator : a funky instance of a calibrator.
     """
-    c = Calibrator(preprocessed_data, feature = 'rt')
+    c = Calibrator(data, feature = 'rt')
     c.set_folds(folds_no, fold, shuffle)
     c.calibrate(parameters, cores_no)
     c.select_best_models(fold_stat, stat)
@@ -253,7 +256,7 @@ def calibrate_rt(preprocessed_data,
 
 
 
-def calibrate_dt(preprocessed_data,
+def calibrate_dt(data,
                  folds_no   = 10,
                  fold       = stratified_group_folds,
                  shuffle    = True,
@@ -264,18 +267,19 @@ def calibrate_dt(preprocessed_data,
     """Calibrate the drift time.
 
     Args:
-        preprocessed_data (pd.DataFrame): Data to assign folds to.
-        folds_no (int):                   Number of folds to split the data into.
-        fold (function):                  The function producing folds.
-        shuffle (boolean):                Shuffle the points while folding?
-        parameters (iterable):            Dictionaries with parameter-value entries.
-        cores_no (int):                   Number of cores use by multiprocessing.
-        fold_stat (str):                  Name of the statistic used to summarize errors on the test set on one fold.
-        stat (str):                       Name of the statistic used to summarize fold statistics.
+        data (Data):           Data to assign folds to.
+        folds_no (int):        Number of folds to split the data into.
+        fold (function):       The function producing folds.
+        shuffle (boolean):     Shuffle the points while folding?
+        parameters (iterable): Dictionaries with parameter-value entries.
+        cores_no (int):        Number of cores use by multiprocessing.
+        fold_stat (str):       Name of the statistic used to summarize errors on the test set on one fold.
+        stat (str):            Name of the statistic used to summarize fold statistics.
+    
     Returns:
         Calibrator : a funky instance of a calibrator.
     """
-    c = Calibrator(preprocessed_data, feature = 'dt')
+    c = Calibrator(data, feature = 'dt')
     c.set_folds(folds_no, fold, shuffle)
     c.calibrate(parameters, cores_no)
     c.select_best_models(fold_stat, stat)
