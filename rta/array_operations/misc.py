@@ -1,4 +1,21 @@
 import numpy as np
+import pandas as pd
+
+
+def dedup_sort(x, y, 
+               drop_duplicates=True,
+               sort=True):
+    """Remove dulicate x entries in x and for the corresponding y indices. 
+    Sort by x."""
+    if drop_duplicates or sort:
+        d = pd.DataFrame({'x':x, 'y':y})
+        if drop_duplicates:
+            d = d.drop_duplicates(subset='x', keep=False)
+        if sort:
+            d = d.sort_values(['x'])
+        return d.x.values, d.y.values
+    else:
+        return x, y
 
 
 def get_quantiles(x, chunks_no=4):
