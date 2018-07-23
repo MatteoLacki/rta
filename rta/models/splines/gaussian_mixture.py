@@ -102,7 +102,8 @@ class GaussianMixtureSpline(Spline):
         Args:
             x (np.array):   1D control
             y (np.array):   1D response
-            sort (logical): Are 'x' and 'y' sorted with respect to 'x'.
+            drop_duplicates (logical): Drop rows in xy dataframe where 'x' is not uniquely determined.
+            sort (logical): Sort rows in xy dataframe w.r.t. 'x'.
         """
         self.set_xy(x, y, drop_duplicates, sort)
         self.signal, self.probs, self.means, self.sds,\

@@ -49,10 +49,42 @@ def confusion_matrix(real, pred):
     Return:
         out (np.array): confusion matrix.
     """
-    return np.array([[np.sum(np.logical_and( real, pred)), np.sum(np.logical_and(~real, pred))],
-                     [np.sum(np.logical_and( real,~pred)), np.sum(np.logical_and(~real,~pred))]], 
+    return np.array([[np.sum(real &  pred), np.sum(~real &  pred)],
+                     [np.sum(real & ~pred), np.sum(~real & ~pred)]], 
                      dtype=int)
 
+
+def accuracy(cm):
+    """True positives and true negatives vs all assignments.
+
+    Args:
+        cm (2x2 np.array): A confusion matrix.
+    Returns:
+        float: Accuracy of the classifier.
+    """
+    return (cm[0,0] + cm[1,1])/np.sum(cm)
+
+
+def sensitivity(cm):
+    """True positives vs all positives.
+
+    Args:
+        cm (2x2 np.array): A confusion matrix.
+    Returns:
+        float: Sensitivity of the classifier.
+    """
+    return cm[0,0]/(cm[0,0] + cm[0,1])
+
+
+def false_discovery_rate(cm):
+    """False positives vs all positives.
+
+    Args:
+        cm (2x2 np.array): A confusion matrix.
+    Returns:
+        float: False discovery rate of the classifier.
+    """
+    return cm[0,1]/(cm[0,0] + cm[0,1])
 
 
 def compare_fold_quantiles(data,

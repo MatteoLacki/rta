@@ -43,7 +43,7 @@ def mad_window_filter(x, y,
         sts (np.array) Estimates of standard deviations in consecutive bins.
         x_percentiles (np.array) Knots of the spline fitting, needed to filter out noise is 'is_signal'.        
     """
-    x, y = sort_by_x(x, y) if sort else (x, y)
+    x, y    = sort_by_x(x, y) if sort else (x, y)
     signal  = np.empty(len(x),    dtype = np.bool_)
     medians = np.empty(chunks_no, dtype = np.float64)
     sds     = np.empty(chunks_no, dtype = np.float64)
@@ -63,8 +63,8 @@ def mad_window_filter(x, y,
     x_percentiles[i+1] = x[se] # the maximal value
     return signal, medians, sds, x_percentiles
 
-
-
+# TODO
+# check if the whole stuff will be faster with set_smoothing_factor
 class RobustSpline(Spline):
     def __init__(self,
                  chunks_no = 20,
@@ -85,11 +85,10 @@ class RobustSpline(Spline):
         """Fit a robust spline.
         
         Args:
-            x (np.array): 1D control
-            y (np.array): 1D response
-            chunks_no (int): The number of quantile bins.
-            sd_cnt (float): The number of standard deviations beyond which points are considered noise.
-            drop_duplicates_and_sort (logical) Drop duplicates in 'x' and sort 'x' and 'y' w.r.t. 'x'?
+            x (np.array):              The control variable.
+            y (np.array):              The response variable.
+            drop_duplicates (logical): Drop rows in xy dataframe where 'x' is not uniquely determined.
+            sort (logical):            Sort rows in xy dataframe w.r.t. 'x'.
         """
         self.set_xy(x, y, drop_duplicates, sort)
         self.signal, self.medians, self.sds, self.x_percentiles = \
@@ -108,7 +107,7 @@ class RobustSpline(Spline):
         Args:
             x (np.array of floats): x-coordinates of points to classify as signal or noise.
             y (np.array of floats): y-coordinates of points to classify as signal or noise.
-        
+
         Returns:
             np.array of logicals: should the points be considered signal?
         """
@@ -128,7 +127,15 @@ class RobustSpline(Spline):
         """Represent the model."""
         fit = hasattr(self, 'signal')
         cv = hasattr(self, 'fold_stats')
-        return "This is a RobustSpline super-duper fitting.\n\tFitted\t\t\t{}\n\tCross-validated\t\t{}".format(fit, cv)
+        out = "RobustSpline"
+        if fit or cv:
+            out += " ("
+            if fit:
+                out += "fitted"
+            if cv:
+                out += ", cross-validated"
+            out += ")"
+        return out
 
     def plot(self,
              knots_no    = 1000,

@@ -11,7 +11,15 @@ def dedup_sort(x, y,
                drop_duplicates=True,
                sort=True):
     """Remove dulicate x entries in x and for the corresponding y indices. 
-    Sort by x."""
+    Sort by x.
+    
+    Args:
+        x (np.array):              The control variable.
+        y (np.array):              The response variable.
+        drop_duplicates (logical): Drop rows in xy dataframe where 'x' is not uniquely determined.
+        sort (logical):            Sort rows in xy dataframe w.r.t. 'x'.
+
+    """
     if drop_duplicates or sort:
         d = pd.DataFrame({'x':x, 'y':y})
         if drop_duplicates:
@@ -27,9 +35,12 @@ class Spline(Model):
     """Abstract class for splines."""
 
     def plot(self,
-             knots_no = 1000,
+             knots_no  = 1000,
              plt_style = 'dark_background',
-             show = True):
+             line_y_0  = True,
+             points    = True,
+             line      = True,
+             show      = True):
         """Plot the spline.
 
         Noise points are blue, signal has the color of papaya.
@@ -40,22 +51,52 @@ class Spline(Model):
             show (logical):  show the plot immediately. Alternatively, add some more elements on the canvas before using it.
         """
         plt.style.use(plt_style)
-        colors = np.full(self.signal.shape, "blue", dtype='<U30')
-        colors[self.signal] = 'grey'
-        plt.scatter(self.x, self.y, c=colors)
-        xs = np.linspace(min(self.x), max(self.x), knots_no)
-        ys = self.spline(xs)
-        plt.plot(xs, ys, c='orangered', linewidth=4)
+        if line_y_0:
+            plt.axhline(linewidth=1, ls='dashed', color='white')
+        if points:
+            colors = np.full(self.signal.shape, "blue", dtype='<U30')
+            colors[self.signal] = 'grey'
+            plt.scatter(self.x, self.y, c=colors)
+        if line:
+            xs = np.linspace(min(self.x), max(self.x), knots_no)
+            ys = self.spline(xs)
+            plt.plot(xs, ys, c='orangered', linewidth=4)
         if show:
             plt.show()
+
 
     def set_xy(self, x, y,
                drop_duplicates=True,
                sort=True):
+        """Set the control and response variables.
+
+        Args:
+            x (np.array):              The control variable.
+            y (np.array):              The response variable.
+            drop_duplicates (logical): Drop rows in xy dataframe where 'x' is not uniquely determined.
+            sort (logical):            Sort rows in xy dataframe w.r.t. 'x'.
+        """
         assert len(x) == len(y)
         self.x, self.y = dedup_sort(x, y, drop_duplicates, sort)
 
+
+    def __call__(self, x):
+        """Predict the values at the new data points.
+
+        Args:
+            x (np.array): control variable.
+
+        """
+        return self.spline(x)
+
+
     def predict(self, x):
+        """Predict the values at the new data points.
+
+        Args:
+            x (np.array): control variable.
+
+        """
         return self.spline(x)
 
     def fitted(self):

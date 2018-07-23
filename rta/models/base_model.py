@@ -1,16 +1,41 @@
 class Model(object):
     """A container for storing results of fitting."""
     def fit(self, x, y, **kwds):
-        """Fit the model."""
+        """Fit the model.
+
+        Args:
+            x (np.array): The control variable.
+            y (np.array): The response variable.
+        """
         raise NotImplementedError
 
     def refit(self, **kwds):
         """Refit the model."""
         raise NotImplementedError
 
-    def predict(self, newdata={}, *args, **kwds):
-        """Predict the values at the new data points."""
+    def __call__(self, x, *args, **kwds):
+        """Predict the values at the new data points.
+
+        Args:
+            x (np.array): The control variable.
+            *args       : Additional arguments.
+            **kwds      : Additional arguments.
+
+        Returns:
+            np.array : Predicted values corresponding to values of 'x'.
+
+        """
         raise NotImplementedError
+
+    def predict(self, x, *args, **kwds):
+        """Predict the values at the new data points.
+
+        Args:
+            x (np.array): control variable.
+            *args       : additional arguments.
+            **kwds      : additional arguments.
+        """
+        self(x, y, *args, **kwds)
 
     def coef(self):
         """Retrieve spline coefficient.
@@ -39,8 +64,21 @@ class Model(object):
         raise NotImplementedError
 
 
-def predict(model, newdata={}, *args, **kwds):
-    return model.predict(newdata, *args, **kwds)
+def predict(model, x, *args, **kwds):
+    """Predict the values at the new data points.
+
+    Args:
+        model       : The model of interest.
+        x (np.array): The control variable.
+        *args       : Additional arguments.
+        **kwds      : Additional arguments.
+
+    Returns:
+        np.array : Predicted values corresponding to values of 'x'.
+
+    """
+    return model(x, y, *args, **kwds)
+
 
 def fitted(model):
     return model.fitted()
