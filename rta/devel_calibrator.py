@@ -27,11 +27,10 @@ if __name__ == "__main__":
     # parameters = [{"chunks_no": n }for n in range(2,200)]
     # c.calibrate(parameters)
     c.plot()
-    it = c.iter_run_param()
-    next(it)
-    m = c.cal_res[0][2]
+    c.select_best_models()
+    m = c.best_models[1]
     m.plot()
-    m.cv_stats
+
     # finish off the collection of stats for purpose of choosing
     # the best models
     dt_cal = Calibrator(d, feature='dt', folds_no=folds_no)
@@ -49,3 +48,4 @@ if __name__ == "__main__":
     dt_c.plot()
     m = dt_c.cal_res[0][2]
     m.plot()
+

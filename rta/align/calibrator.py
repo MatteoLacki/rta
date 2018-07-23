@@ -1,14 +1,15 @@
 """A class for calibrating the parameters of the model. """
 
-from collections import defaultdict
 import matplotlib.pyplot as plt
-from multiprocessing import Pool, cpu_count
-import numpy as np
+from collections      import defaultdict
+from math             import inf
+from multiprocessing  import Pool, cpu_count
+import numpy  as np
 import pandas as pd
 
-from rta.cv.folds           import replacement_folds_strata
-from rta.cv.folds           import stratified_group_folds
-from rta.models.base_model  import fitted, predict
+from rta.cv.folds              import replacement_folds_strata
+from rta.cv.folds              import stratified_group_folds
+from rta.models.base_model     import fitted, predict
 from rta.models.splines.robust import robust_spline
 
 
@@ -47,9 +48,10 @@ class Calibrator(object):
                            self.feature_stat_distance]]
         self.D.columns = ['id', 'run', 'x', 'y']
 
+
     def fold(self,
-             fold=stratified_group_folds,
-             shuffle=True):
+             fold    = stratified_group_folds,
+             shuffle = True):
         """Assign to folds.
 
         Args:
@@ -72,6 +74,7 @@ class Calibrator(object):
                           left_on='id',
                           right_index=True)
 
+
     def iter_run_param(self, 
                        sort            = True,
                        drop_duplicates = True):
@@ -93,9 +96,28 @@ class Calibrator(object):
                           d_r.y.values,
                           d_r.fold.values, p)
 
-    def select_best_model(self):
-        """Select the best model from the results."""
-        pass
+
+    def select_best_models(self,
+                           fold_stat = 'fold_mad',
+                           stat      = 'median'):
+        """Select best models for each run.
+
+        Args:
+            fold_stat (str): Name of the statistic used to summarize errors on the test set on one fold.
+            stat (str):      Name of the statistic used to summarize fold statistics.
+        Returns:
+            
+        """
+        bm_stat_min = defaultdict(lambda: inf)
+        best_models = {}
+
+        for r, p, m in self.cal_res:
+            min_stat = m.cv_stats.loc[stat, fold_stat]
+            if min_stat < bm_stat_min[r]:
+                bm_stat_min[r] = min_stat
+                best_models[r] = m
+        self.best_models = best_models
+
 
     def calibrate(self,
                   parameters = None,
@@ -103,8 +125,8 @@ class Calibrator(object):
         """Calibrate the selected dimension of the data.
 
         Args:
-            parameters (iterable):  dictionaries with parameter-value entries.
-            cores_no (int):         number of cores use by multiprocessing.
+            parameters (iterable):  Dictionaries with parameter-value entries.
+            cores_no (int):         Number of cores use by multiprocessing.
         """
         if not parameters:
             parameters = [{"chunks_no": 2**e} for e in range(2,10)]
@@ -114,41 +136,41 @@ class Calibrator(object):
             self.cal_res = p.starmap(cv_run_param,
                                      self.iter_run_param())
 
-    #     self.select_best_model()
-    #     # align the given dimension
-    #     self.d['aligned_' + self.feature] = fitted(best_model)
-
     def plot(self,
              opt_var   = 'chunks_no',
+             fold_stat = 'fold_mad',
+             stat      = 'median',
+             y_label   = 'median fold median absolute error',
              plt_style = 'dark_background',
              show      = True,
-             **kwds):
+           **kwds):
         """Plot calibration error curves.
 
         Args:
             opt_var (str):   The name of the variable to optimize.
+            fold_stat (str): Name of the statistic used to summarize errors on the test set on one fold.
+            stat (str):      Name of the statistic used to summarize fold statistics.
             plt_style (str): Matplotlib style to apply to the plot. This probably should be a global setting.
             show (logical):  Should we show the plot immediately, or do you want to add some more things before running "plt.show"?
         """
         plt.style.use(plt_style)
         opt_var_vals = sorted([p[opt_var] for p in self.parameters])
-        mad_mean = defaultdict(list)
-        mad_std  = defaultdict(list)
+        stats = defaultdict(list)
+        # mad_std  = defaultdict(list)
         for r, p, m in self.cal_res:
             s = m.cv_stats
-            mad_mean[r].append(s.loc['mean', 'fold_mae'])
-            mad_std[r].append( s.loc['std',  'fold_mae'])
+            stats[r].append(s.loc[stat, fold_stat])
+            # mad_std[r].append( s.loc['std',  'fold_mae'])
 
         for r in self.d.runs:
-            x, y = opt_var_vals, mad_mean[r]
-            # plt.plot(x, y, label=r)
+            x, y = opt_var_vals, stats[r]
             plt.semilogx(x, y, basex=2, label=r)
             plt.text(x[ 0], y[ 0], 'Run {}'.format(r))
             plt.text(x[-1], y[-1], 'Run {}'.format(r))
 
         plt.xlabel(opt_var)
-        plt.ylabel('MAD')
-        plt.title('Training-Test Median Absolute Deviation')
+        plt.ylabel(y_label)
+        plt.title('Training-Test comparison')
 
         if show:
             plt.show()
@@ -163,7 +185,7 @@ class DTcalibrator(Calibrator):
         """Initialize the Calibrator.
 
         Args:
-            preprocessed_data (pandas.DataFrame): data to assign folds to.
+            preprocessed_data (pd.DataFrame): data to assign folds to.
             feature (string): the name of the feature in the column space of the preprocessed_data that will be aligned.
 
         """
@@ -194,17 +216,60 @@ class DTcalibrator(Calibrator):
 
 
 
-# TODO: get this running.
-# def calibrate(preprocessed_data,
-#               feature='rt',
-#               folds_no=10,
-#               fold=stratified_group_folds,
-#               shuffle=True):
-#     """Calibrate the given feature of the data."""
-#     self.feature = feature
-#     calibrator = Calibrator(preprocessed_data, self.feature)
-#     calibrator.set_folds(folds_no, fold, shuffle)
-#     calibrator.calibrate()
-#     return calibrator.dp, calibrator.results
-#     # return calibrator.dp, calibrator.best_model
+def calibrate_rt(preprocessed_data,
+                 folds_no   = 10,
+                 fold       = stratified_group_folds,
+                 shuffle    = True,
+                 parameters = None,
+                 cores_no   = cpu_count(),
+                 fold_stat = 'fold_mad',
+                 stat      = 'median'):
+    """Calibrate the retention time.
 
+    Args:
+        preprocessed_data (pd.DataFrame): Data to assign folds to.
+        folds_no (int):                   Number of folds to split the data into.
+        fold (function):                  The function producing folds.
+        shuffle (boolean):                Shuffle the points while folding?
+        parameters (iterable):            Dictionaries with parameter-value entries.
+        cores_no (int):                   Number of cores use by multiprocessing.
+        fold_stat (str):                  Name of the statistic used to summarize errors on the test set on one fold.
+        stat (str):                       Name of the statistic used to summarize fold statistics.
+    Returns:
+        Calibrator : a funky instance of a calibrator.
+    """
+    c = Calibrator(preprocessed_data, feature = 'rt')
+    c.set_folds(folds_no, fold, shuffle)
+    c.calibrate(parameters, cores_no)
+    c.select_best_models(fold_stat, stat)
+    return c
+
+
+
+def calibrate_dt(preprocessed_data,
+                 folds_no   = 10,
+                 fold       = stratified_group_folds,
+                 shuffle    = True,
+                 parameters = None,
+                 cores_no   = cpu_count(),
+                 fold_stat = 'fold_mad',
+                 stat      = 'median'):
+    """Calibrate the drift time.
+
+    Args:
+        preprocessed_data (pd.DataFrame): Data to assign folds to.
+        folds_no (int):                   Number of folds to split the data into.
+        fold (function):                  The function producing folds.
+        shuffle (boolean):                Shuffle the points while folding?
+        parameters (iterable):            Dictionaries with parameter-value entries.
+        cores_no (int):                   Number of cores use by multiprocessing.
+        fold_stat (str):                  Name of the statistic used to summarize errors on the test set on one fold.
+        stat (str):                       Name of the statistic used to summarize fold statistics.
+    Returns:
+        Calibrator : a funky instance of a calibrator.
+    """
+    c = Calibrator(preprocessed_data, feature = 'dt')
+    c.set_folds(folds_no, fold, shuffle)
+    c.calibrate(parameters, cores_no)
+    c.select_best_models(fold_stat, stat)
+    return c
