@@ -31,6 +31,52 @@ def cv_run_param(r, x, y, f, p):
     return r, p, m
 
 
+class NeoCalibrator(object):
+    def __init__(self, 
+                 data,
+                 feature='rt',
+                 folds_no=10):
+        """Initialize the Calibrator.
+
+        Args:
+            data (pandas.DataFrame): data to assign folds to.
+            feature (string): the name of the feature in the column space of the data that will be aligned.
+            folds_no (int):     the number of folds to split the data into.
+        """
+        self.folds_no = folds_no
+        self.stats    = data['stats'].copy()
+        self.feature  = feature
+        self.d        = data
+        # local copy of the dataset, trimmed to necessary columns.
+        # this is where additional columns with aligned values will appear?
+        self.D        = self.d['data'][[self.d['pept_id'],
+                                        self.d['run_name'],
+                                        self.feature]]
+        self.align_it = 0
+
+
+    def runs_statistic(self, stat = np.median):
+        """Compute the statistic for each peptide group and compute the distance to it.
+
+        Distance to this statistic will be the basis for the alignment.
+        We append it to the local copy of the aligned data, D, too.
+
+        Args:
+            stat (function): the statistic to be applied.
+        """
+        peptide_grouped_feature = self.D.groupby(self.d['pept_id'])[self.feature]
+        stat_col                = 'runs_stat_{}'.format(self.align_it)
+        self.stats[stat_col]    = peptide_grouped_feature.agg(stat)
+        self.D = pd.merge(self.D,
+                          self.stats[[stat_col]],
+                          left_on     = "id",
+                          right_index = True)
+        D_col = 'runs_stat_dist_{}'.format(self.align_it)
+        self.D[D_col] = self.D[self.feature] - self.D[stat_col]
+        # record that we have just made the alignment.
+        self.align_it += 1
+
+
 class Calibrator(object):
     def __init__(self, 
                  data,
@@ -56,6 +102,8 @@ class Calibrator(object):
                            self.feature_stat_distance]]
         self.D.columns = ['id', 'run', 'x', 'y']
 
+    def get_stats(self):
+        pass
 
     def fold(self,
              fold    = stratified_group_folds,
@@ -88,8 +136,8 @@ class Calibrator(object):
         """Iterate over the data runs and fitting parameters.
 
         Args:
-            sort (logical):             sort the data by the control variable 'x'?
-            drop_duplicates (logical):  drop duplicates in the control variable 'x'?
+            sort (logical):            sort the data by the control variable 'x'?
+            drop_duplicates (logical): drop duplicates in the control variable 'x'?
         """
         folds = np.arange(self.folds_no)
         for r, d_r in self.D.groupby('run'):
