@@ -153,4 +153,26 @@ def percentiles(x, k, inner=False):
                        count=k+1 if not inner else k-1)
 
 
+def iter_cluster_ends(assignments):
+    """Iterate over left and right ends of subsequent clusters defined by assignments.
 
+    Provides iteration over 'sparse' representation of the assignments to clusters,
+    i.e. tuples composed of the index of the first element in cluster,
+    index of the last element of cluster.
+    Clusters are assumed to appear orderly one after another.
+
+    Args:
+        assignments (iter): Iterator with clusters' assignents.
+    Yields:
+        tuple: a triplette consisting of the beginning and the end of a cluster and the cluster tag.
+    """
+    c_  = next(assignments) # cluster: 0 for a fresh generator.
+    i_  = 0
+    _i  = 1
+    for _c in assignments: # next cluster
+        if _c != c_:
+            yield i_, _i, int(c_) # start and end of cluster c_
+            c_ = _c
+            i_ = _i
+        _i += 1
+    yield i_, _i, int(c_) # start and end of the final cluster

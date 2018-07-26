@@ -154,7 +154,7 @@ class RobustSpline(Spline):
         super().plot(knots_no, plt_style, show=False)
         if fence:
             bottom = self.medians - self.sds * self.sd_cnt
-            top =    self.medians + self.sds * self.sd_cnt
+            top    = self.medians + self.sds * self.sd_cnt
             plot_signal_fence(self.x_percentiles,
                               bottom,
                               top,

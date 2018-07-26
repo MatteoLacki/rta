@@ -42,7 +42,7 @@ class Spline(Model):
              show      = True):
         """Plot the spline.
 
-        Noise points are blue, signal has the color of papaya.
+        Noise points are blue, signal: grey.
 
         Args:
             knots_no (int):  number of points used to plot the fitted spline?
@@ -119,34 +119,35 @@ class Spline(Model):
 
     def cv(self,
            folds,
-           fold_stats = (mae, mad),
-           model_stats= (np.mean, np.median, np.std),
-           confusion  = True):
+           fold_stats  = (mae, mad),
+           model_stats = (np.mean, np.median, np.std),
+           confusion   = True):
         """Run cross-validation.
 
         Results are saved as class fields.
 
         Args:
-            folds (np.array) an array of ints marking fold assignment.
-            fold_stats (iterable of callables) statistics to apply to the errors in each fold.
-            model_stats (iterable of callables) statistics to apply to fold_stats
-            confusion (boolean) calculate confusion matrix
+            folds (np.array):                    An array of ints marking fold assignment.
+            fold_stats (iterable of callables):  Statistics to apply to the errors in each fold.
+            model_stats (iterable of callables): Statistics to apply to fold_stats
+            confusion (boolean):                 Calculate confusion matrix
         """
         assert len(self.x) == len(folds)
-        S = []
-        FS  = []
-        n = self.copy()
+        S  = []
+        FS = []
+        # using a copy of the spline prevents from overwriting self.x and self.y
+        n  = self.copy()
         for fold in np.unique(folds):
-            x_train = self.x[folds != fold]
-            y_train = self.y[folds != fold]
-            x_test  = self.x[folds == fold]
-            y_test  = self.y[folds == fold]
+            x_train  = self.x[folds != fold]
+            y_train  = self.y[folds != fold]
+            x_test   = self.x[folds == fold]
+            y_test   = self.y[folds == fold]
             m_signal = self.signal[folds == fold]
             n.fit(x_train,
                   y_train,
-                  drop_duplicates=False,
-                  sort=False)
-            errors = np.abs(n.predict(x_test) - y_test)
+                  drop_duplicates = False,
+                  sort            = False)
+            errors   = np.abs(n.predict(x_test) - y_test)
             n_signal = n.is_signal(x_test, y_test)
             s = [stat(errors) for stat in fold_stats]
             S.append(s)
