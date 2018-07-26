@@ -24,6 +24,10 @@ if __name__ == "__main__":
     d = filter_unfoldable(d, folds_no)    
     nc = NeoCalibrator(d, feature='rt', folds_no=folds_no)
     nc.runs_statistic()
+    nc.fold()
+    nc.calibrate()
+    nc.plot()
+
 
 
     c = Calibrator(d, feature='rt', folds_no=folds_no)
