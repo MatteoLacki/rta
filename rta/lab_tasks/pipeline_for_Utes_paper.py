@@ -12,7 +12,7 @@ from collections import namedtuple
 from os.path     import join as join
 
 from rta.align.calibrator       import calibrator
-from rta.preprocessing          import preprocess
+from rta.preprocessing          import preprocess, filter_unfoldable
 from rta.data.column_names      import vars_annotated, vars_unlabelled
 
 
@@ -41,14 +41,13 @@ for abs_path in absolute_paths:
     unannotated = pd.read_csv(join(abs_path, 'unannotated_data.csv'),
                               usecols = vars_unlabelled)
     d = preprocess(annotated, min_runs_no)
+    d = filter_unfoldable(d, folds_no)
     c = calibrator(folds_no, min_runs_no, d, 'rt', 1)
-
-    c.fold()
-    c.calibrate()
-    c.select_best_models()
     calibrated_results.append(c)
 
 
+c = calibrated_results[0]
+c.best_models[1].plot()
 
 
 #@@@@@ The Mystery of strange distances.
