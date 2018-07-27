@@ -1,4 +1,21 @@
 import numpy as np
+import pandas as pd
+
+
+def dedup_sort(x, y, 
+               drop_duplicates=True,
+               sort=True):
+    """Remove dulicate x entries in x and for the corresponding y indices. 
+    Sort by x."""
+    if drop_duplicates or sort:
+        d = pd.DataFrame({'x':x, 'y':y})
+        if drop_duplicates:
+            d = d.drop_duplicates(subset='x', keep=False)
+        if sort:
+            d = d.sort_values(['x'])
+        return d.x.values, d.y.values
+    else:
+        return x, y
 
 
 def get_quantiles(x, chunks_no=4):
@@ -136,4 +153,26 @@ def percentiles(x, k, inner=False):
                        count=k+1 if not inner else k-1)
 
 
+def iter_cluster_ends(assignments):
+    """Iterate over left and right ends of subsequent clusters defined by assignments.
 
+    Provides iteration over 'sparse' representation of the assignments to clusters,
+    i.e. tuples composed of the index of the first element in cluster,
+    index of the last element of cluster.
+    Clusters are assumed to appear orderly one after another.
+
+    Args:
+        assignments (iter): Iterator with clusters' assignents.
+    Yields:
+        tuple: a triplette consisting of the beginning and the end of a cluster and the cluster tag.
+    """
+    c_  = next(assignments) # cluster: 0 for a fresh generator.
+    i_  = 0
+    _i  = 1
+    for _c in assignments: # next cluster
+        if _c != c_:
+            yield i_, _i, int(c_) # start and end of cluster c_
+            c_ = _c
+            i_ = _i
+        _i += 1
+    yield i_, _i, int(c_) # start and end of the final cluster

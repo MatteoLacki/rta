@@ -36,8 +36,6 @@ if __name__ == "__main__":
 
     from rta.models.SQSpline import SQSpline
 
-
-
     calibrator.d.D
 
 

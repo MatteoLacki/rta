@@ -4,6 +4,14 @@
 		"selected_items":
 		[
 			[
+				"prerp",
+				"preprocessing_args\tparam"
+			],
+			[
+				"prp",
+				"preprocess"
+			],
+			[
 				"runs",
 				"runs_no"
 			],
@@ -116,28 +124,33 @@
 	"buffers":
 	[
 		{
-			"file": "rta/models/SQSpline.py",
+			"contents": "from itertools import cycle, islice\nimport numpy as np\nfrom numpy.random import shuffle, choice\nimport pandas as pd\n\n\ndef K_folds(N, folds_no=10):\n    \"\"\"Simple K-folds with shuffling.\n\n    Args:\n        N (int):        number of elements to shuffle.\n        folds_no (int): number of folds to generate.\n    Returns:\n        np.array:       fold assignemt.\n    \"\"\"\n    K = folds_no\n    groups = np.full((N,), 0)\n    # produce an array of K numbers repeated \n    N_div_K = N // K\n    N_mod_K = N % K\n    for i in range(1, K):\n        groups[ i * N_div_K : (i+1) * N_div_K ] = i\n    if N_mod_K: \n        group_tags = np.arange(K)\n        shuffle(group_tags)         # random permutation of groups\n        groups[-N_mod_K:] = group_tags[0:N_mod_K] # assigning the remainder\n    shuffle(groups)\n    return groups\n\n\n\ndef peptide_stratified_folds(run_cnts, folds_no=10):\n    folds = np.zeros(sum(run_cnts), dtype=np.int8)\n    s = e = 0\n    for cnt in run_cnts:\n        e += cnt\n        folds[s:e] = K_folds(cnt, folds_no)\n        s = e\n    return folds\n\n\n\ndef shuffled_cycle(folds):\n    \"\"\"Shuffled cycles.\n\n    Args:\n        folds (list of ints): folds numbers.\n    Return:\n        Infinite sequence of shuffled folds, concatenated one after another.\n    \"\"\"\n    while True:\n        shuffle(folds)\n        for f in folds:\n            yield f\n\n\n\ndef iter_stratified_folds(strata_cnts, folds_no=10, shuffle=False):\n    \"\"\"Iterate over assignments to different strata,\n\n    Cycles through numbers in set 0,..,folds_no \n    with repetitions for all consecutive strata.\n\n    Args:\n        strata_cnts (iterable): counts of elements in subsequent strata.\n        folds_no (int):         the number of folds.\n        shuffle (boolean):      shuffle the cycle.\n\n    Yield:\n        a sequence of folds.\n    \"\"\"\n    folds = list(range(folds_no))\n    __folds_iter = shuffled_cycle if shuffle else cycle\n    for cnt in strata_cnts:\n        for i in islice(__folds_iter(folds), cnt):\n            yield i\n\n\n\ndef stratified_group_folds(strata_cnts,\n                           folds_no=10,\n                           shuffle=False):\n    \"\"\"Assign elements to folds based on strata counts, in peptide-id groups.\n\n    The strata counts are assumed to be ordered by the user.\n    Within each stratum, points are divided into folds in \n    consecutive batches of 'folds_no' points.\n    By default, points are prescibed to folds by their order of appearance.\n\n    \n    For instance, if retention times were 21.4, 31.5, 53.1, 64.4, 78.2 \n    and we wanted 3 folds, then these retention times would be simply mapped to\n    folds with numbers 0, 1, 2, 0, 1.\n    The 'run_cnts' induce the order of appearance of folds.\n    If 'shuffle=True', the numbers will be permuted each time.\n\n    Args:\n        strata_cnts (iterable): counts of elements in subsequent strata.\n        folds_no (int):         the number of folds.\n        shuffle (boolean):      shuffle the cycle.\n\n    Return:\n        out (np.array of ints): the folds prescription for individual peptide groups.\n    \"\"\"\n    elements_cnt = sum(strata_cnts)\n    iter_folds   = iter_stratified_folds(strata_cnts,\n                                         folds_no,\n                                         shuffle)\n    return np.fromiter(iter_folds, count=elements_cnt, dtype=np.int8)\n\n\ndef tenzer_folds(peptides_cnt, folds_no=10):\n    \"\"\"Create Tenzer folds without strata.\n\n    There is no additional grouping by peptide-ids here.\n    The 'natural randomness' of the data points is used.\n\n    Args:\n        peptides_cnt (int): number of peptides\n        folds_no (int): the number of folds the data will be divided into.\n\n    Return:\n        out (np.array of ints): the folds prescription for individual peptide groups.\n    \"\"\"\n    return np.fromiter(cycle(range(folds_no)),\n                       count=peptides_cnt,\n                       dtype=np.int8)\n\n\ndef random_tenzer_folds(peptides_cnt, folds_no=10):\n    \"\"\"Draw folds in Tenszer's windows, but randomly shuffled.\n    \n    There is no additional grouping by peptide-ids here.\n\n    Args:\n        peptides_cnt (int): number of peptides.\n        folds_no (int): the number of folds the data will be divided into.\n\n    Return:\n        out (np.array of ints): the folds prescription for individual peptide groups.\n    \"\"\"\n    folds = list(range(folds_no))\n    return np.fromiter(shuffled_folds(folds),\n                       count=peptides_cnt,\n                       dtype=np.int8)\n\n\ndef replacement_folds(peptide_groups_cnt, \n                      folds_no=10):\n    \"\"\"Assign peptide groups to folds independently one from another.\n\n    Args:\n        peptide_groups_cnt (int): number of peptide groups.\n        folds_no (int): the number of folds the data will be divided into.\n\n    Return:\n        out (np.array of ints): the folds prescription for individual peptide groups.\n    \"\"\"\n    return choice(folds_no,\n                  size=peptide_groups_cnt,\n                  replace=True)\n\ndef replacement_folds_strata(strata_cnts,\n                             folds_no=10,\n                             shuffle=False):\n    \"\"\"Assign peptide groups to folds independently one from another.\n\n    Args:\n        strata_cnts (iterable): numbers of peptide groups in each stratum.\n        folds_no (int): the number of folds the data will be divided into.\n        shuffle (boolean): for compability only.\n\n    Return:\n        out (np.array of ints): the folds prescription for individual peptide groups.\n    \"\"\"\n    return replacement_folds(sum(strata_cnts), folds_no)\n\n\ndef set_folds(preprocessed_data,\n              feature='rt',\n              fold=stratified_group_folds,\n              folds_no=10,\n              shuffle=True):\n    \"\"\"Assign to folds.\n\n    Args:\n        preprocessed_data (pandas.DataFrame): data to assign folds to.\n        feature (string):   the name of the feature in the column space of the preprocessed_data that will be aligned.\n        fold (function):    the folding function.\n        folds_no (int):     the number of folds to split the data into.\n        shuffle (boolean):  shuffle the points while folding?\n    \"\"\"\n    dp = preprocessed_data\n    dp.filter_unfoldable_strata(folds_no)\n    if fold.__name__ == 'stratified_group_folds':\n        # we want the result to be sorted w.r.t. median rt.\n        dp.stats.sort_values([\"runs\", dp.stat_name + '_' + feature],\n                             inplace=True)\n    dp.stats['fold'] = fold(dp.strata_cnts, folds_no, shuffle)\n    dp.D.drop(labels  = [c for c in dp.D.columns if 'fold' in c], \n              axis    = 1,\n              inplace = True)\n    dp.D = pd.merge(dp.D, dp.stats[['fold']],\n                    left_on='id', right_index=True)\n    return dp\n",
+			"file": "rta/cv/folds.py",
+			"file_size": 6712,
+			"file_write_time": 131759029234770184,
 			"settings":
 			{
-				"buffer_size": 3248,
+				"buffer_size": 6712,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "docs/source/conf.py",
+			"settings":
+			{
+				"buffer_size": 5152,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "rta/models/least_squares_splines.py",
+			"contents": "# DEPRECATED\n\n\"\"\"The Robust Spline class.\n\nThe Robust Spline performs median based denoising using windowing,\nand then fits a beta spline using least squares.\n\"\"\"\n\nimport numpy as np\nimport pandas as pd\n\nfrom rta.array_operations.misc import overlapped_percentile_pairs\nfrom rta.models.GMLSQSpline import GMLSQSpline\nfrom rta.models.splines.beta_splines import beta_spline\nfrom rta.stats.stats import mad, mae, confusion_matrix\n\ndef mad_window_filter(x, y, chunks_no=100, sd_cnt=3, x_sorted=False):\n    \"\"\"Some would say, this is madness.\n\n    But this is 'Robust' Statistics!\n    \"\"\"\n    if not x_sorted:\n        assert all(x[i] <= x[i+1] for i in range(len(x)-1)), \\\n            \"If 'x' ain't sorted, than I don't believe that 'y' is correct.\"\n    signal  = np.empty(len(x),      dtype=np.bool_)\n    medians = np.empty(chunks_no,   dtype=np.float64)\n    stds    = np.empty(chunks_no,   dtype=np.float64)\n    x_percentiles = np.empty(chunks_no, dtype=np.float64)\n\n    scaling = 1.4826\n\n    # NOTE: the control \"x\" does not appear herek\n    # s, e      indices of the are being fitted\n    # ss, se    indices used to decide upon denoising\n    for i, (s, ss, se, e) in enumerate(overlapped_percentile_pairs(len(x), chunks_no)):\n        __mad, median = mad(y[s:e], return_median=True)\n        medians[i] = median\n        stds[i] = sd = scaling * __mad\n        x_percentiles[i] = x[ss]\n        signal[ss:se] = np.abs(y[ss:se] - median) <= sd * sd_cnt\n    return signal, medians, stds, x_percentiles\n\n\n\nclass RobustSpline(GMLSQSpline):\n    def adjust(self, x, y):\n        \"\"\"Remove dupilcate x entries. Sort by x.\"\"\"\n\n        # TODO: maybe replace by np.unique(return_index=True)?\n        d = pd.DataFrame({'x':x, 'y':y})\n        d = d.drop_duplicates(subset='x', keep=False)\n        d = d.sort_values(['x'])\n        return d.x.values, d.y.values\n\n    def fit(self, x, y,\n            chunks_no=20,\n            std_cnt=3,\n            adjust=True):\n        \"\"\"Fit a denoised spline.\"\"\"\n        assert chunks_no > 0\n        assert std_cnt > 0\n        assert len(x) == len(y)\n        self.chunks_no = int(chunks_no)\n        self.std_cnt = int(std_cnt)\n        self.x, self.y = self.adjust(x, y) if adjust else (x, y)\n        self.signal, self.medians, self.stds, self.x_percentiles = \\\n            mad_window_filter(self.x,\n                              self.y,\n                              self.chunks_no,\n                              self.std_cnt,\n                              x_sorted = True)\n        self.spline = beta_spline(self.x[self.signal],\n                                  self.y[self.signal],\n                                  self.chunks_no)\n\n    # what about the corner conditions? \n    def is_signal(self, x_new, y_new):\n        \"\"\"Denoise the new data.\"\"\"\n        i = np.searchsorted(self.x_percentiles, x_new) - 1\n        return np.abs(self.medians[i] - y_new) <= self.stds[i] * self.std_cnt\n\n    def predict(self, x):\n        return self.spline(x)\n\n    def fitted(self):\n        return self.spline(self.x.ravel())\n\n    def __repr__(self):\n        \"\"\"Represent the model.\"\"\"\n        #TODO make this more elaborate.\n        return \"This is a RobustSpline super-duper fitting.\"\n\n    # TODO get rid of params and move it up the object ladder\n    def cv(self, folds,\n                 fold_stats = (mae, mad),\n                 model_stats= (np.mean, np.median, np.std),\n                 confusion  = True,\n                 *pass_through_args):\n        \"\"\"Run cross-validation.\"\"\"\n        assert len(self.x) == len(folds)\n        if confusion:\n            self.fit(x, y, chunks_no, std_cnt)\n            signal_fold_free = self.signal.copy()\n\n        m_stats = []\n        cv_out = []\n        for fold in np.unique(folds):\n            x_train = x[folds != fold]\n            y_train = y[folds != fold]\n            x_test  = x[folds == fold]\n            y_test  = y[folds == fold]\n            n = SQSpline()\n            n.fit(x_train,\n                  y_train,\n                  self.chunks_no,\n                  self.std_cnt,\n                  adjust=False)\n            errors = np.abs(n.predict(x_test) - y_test)\n            n_signal = n.is_signal(x_test, y_test)\n            stats = [stat(errors) for stat in fold_stats]\n            m_stats.append(stats)\n            cm = confusion_matrix(m.signal[d_run.fold == fold], n_signal)\n            cv_out.append((n, stats, cm))\n\n        m_stats = np.array(m_stats)\n        m_stats = np.array([stat(m_stats, axis=0) for stat in model_stats])\n        m_stats = pd.DataFrame(m_stats)\n        m_stats.columns = [\"fold_\" + fs.__name__ for fs in fold_stats]\n        m_stats.index = [ms.__name__ for ms in model_stats]\n\n        return (m_stats, cv_out, self.chunks_no) + tuple(pass_through_args)\n",
+			"file": "rta/models/robust_spline.py",
+			"file_size": 4725,
+			"file_write_time": 131758992051126602,
 			"settings":
 			{
-				"buffer_size": 722,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "rta/xvalidation/devel/cross_validation.py",
-			"settings":
-			{
-				"buffer_size": 1836,
-				"encoding": "UTF-8",
+				"buffer_size": 4739,
 				"line_ending": "Unix"
 			}
 		},
@@ -145,7 +158,7 @@
 			"contents": "import numpy as np\nimport matplotlib.pyplot as plt\n\n\ndef plot_curve(model,\n               step = .1,\n               out_x_range = False,\n               **kwds):\n    x_min = min(model.x)\n    x_max = max(model.x)\n    xs = np.arange(x_min, x_max, step)\n    ys = model.predict(xs)\n    if 'c' not in kwds:\n        kwds['c'] = 'red'\n    plt.plot(xs, ys, **kwds)\n    if out_x_range:\n        return xs\n\n\ndef plot(model,\n         step = .1,\n         out_x_range = False,\n         plt_style = 'dark_background',\n         **kwds):\n    # TODO: extract the names from design_info.\n    plt.style.use(plt_style)\n    plt.scatter(model.x,\n                model.y,\n                s=.4,\n                c=model.signal)\n    plot_curve(model, \n               step,\n               out_x_range,\n               **kwds)\n    if out_x_range:\n        return x_range\n",
 			"file": "rta/models/plot.py",
 			"file_size": 839,
-			"file_write_time": 131735447673273138,
+			"file_write_time": 131758992051116367,
 			"settings":
 			{
 				"buffer_size": 839,
@@ -153,12 +166,22 @@
 			}
 		},
 		{
-			"file": "rta/read_in_data.py",
+			"file": "rta/devel_calibrator.py",
 			"settings":
 			{
-				"buffer_size": 2937,
-				"encoding": "UTF-8",
+				"buffer_size": 1487,
 				"line_ending": "Unix"
+			}
+		},
+		{
+			"contents": "In [1]:                                                        \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n                                                               \n",
+			"settings":
+			{
+				"buffer_size": 4480,
+				"line_ending": "Unix",
+				"name": "Terminal (bash)",
+				"read_only": true,
+				"scratch": true
 			}
 		}
 	],
@@ -206,15 +229,27 @@
 		"selected_items":
 		[
 			[
+				"term",
+				"Terminal View: Open Bash Terminal"
+			],
+			[
+				"send",
+				"SendCode: Choose Program"
+			],
+			[
+				"remove",
+				"Package Control: Remove Package"
+			],
+			[
+				"ter",
+				"Terminal View: Open Bash Terminal"
+			],
+			[
 				"termina",
 				"Terminal View: Open Bash Terminal"
 			],
 			[
 				"sen",
-				"SendCode: Choose Program"
-			],
-			[
-				"send",
 				"SendCode: Choose Program"
 			],
 			[
@@ -260,14 +295,6 @@
 			[
 				"theme",
 				"UI: Select Color Scheme"
-			],
-			[
-				"ter",
-				"Preferences: Terminal View: Settings"
-			],
-			[
-				"term",
-				"Terminal View: Open Bash Terminal"
 			],
 			[
 				"insta",
@@ -328,31 +355,55 @@
 	"expanded_folders":
 	[
 		"/Users/matteo/Projects/rta",
+		"/Users/matteo/Projects/rta/docs",
 		"/Users/matteo/Projects/rta/rta",
-		"/Users/matteo/Projects/rta/rta/alignment",
-		"/Users/matteo/Projects/rta/rta/models",
-		"/Users/matteo/Projects/rta/rta/xvalidation"
+		"/Users/matteo/Projects/rta/rta/models"
 	],
 	"file_history":
 	[
-		"/Users/matteo/Projects/rta/rta/default_parameters.py",
-		"/Users/matteo/Projects/rta/rta/preprocessing.py",
-		"/Users/matteo/Projects/rta/rta/xvalidation/filters.py",
-		"/Users/matteo/Projects/rta/rta/xvalidation/cross_validation.py",
-		"/Users/matteo/Projects/rta/rta/models/GMM_OLS_combo.py",
-		"/Users/matteo/Projects/rta/rta/x_validation_potential.py",
+		"/Users/matteo/Projects/MassTodonPy/docs/source/conf.py",
+		"/Users/matteo/Projects/rta/Makefile",
+		"/Users/matteo/Projects/rta/rta/read_in_data.py",
+		"/Users/matteo/Projects/rta/rta/cv/grouped_k_folds.py",
+		"/Users/matteo/Projects/rta/rta/cv/filters.py",
+		"/Users/matteo/Projects/rta/rta/array_operations/misc.py",
+		"/Users/matteo/Projects/rta/rta/cv/cv.py",
+		"/Users/matteo/Projects/rta/rta/devel_calibrator.py",
+		"/Users/matteo/Projects/rta/rta/align/calibrator.py",
+		"/Users/matteo/Projects/rta/rta/development_script.py",
+		"/Users/matteo/Projects/rta/.gitignore",
+		"/Users/matteo/Projects/rta/rta/sklearn_cv_get_score.py",
+		"/Users/matteo/Projects/rta/rta/align/align.py",
+		"/Users/matteo/Projects/rta/rta/models/robust_spline.py",
+		"/Users/matteo/Projects/rta/rta/stats/stats.py",
+		"/Users/matteo/Projects/rta/rta/misc.py",
+		"/Users/matteo/Projects/rta/rta/preprocessing_old.py",
+		"/Users/matteo/Projects/rta/rta/models/test/test_robust_spline.py",
+		"/Users/matteo/Projects/rta/rta/models/splines/beta_splines.py",
 		"/Users/matteo/Projects/rta/rta/models/GMLSQSpline.py",
+		"/Users/matteo/Projects/rta/rta/x_validation_potential.py",
+		"/Users/matteo/Projects/rta/rta/models/test/__init__.py",
+		"/Users/matteo/Projects/rta/rta/aligner.py",
+		"/Users/matteo/Projects/rta/rta/preprocessing.py",
+		"/Users/matteo/Projects/rta/rta/xvalidation/cross_validation.py",
+		"/Users/matteo/Projects/rta/rta/xvalidation/stratifications_folds.py",
+		"/Users/matteo/Projects/rta/rta/preprocessing/preprocessing.py",
+		"/Users/matteo/Projects/rta/rta/models/plot.py",
+		"/Users/matteo/Projects/rta/rta/xvalidation/devel/cross_validation.py",
+		"/Users/matteo/Projects/rta/rta/xvalidation/devel/testing_folds.py",
+		"/Users/matteo/Projects/rta/rta/junk/getting_to_grips_with_pandas.py",
+		"/Users/matteo/Library/Application Support/Sublime Text 3/Packages/TerminalView/README.md",
 		"/Users/matteo/Projects/rta/rta/models/SQSpline.py",
+		"/Users/matteo/Projects/rta/rta/default_parameters.py",
+		"/Users/matteo/Projects/rta/rta/xvalidation/filters.py",
+		"/Users/matteo/Projects/rta/rta/models/GMM_OLS_combo.py",
 		"/Users/matteo/Projects/rta/TODO.md",
 		"/Users/matteo/Projects/rta/rta/models/devel/gmm_ols.py",
-		"/Users/matteo/Projects/rta/rta/models/plot.py",
 		"/Users/matteo/Projects/rta/rta/models/RapidGMLSQSpline.py",
 		"/Users/matteo/Projects/rta/rta/alignment/run_alignment.py",
 		"/Users/matteo/Projects/rta/rta/models/base_model.py",
-		"/Users/matteo/Projects/rta/rta/array_operations/misc.py",
 		"/Users/matteo/Projects/rta/rta/junk/patsy_bs.py",
 		"/Users/matteo/Projects/rta/rta/models/spline_regression.py",
-		"/Users/matteo/Projects/rta/rta/misc.py",
 		"/Users/matteo/Projects/rta/rta/splines/denoising.py",
 		"/Users/matteo/Projects/rta/rta/models/least_squares_splines.py",
 		"/Users/matteo/Projects/rta/rta/patsy_operations/parsers.py",
@@ -364,7 +415,6 @@
 		"/Users/matteo/Projects/rta/rta/xvalidation/grouped_k_folds.py",
 		"/Users/matteo/Projects/rta/rta/xvalidation/pept_ids_representation_in_runs.py",
 		"/Users/matteo/Projects/rta/rta/splines/denoising2.py",
-		"/Users/matteo/Projects/rta/rta/read_in_data.py",
 		"/Users/matteo/Projects/rta/rta/getting_to_grips_with_pandas.py",
 		"/Users/matteo/Projects/rta/rta/profiling_denoise_and_align.py",
 		"/Users/matteo/Projects/rta/rta/splines/denoising_procedure.py",
@@ -400,7 +450,7 @@
 	],
 	"find":
 	{
-		"height": 29.0
+		"height": 25.0
 	},
 	"find_in_files":
 	{
@@ -414,6 +464,15 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"()\n",
+			"html",
+			"title",
+			"overlapped_percentile_pairs",
+			"AND",
+			"logical_and",
+			"folds",
+			"run_cnts_tf",
+			"q=",
 			"percentiles",
 			"ss",
 			"count",
@@ -449,29 +508,28 @@
 	"groups":
 	[
 		{
-			"selected": 1,
+			"selected": 3,
 			"sheets":
 			[
 				{
 					"buffer": 0,
-					"file": "rta/models/SQSpline.py",
+					"file": "rta/cv/folds.py",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 3248,
+						"buffer_size": 6712,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								0,
-								0
+								811,
+								811
 							]
 						],
 						"settings":
 						{
-							"show_definitions": false,
 							"syntax": "Packages/Python/Python.sublime-syntax",
 							"tab_size": 4,
 							"translate_tabs_to_spaces": true
@@ -480,29 +538,28 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 1,
+					"stack_index": 5,
 					"type": "text"
 				},
 				{
 					"buffer": 1,
-					"file": "rta/models/least_squares_splines.py",
-					"semi_transient": true,
+					"file": "docs/source/conf.py",
+					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 722,
+						"buffer_size": 5152,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								343,
-								343
+								615,
+								615
 							]
 						],
 						"settings":
 						{
-							"show_definitions": false,
 							"syntax": "Packages/Python/Python.sublime-syntax",
 							"tab_size": 4,
 							"translate_tabs_to_spaces": true
@@ -511,37 +568,30 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 0,
+					"stack_index": 4,
 					"type": "text"
-				}
-			]
-		},
-		{
-			"selected": 1,
-			"sheets":
-			[
+				},
 				{
 					"buffer": 2,
-					"file": "rta/xvalidation/devel/cross_validation.py",
+					"file": "rta/models/robust_spline.py",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 1836,
+						"buffer_size": 4739,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								0,
-								0
+								362,
+								362
 							]
 						],
 						"settings":
 						{
-							"show_definitions": false,
 							"syntax": "Packages/Python/Python.sublime-syntax",
-							"tab_size": 2,
+							"tab_size": 4,
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
@@ -564,13 +614,12 @@
 						"selection":
 						[
 							[
-								395,
-								395
+								471,
+								500
 							]
 						],
 						"settings":
 						{
-							"show_definitions": false,
 							"syntax": "Packages/Python/Python.sublime-syntax",
 							"tab_size": 2,
 							"translate_tabs_to_spaces": true
@@ -581,27 +630,32 @@
 					},
 					"stack_index": 2,
 					"type": "text"
-				},
+				}
+			]
+		},
+		{
+			"selected": 0,
+			"sheets":
+			[
 				{
 					"buffer": 4,
-					"file": "rta/read_in_data.py",
-					"semi_transient": false,
+					"file": "rta/devel_calibrator.py",
+					"semi_transient": true,
 					"settings":
 					{
-						"buffer_size": 2937,
+						"buffer_size": 1487,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								1785,
-								1785
+								378,
+								378
 							]
 						],
 						"settings":
 						{
-							"show_definitions": false,
 							"syntax": "Packages/Python/Python.sublime-syntax",
 							"tab_size": 4,
 							"translate_tabs_to_spaces": true
@@ -610,24 +664,101 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 4,
+					"stack_index": 0,
 					"type": "text"
 				}
 			]
 		},
 		{
+			"selected": 0,
 			"sheets":
 			[
+				{
+					"buffer": 5,
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 4480,
+						"regions":
+						{
+							"0,0":
+							{
+								"flags": 272,
+								"regions":
+								[
+									[
+										0,
+										4
+									]
+								],
+								"scope": "terminalview.black_green"
+							},
+							"0,5":
+							{
+								"flags": 272,
+								"regions":
+								[
+									[
+										5,
+										8
+									]
+								],
+								"scope": "terminalview.black_green"
+							}
+						},
+						"selection":
+						[
+							[
+								8,
+								8
+							]
+						],
+						"settings":
+						{
+							"auto_complete": false,
+							"auto_complete_commit_on_tab": false,
+							"caret_style": "blink",
+							"color_scheme": "Packages/TerminalView/TerminalView.hidden-tmTheme",
+							"draw_centered": false,
+							"draw_indent_guides": false,
+							"draw_white_space": "none",
+							"gutter": false,
+							"highlight_line": false,
+							"scroll_past_end": false,
+							"syntax": "Packages/Text/Plain text.tmLanguage",
+							"terminal_view": true,
+							"terminal_view_activate_args":
+							{
+								"cmd": "/bin/bash -l",
+								"cwd": "/Users/matteo/Projects/rta",
+								"keep_open": false,
+								"syntax": null,
+								"title": "Terminal (bash)"
+							},
+							"terminal_view_last_cursor_pos":
+							[
+								0,
+								8
+							],
+							"word_wrap": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				}
 			]
 		}
 	],
 	"incremental_find":
 	{
-		"height": 29.0
+		"height": 25.0
 	},
 	"input":
 	{
-		"height": 50.0
+		"height": 51.0
 	},
 	"layout":
 	{
@@ -682,7 +813,7 @@
 	"project": "rta.sublime-project",
 	"replace":
 	{
-		"height": 54.0
+		"height": 46.0
 	},
 	"save_all_on_build": true,
 	"select_file":
@@ -692,12 +823,64 @@
 		"selected_items":
 		[
 			[
-				"param",
-				"rta/default_parameters.py"
+				"stat",
+				"rta/stats/stats.py"
+			],
+			[
+				"misc",
+				"rta/array_operations/misc.py"
+			],
+			[
+				"bte",
+				"rta/models/splines/beta_splines.py"
+			],
+			[
+				"misc.",
+				"rta/array_operations/misc.py"
+			],
+			[
+				"robu",
+				"rta/models/robust_spline.py"
+			],
+			[
+				"GML",
+				"rta/models/GMLSQSpline.py"
 			],
 			[
 				"SQ",
 				"rta/models/SQSpline.py"
+			],
+			[
+				"rta/prp",
+				"rta/preprocessing.py"
+			],
+			[
+				"Prep",
+				"rta/preprocessing/preprocessing.py"
+			],
+			[
+				"proe",
+				"rta/preprocessing_old.py"
+			],
+			[
+				"plot",
+				"rta/models/plot.py"
+			],
+			[
+				"gettin",
+				"rta/junk/getting_to_grips_with_pandas.py"
+			],
+			[
+				"pre",
+				"rta/preprocessing_old.py"
+			],
+			[
+				"sta",
+				"rta/stats/stats.py"
+			],
+			[
+				"param",
+				"rta/default_parameters.py"
 			],
 			[
 				"file",
@@ -712,10 +895,6 @@
 				"rta/xvalidation/filters.py"
 			],
 			[
-				"pre",
-				"rta/preprocessing.py"
-			],
-			[
 				"preop",
 				"rta/preprocessing.py"
 			],
@@ -726,10 +905,6 @@
 			[
 				"SQL",
 				"rta/models/SQSpline.py"
-			],
-			[
-				"plot",
-				"rta/models/plot.py"
 			],
 			[
 				"comb",
@@ -746,10 +921,6 @@
 			[
 				"GLM",
 				"rta/models/GMM_OLS_combo.py"
-			],
-			[
-				"misc",
-				"rta/array_operations/misc.py"
 			],
 			[
 				"array_oper",
@@ -844,7 +1015,7 @@
 		],
 		"width": 0.0
 	},
-	"selected_group": 0,
+	"selected_group": 1,
 	"settings":
 	{
 	},
