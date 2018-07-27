@@ -33,7 +33,7 @@ def cv_run_param(r, x, y, f, p):
     return r, p, m
 
 
-class NeoCalibrator(object):
+class Calibrator(object):
     def __init__(self, 
                  data,
                  feature='rt',
@@ -238,3 +238,29 @@ class NeoCalibrator(object):
         if show:
             plt.show()
 
+
+def calibrator(folds_no,
+               min_runs_no,
+               data,
+               feature = 'rt',
+               align_cnt = 2):
+    """Run the Calibrator.
+
+    Args:
+        folds_no (int):     The number of folds to split the data into.
+        min_runs_no (int):
+        data (pd.DataFrame):
+        feature (string): The name of the feature in the column space of the data that will be aligned.
+        align_cnt (int):  The number of times that the feature is aligned.
+    """
+    c = Calibrator(data,
+                   feature  = feature,
+                   folds_no = folds_no)
+    c.runs_statistic()
+    c.fold()
+    for _ in range(align_cnt):
+        c.calibrate()
+        c.select_best_models()
+        c.align()
+        c.runs_statistic()
+    return c
