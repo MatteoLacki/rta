@@ -39,15 +39,15 @@ def fit_interlapping_mixtures(x, y,
         signal_regions (np.array):
 
     """
-    x, y = sort_by_x(x, y) if sort else (x, y)
+    x, y   = sort_by_x(x, y) if sort else (x, y)
     signal = np.empty(len(x), dtype = np.bool_)
-    gm = GM(warm_start = warm_start)
+    gm     = GM(warm_start = warm_start)
     # mixtures' probabilies
     probs = np.empty((chunks_no, 2), dtype = np.float64)
     means = probs.copy() 
     sds   = probs.copy() # mixtures' standard deviations.
     signal_regions = probs.copy() # points where densities times mixture probabilities equalize.
-    x_percentiles = np.empty(chunks_no + 1, dtype = np.float64)
+    x_percentiles  = np.empty(chunks_no + 1, dtype = np.float64)
 
     # NOTE: the control "x" does not appear here
     # s, e      indices of the are being fitted

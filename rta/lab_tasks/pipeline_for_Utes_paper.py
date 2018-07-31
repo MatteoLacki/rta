@@ -32,7 +32,7 @@ files_desc = [Info('Microflow', 60,  2018, 7, 23),
 #assume that each experiment consists of 6 runs and it is good enough
 #for a protein to appear in 3 out of 6 runs.
 # choosing min_runs_no out of 6.
-min_runs_no        = 4
+min_runs_no        = 6
 folds_no           = 10
 absolute_paths     = [join(data_path, fn) for fn in file_names]
 calibrated_results = []
@@ -47,34 +47,26 @@ for abs_path in absolute_paths:
     c = calibrator(folds_no, min_runs_no, d, 'rt', 1)
     calibrated_results.append(c)
 
-
 c = calibrated_results[0]
 # prepare the all runs plot
 # plt.scatter(c.D.runs_stat_0, 
 #             c.D.rt_0 - c.D.runs_stat_0,
-#             c = c.D.run)
+# #             c = c.D.run)
 
+# for r, data in c.D.groupby('run'):
+#     x = data.runs_stat_0
+#     y = data.rt_0 - x
+#     plt.scatter(x, y, label=str(r))
+# plt.legend()
+# plt.show()
+# for r, data in c.D.groupby('run'):
+#     if r != 1:
+#         x = data.runs_stat_0
+#         y = data.rt_0 - x
+#         plt.scatter(x, y, label=str(r))
 
-
-for r, data in c.D.groupby('run'):
-    x = data.runs_stat_0
-    y = data.rt_0 - x
-    plt.scatter(x, y, label=str(r))
-
-plt.legend()
-plt.show()
-
-
-
-
-for r, data in c.D.groupby('run'):
-    if r != 1:
-        x = data.runs_stat_0
-        y = data.rt_0 - x
-        plt.scatter(x, y, label=str(r))
-
-plt.legend()
-plt.show()
+# plt.legend()
+# plt.show()
 
 
 # comparing experiments:
@@ -92,7 +84,7 @@ def plot_runs(data,
         if r not in runs_to_avoid:
             x = d.runs_stat_0
             y = d.rt_0 - x
-            plt.scatter(x, y, label=str(r))
+            plt.scatter(x, y, label=str(r), s=.4)
             if title:
                 plt.title(title)
     if show:
@@ -144,7 +136,12 @@ D = combined_experiments[['run', 'rt_0_d', 'runs_stat_0_d']]
 D.columns = ['run', 'rt_0', 'runs_stat_0']
 
 plot_experiment_comparison((C,D), file_names[0:2])
+D.groupby('run').runs_stat_0.apply(lambda x: x < 0)
 
+C[C.runs_stat_0 < C.rt_0].groupby('run').run.count()
+C[C.runs_stat_0 > C.rt_0].groupby('run').run.count()
+D[D.runs_stat_0 > D.rt_0].groupby('run').run.count()
+D[D.runs_stat_0 < D.rt_0].groupby('run').run.count()
 
 
 #@@@@@ The Mystery of strange distances.
