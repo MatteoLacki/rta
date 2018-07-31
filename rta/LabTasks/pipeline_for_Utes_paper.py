@@ -64,14 +64,8 @@ def count_pos(x):
 def count_neg(x):
     return sum(x < 0)
 
-d.D.groupby('id').mass_median_distance.agg(())
-
-signs_diffs = d.D.groupby('id').mass_median_distance.agg(signs_cnt_diff)
-Counter(signs_diffs)
-signs_diffs[signs_diffs == -2]
-signs_zero = d.D.groupby('id').mass_median_distance.agg(count_zeros)
-
-Counter(np.abs(np.abs(signs_diffs.values) - signs_zero.values))
+signs = d.D.groupby('id').mass_median_distance.agg((count_pos, count_neg, count_zeros))
+signs.
 
 
 # Plotting:
@@ -99,7 +93,7 @@ plt.show()
 
 
 
-# all runs from one given experiment.
+#s all runs from one given experiment.
 ax1 = plt.subplot(6, 1, 1)
 calibrated_results[0].best_models[1].plot(plt_style = 'seaborn-white', show=False)
 plt.subplot(6, 1, 2, sharex=ax1, sharey=ax1)

@@ -6,8 +6,8 @@ if __name__ == '__main__':
     min_runs_no = 5
 
     index = DT.groupby('id')
-    DT_stats = pd.DataFrame(dict(runs_no = index.rt.count(),
-                                 median_rt = index.rt.median(),
+    DT_stats = pd.DataFrame(dict(runs_no     = index.rt.count(),
+                                 median_rt   = index.rt.median(),
                                  median_mass = index.pep_mass.median()))
 
     enough_runs = DT_stats.index[ DT_stats.runs_no >= min_runs_no ]
@@ -26,15 +26,14 @@ if __name__ == '__main__':
     x = x[x >= 5].index
     DT.loc[DT.id.isin(x)]
 
-
     sizes = DT.groupby('id', group_keys=False)['rt'].agg((np.mean, np.var, np.median))
+
     DT.groupby('id', group_keys=False).transform(np.median)
     DT.groupby('id')['rt'].size()
     DT.groupby('id', group_keys=False).apply(lambda x: len(x.rt))
     runs_no = DT.groupby('id', group_keys=False).apply(lambda x: len(x.rt))
     DT.iloc[list(runs_no >= 5)]
     medians = DT.groupby('id', group_keys=False).apply(lambda x: x.rt-np.median(x.rt))
-
 
 
 
@@ -45,11 +44,7 @@ if __name__ == '__main__':
     df.groupby('A').transform(type)
     df.groupby('A')['B'].transform(type)
     df['median_dist'] = df.groupby('A')['B'].transform(lambda x: x - np.median(x))
-    df
-
     df.groupby('A').B.filter(lambda x: len(x))
-
-
     df.groupby('A').transform(lambda small_df: small_df['B'] )
 
     for g, d in df.groupby('A'):
