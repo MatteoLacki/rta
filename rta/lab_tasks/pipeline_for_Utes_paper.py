@@ -23,6 +23,8 @@ try:
 except FileNotFoundError:
     data_path  = '/Users/matteo/Projects/Nano_VS_Micro/data/micro_vs_nano'
     file_names = os.listdir(data_path)
+
+
 files_desc = [Info('Microflow', 60,  2018, 7, 23),
               Info('Nanoflow',  60,  2018, 7, 17),
               Info('Microflow', 120, 2018, 7, 16),
@@ -30,7 +32,7 @@ files_desc = [Info('Microflow', 60,  2018, 7, 23),
 #assume that each experiment consists of 6 runs and it is good enough
 #for a protein to appear in 3 out of 6 runs.
 # choosing min_runs_no out of 6.
-min_runs_no        = 6
+min_runs_no        = 4
 folds_no           = 10
 absolute_paths     = [join(data_path, fn) for fn in file_names]
 calibrated_results = []
@@ -47,10 +49,107 @@ for abs_path in absolute_paths:
 
 
 c = calibrated_results[0]
-c.best_models[1].plot()
+# prepare the all runs plot
+# plt.scatter(c.D.runs_stat_0, 
+#             c.D.rt_0 - c.D.runs_stat_0,
+#             c = c.D.run)
+
+
+
+for r, data in c.D.groupby('run'):
+    x = data.runs_stat_0
+    y = data.rt_0 - x
+    plt.scatter(x, y, label=str(r))
+
+plt.legend()
+plt.show()
+
+
+
+
+for r, data in c.D.groupby('run'):
+    if r != 1:
+        x = data.runs_stat_0
+        y = data.rt_0 - x
+        plt.scatter(x, y, label=str(r))
+
+plt.legend()
+plt.show()
+
+
+# comparing experiments:
+def plot_runs(data,
+              runs_to_avoid = [],
+              run_name  = 'run',
+              x         = 'runs_stat_0',
+              y         = 'rt_0',
+              plt_style = 'dark_background',
+              title     = '',
+              show      = True):
+    """Plot distnces to medians for annotated peptides."""
+    plt.style.use(plt_style)
+    for r, d in data.groupby('run'):
+        if r not in runs_to_avoid:
+            x = d.runs_stat_0
+            y = d.rt_0 - x
+            plt.scatter(x, y, label=str(r))
+            if title:
+                plt.title(title)
+    if show:
+        plt.show()
+
+
+def plot_experiment_comparison(datasets,
+                               titles    = None,
+                               show      = True, 
+                               plt_style = 'dark_background',
+                             **all_plots_settings):
+    K = len(datasets)
+    datasets = datasets.__iter__()
+    i = 1
+    d = next(datasets)
+    first_plot = plt.subplot(K,1,i)
+    plot_runs(d,
+              show      = False,
+              plt_style = plt_style,
+              title     = titles[i-1] if titles is not None else '',
+              **all_plots_settings)
+    for e in datasets:
+        i += 1
+        plt.subplot(K,1,i, 
+                    sharex = first_plot,
+                    sharey = first_plot)
+        plot_runs(e,
+                  show      = False,
+                  plt_style = plt_style,
+                  title     = titles[i-1] if titles is not None else '',
+                 **all_plots_settings)
+    if show:
+        plt.show()
+
+plot_experiment_comparison([e.D for e in calibrated_results[0:2]], file_names[0:2])
+
+
+
+c, d = calibrated_results[0:2]
+combined_experiments = c.D.merge(d.D,
+                                 on       = ['id','run'],
+                                 suffixes = ('_c', '_d'),
+                                 how      = 'inner')
+
+combined_experiments.head()
+C = combined_experiments[['run', 'rt_0_c', 'runs_stat_0_c']]
+C.columns = ['run', 'rt_0', 'runs_stat_0']
+D = combined_experiments[['run', 'rt_0_d', 'runs_stat_0_d']]
+D.columns = ['run', 'rt_0', 'runs_stat_0']
+
+plot_experiment_comparison((C,D), file_names[0:2])
+
 
 
 #@@@@@ The Mystery of strange distances.
+# it might be simply that there are some values for one run different
+# then for the others. The median is definately a good option to compare.
 from collections import Counter
 d.D.head()
 

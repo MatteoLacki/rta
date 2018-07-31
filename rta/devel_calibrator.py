@@ -18,10 +18,21 @@ if __name__ == "__main__":
     annotated_all, unlabelled_all = big_data()
     d = preprocess(annotated_all, min_runs_no)
     d = filter_unfoldable(d, folds_no)
-    c = calibrator(folds_no, min_runs_no, d, 'rt', 3)
+    c = calibrator(folds_no, min_runs_no, d, 'rt', 2)
 
     W = c.D[c.D.run == 1]
     W.head()
     plt.scatter(W.rt_1, W.runs_stat_dist_1)
     plt.show()
     c.best_models[1].plot()
+    c.D.head()
+
+K = 3
+c.best_models[1].plot()
+
+first_plot = plt.subplot(K,1,1)
+c.best_models[1].plot(show=False)
+for i in range(2,K+1):
+    plt.subplot(K,1,i, sharex = first_plot, sharey = first_plot)
+    c.best_models[i].plot(show=False)
+plt.show()
