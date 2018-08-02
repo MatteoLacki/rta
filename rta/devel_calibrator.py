@@ -26,7 +26,7 @@ if __name__ == "__main__":
                   folds_no    = folds_no,
                   min_runs_no = min_runs_no, 
                   model       = gaussian_mixture_spline,
-                  align_cnt   = 2)
+                  align_cnt   = 3)
 
     W = c.D[c.D.run == 1]
     W.head()
@@ -35,9 +35,9 @@ if __name__ == "__main__":
     c.best_models[1].plot()
     c.D.head()
 
-c.plot_run_alignments(2,  max_alignments=2, point_size=.1)
-c.plot_run_alignments(10, max_alignments=3, point_size=.1)
+c.plot_run_alignments(2,  max_alignments=3, point_size=.1)
 c.plot_run_alignments(9,  max_alignments=3, point_size=.1)
+c.plot_run_alignments(10, max_alignments=3, point_size=.1)
 
 
 

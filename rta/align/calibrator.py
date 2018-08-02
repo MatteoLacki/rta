@@ -304,12 +304,12 @@ class Calibrator(object):
             plt.show()
 
 
-
+# these functions should be updated to make a repertoire of methods.
 def calibrate(feature,
               data,
               folds_no,
               min_runs_no,
-              align_cnt  = 2
+              align_cnt  = 2,
               runs_stat  = np.median,
               parameters = None,
               model      = robust_spline,

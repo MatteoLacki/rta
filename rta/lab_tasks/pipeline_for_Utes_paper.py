@@ -24,7 +24,6 @@ except FileNotFoundError:
     data_path  = '/Users/matteo/Projects/Nano_VS_Micro/data/micro_vs_nano'
     file_names = os.listdir(data_path)
 
-
 files_desc = [Info('Microflow', 60,  2018, 7, 23),
               Info('Nanoflow',  60,  2018, 7, 17),
               Info('Microflow', 120, 2018, 7, 16),
