@@ -209,7 +209,7 @@ class Calibrator(object):
 
 
     def align(self):
-        """Align the data stored used for the calibration."""
+        """Align self.D for calibration."""
         self.D  = self.D.sort_values('run')
         feature = self.D[self.x].values
         outcome = np.full(shape = feature.shape,

@@ -7,11 +7,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pandas as pd
-
 from collections import namedtuple
 from os.path     import join as join
 
-from rta.align.calibrator       import calibrator
+from rta.align.calibrator       import calibrate
 from rta.preprocessing          import preprocess, filter_unfoldable
 from rta.data.column_names      import vars_annotated, vars_unlabelled
 
@@ -43,10 +42,24 @@ for abs_path in absolute_paths:
                               usecols = vars_unlabelled)
     d = preprocess(annotated, min_runs_no)
     d = filter_unfoldable(d, folds_no)
-    c = calibrator(folds_no, min_runs_no, d, 'rt', 1)
+    c = calibrate(feature     = 'rt',
+                  data        = d,
+                  folds_no    = folds_no,
+                  min_runs_no = min_runs_no, 
+                  align_cnt   = 1)
     calibrated_results.append(c)
 
+# export results to R for plotting:
+# we only need four different datasets with the additional information
+# on the distances to the trendline
 c = calibrated_results[0]
+c.D.head()
+c.D.rt_0 - c.D.rt_1
+
+
+
+
+
 # prepare the all runs plot
 # plt.scatter(c.D.runs_stat_0, 
 #             c.D.rt_0 - c.D.runs_stat_0,
