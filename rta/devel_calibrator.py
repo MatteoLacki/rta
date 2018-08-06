@@ -15,11 +15,11 @@ from rta.preprocessing          import preprocess, filter_unfoldable
 if __name__ == "__main__":
     folds_no    = 10
     min_runs_no = 5
+    alignments_cnt = 2
     annotated_all, unlabelled_all = big_data()
     d = preprocess(annotated_all, min_runs_no)
     d = filter_unfoldable(d, folds_no)
-    c = calibrator(folds_no, min_runs_no, d, 'rt', 2)
-
+    c = calibrator(folds_no, min_runs_no, d, 'rt', alignments_cnt)
     W = c.D[c.D.run == 1]
     W.head()
     plt.scatter(W.rt_1, W.runs_stat_dist_1)
@@ -28,8 +28,6 @@ if __name__ == "__main__":
     c.D.head()
 
 K = 3
-c.best_models[1].plot()
-
 first_plot = plt.subplot(K,1,1)
 c.best_models[1].plot(show=False)
 for i in range(2,K+1):

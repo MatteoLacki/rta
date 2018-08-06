@@ -60,6 +60,7 @@ class Calibrator(object):
                                         self.d['run_name'],
                                         feature]]
         self.D.columns = ['id', 'run', self.x]
+        self.best_models = {}
 
     def increase_align_cnt(self):
         self.align_it += 1
