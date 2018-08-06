@@ -15,7 +15,7 @@ from rta.models.splines.robust import robust_spline
 
 
 # TODO: this should support different models.
-def cv_run_param(r, x, y, f, p):
+def cv_run_param_old(r, x, y, f, p):
     """Little wrapper around the robust splines.
 
     Args:
@@ -31,6 +31,27 @@ def cv_run_param(r, x, y, f, p):
                       folds           = f,
                       **p)
     return r, p, m
+
+
+
+
+def cv_run_param(r, x, y, m, f, p):
+    """Little wrapper around the robust splines.
+
+    Args:
+        r (int or str): The number of given run.
+        x (np.array):   Control (usually retention time or drift time).
+        y (np.array):   Response (usually distance to the median retention time or drift time).
+        f (np.array):   Assignments to different folds.
+        p (dict):       A dictionary of additional parameters for the robust spline.
+    """
+    fm = m(x, y,
+           drop_duplicates = False,
+           sort            = False,
+           folds           = f,
+           **p)
+    return r, p, fm
+
 
 
 class Calibrator(object):
@@ -104,7 +125,6 @@ class Calibrator(object):
             # of peptides is 'stochastic'.
             # If shuffle == True, this will not be of any importance.
             self.stats.sort_values(["runs", self.stat_col], inplace=True)
-
         # get fold assignments for pept-id groups.
         # strata_cnts contains info on the count of appearance of peptides in runs.
         # for instance: 1_2_3_4_10 -> 48
@@ -126,7 +146,8 @@ class Calibrator(object):
 
     def iter_run_param(self, 
                        sort            = True,
-                       drop_duplicates = True):
+                       drop_duplicates = True,
+                       model           = robust_spline):
         """Iterate over the data runs and fitting parameters.
 
         Args:
@@ -142,11 +163,13 @@ class Calibrator(object):
             for p in self.parameters:
                 yield (r, d_r[self.x].values,
                           d_r[self.y].values,
+                          model,
                           d_r.fold.values, p)
 
 
     def calibrate(self,
                   parameters = None,
+                  model      = robust_spline,
                   cores_no   = cpu_count()):
         """Calibrate the selected dimension of the data.
 
@@ -182,10 +205,11 @@ class Calibrator(object):
             if min_stat < bm_stat_min[r]:
                 bm_stat_min[r] = min_stat
                 best_models[r] = m
-        self.best_models = best_models
+        self.best_models[self.align_it] = best_models
 
 
     def align(self):
+        """Align self.D for calibration."""
         self.D  = self.D.sort_values('run')
         feature = self.D[self.x].values
         outcome = np.full(shape = feature.shape,
@@ -195,9 +219,24 @@ class Calibrator(object):
             X = feature[s:e]
             # we model X - Stat(X) = F(X) + err. Next iteration, is nothing else, but 
             # X - F(X).
-            outcome[s:e] = X - self.best_models[r](X)
+            outcome[s:e] = X - self.best_models[self.align_it][r](X)
         self.increase_align_cnt()
         self.D[self.x] = outcome
+
+
+    def __call__(self, x, run):
+        """Align the data from a given run.
+
+        Args:
+            x (np.array): Points to align.
+            run (int):    Number of the run to align.
+        Returns:
+            np.array :    Aligned points.
+        """
+        for i in range(self.align_it):
+            # application of consecutive models
+            x = x - self.best_models[i][run](x)
+        return x
 
 
     def plot(self,
@@ -225,27 +264,57 @@ class Calibrator(object):
             s = m.cv_stats
             stats[r].append(s.loc[stat, fold_stat])
             # mad_std[r].append( s.loc['std',  'fold_mae'])
-
         for r in self.d['runs']:
             x, y = opt_var_vals, stats[r]
             plt.semilogx(x, y, basex=2, label=r)
             plt.text(x[ 0], y[ 0], 'Run {}'.format(r))
             plt.text(x[-1], y[-1], 'Run {}'.format(r))
-
         plt.xlabel(opt_var)
         plt.ylabel(y_label)
         plt.title('Training-Test comparison')
-
         if show:
             plt.show()
 
 
-def calibrator(folds_no,
-               min_runs_no,
-               data,
-               feature = 'rt',
-               align_cnt = 2):
-    """Run the Calibrator.
+    def plot_run_alignments(self,
+                            run_tag,
+                            max_alignments = inf,
+                            plt_style      = 'dark_background',
+                            show           = True,
+                          **kwds):
+        """Plot the alignments.
+
+        Args:
+            run_tag (int):   The tag of the run to plot.
+            plt_style (str): Matplotlib style to apply to the plot. This probably should be a global setting.
+            show (logical):  Should we show the plot immediately, or do you want to add some more things before running "plt.show"?
+        """
+        plt.style.use(plt_style)
+        max_plots  = min(self.align_it, max_alignments)
+        first_plot = plt.subplot(max_plots, 1, 1, 
+                                 title = "Alignment No 1")
+        self.best_models[0][run_tag].plot(show = False, **kwds)
+        for i in range(1, max_plots):
+            plt.subplot(max_plots, 1, i+1,
+                        sharex = first_plot,
+                        sharey = first_plot,
+                        title  = "Alignment No {}".format(i+1))
+            self.best_models[i][run_tag].plot(show = False, **kwds)
+        if show:
+            plt.show()
+
+
+# these functions should be updated to make a repertoire of methods.
+def calibrate(feature,
+              data,
+              folds_no,
+              min_runs_no,
+              align_cnt  = 2,
+              runs_stat  = np.median,
+              parameters = None,
+              model      = robust_spline,
+              cores_no   = cpu_count()):
+    """Calibrate the given feature.
 
     Args:
         folds_no (int):     The number of folds to split the data into.
@@ -254,14 +323,14 @@ def calibrator(folds_no,
         feature (string): The name of the feature in the column space of the data that will be aligned.
         align_cnt (int):  The number of times that the feature is aligned.
     """
-    c = Calibrator(data,
-                   feature  = feature,
-                   folds_no = folds_no)
-    c.runs_statistic()
+    c = Calibrator(data, feature = feature, folds_no = folds_no)
+    c.runs_statistic(stat = runs_stat)
     c.fold()
     for _ in range(align_cnt):
-        c.calibrate()
+        c.calibrate(parameters = None,
+                    model      = robust_spline,
+                    cores_no   = cpu_count())
         c.select_best_models()
         c.align()
-        c.runs_statistic()
+        c.runs_statistic(stat = runs_stat)
     return c

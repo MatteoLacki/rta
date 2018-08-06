@@ -38,6 +38,7 @@ class Spline(Model):
              plt_style = 'dark_background',
              line_y_0  = True,
              points    = True,
+             point_size = .5,
              line      = True,
              show      = True):
         """Plot the spline.
@@ -55,7 +56,7 @@ class Spline(Model):
         if points:
             colors = np.full(self.signal.shape, "blue", dtype='<U30')
             colors[self.signal] = 'grey'
-            plt.scatter(self.x, self.y, c=colors)
+            plt.scatter(self.x, self.y, c=colors, s=point_size)
         if line:
             xs = np.linspace(min(self.x), max(self.x), knots_no)
             ys = self.spline(xs)

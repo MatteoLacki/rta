@@ -47,6 +47,7 @@ def mad_window_filter(x, y,
     signal  = np.empty(len(x),    dtype = np.bool_)
     medians = np.empty(chunks_no, dtype = np.float64)
     sds     = np.empty(chunks_no, dtype = np.float64)
+
     x_percentiles = np.empty(chunks_no + 1, dtype=np.float64)
 
     scaling = 1.4826
@@ -142,7 +143,8 @@ class RobustSpline(Spline):
              plt_style   = 'dark_background',
              show        = True,
              fence       = True,
-             fence_color = 'gold'):
+             fence_color = 'gold',
+             **kwds):
         """Plot the spline.
 
         Args:
@@ -151,7 +153,7 @@ class RobustSpline(Spline):
             fence_color (str): the color of the fence around signal region.
             show (logical):    show the plot immediately. Alternatively, add some more elements on the canvas before using it.
         """
-        super().plot(knots_no, plt_style, show=False)
+        super().plot(knots_no, plt_style, show=False, **kwds)
         if fence:
             bottom = self.medians - self.sds * self.sd_cnt
             top    = self.medians + self.sds * self.sd_cnt
@@ -161,7 +163,7 @@ class RobustSpline(Spline):
                               color = fence_color,
                               show  = show)
         else:
-            # making show that we see a plot if we don't want and a fence
+            # making sure that we see a plot if we don't want and a fence
             # and want to see it :)
             if show:
                 plt.show()
