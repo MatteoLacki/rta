@@ -9,8 +9,8 @@ def drop_table_sql(name = "small_peptide"):
 
 def retrieve_data(password, 
                   project,
-                  user     = 'root',
-                  ip       = "192.168.1.200",
+                  user,
+                  ip,
                   help_tbl = "small_peptide",
                   sign_tbl = "all_signals",
                   verbose  = False):

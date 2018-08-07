@@ -11,6 +11,7 @@ import pandas            as pd
 from rta.read_in_data import col_names,\
                              col_names_unlabelled
 from rta.isoquant     import retrieve_data
+from rta.config       import *
 
 # # the first HELA dataset I've analysed.
 # data_path = "../../../Data/annotated_and_unanottated_data.csv"
@@ -21,7 +22,8 @@ from rta.isoquant     import retrieve_data
 
 
 project = "Proj__15272392369260_8293106731954075_100_1"
-data    = retrieve_data(password  = '',
+data    = retrieve_data(password  = password,
+                        user      = user,
                         project   = project,
                         verbose   = True)
 
@@ -43,6 +45,8 @@ labelled.merge(
     pd.DataFrame(id_run_type_cnt[id_run_type_cnt == 1]),
     on = ('id', 'run', 'type'))
 
+
+pd.DataFrame(id_run_type_cnt[id_run_type_cnt == 1]).index
 
 pd.DataFrame(id_run_type_cnt[id_run_type_cnt == 1]).join(
 

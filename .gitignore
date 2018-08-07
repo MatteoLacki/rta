@@ -19,3 +19,9 @@ rta/data/
 
 # VIM
 *.swo
+
+# configs
+rta/config.py
+
+
+._*
