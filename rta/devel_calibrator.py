@@ -11,7 +11,6 @@ import pandas            as pd
 from rta.align.calibrator       import calibrate
 from rta.read_in_data           import big_data
 from rta.preprocessing          import preprocess, filter_unfoldable
-
 from rta.models.splines.gaussian_mixture import gaussian_mixture_spline
 
 
@@ -32,7 +31,7 @@ if __name__ == "__main__":
     W.head()
     plt.scatter(W.rt_1, W.runs_stat_dist_1)
     plt.show()
-    c.best_models[1].plot()
+    c.best_models[1][1].plot()
     c.D.head()
 
 c.plot_run_alignments(2,  max_alignments=3, point_size=.1)

@@ -63,6 +63,35 @@ def big_data(path = "",
 #   'type': 'U', 
 #   'score': np.float64}
 
+
+col_names = ['run',
+             'mass',
+             'intensity',
+             'charge',
+             'FWHM',
+             'rt',
+             'dt',
+             'LiftOffRT',
+             'InfUpRT',
+             'TouchDownRT',
+             'sequence',
+             'modification',
+             'type',
+             'score']
+
+
+col_names_unlabelled = [ 'run',
+                         'mass',
+                         'intensity',
+                         'charge',
+                         'FWHM',
+                         'rt',
+                         'dt',
+                         'LiftOffRT',
+                         'InfUpRT',
+                         'TouchDownRT' ]
+
+
 # list(variables.keys())
 
 # A = pd.read_csv(
