@@ -13,7 +13,8 @@ def retrieve_data(password,
                   ip,
                   help_tbl = "small_peptide",
                   sign_tbl = "all_signals",
-                  verbose  = False):
+                  verbose  = False,
+                  metadata = True):
     """Retrieve data for retention time alignment.
 
     All created tables are temporary and destroyed at the end of the session.
@@ -67,9 +68,14 @@ def retrieve_data(password,
             mass_spectrum as m
             left join {help_tbl} as p USING(low_energy_index);""")
         # retrieving data.
-        df = pd.read_sql_query("SELECT * FROM `all_signals`", engine)
+        df = pd.read_sql_query("SELECT * FROM all_signals", engine)
         # cleaning
         c.execute(drop_table_sql(help_tbl))
         c.execute(drop_table_sql(sign_tbl))
         c.close()
-    return df
+    if metadata:
+        project_report  = pd.read_sql_query("SELECT * FROM project", engine)
+        workflow_report = pd.read_sql_query("SELECT * FROM workflow_report", engine)
+        return df, project_report, workflow_report
+    else:
+        return df

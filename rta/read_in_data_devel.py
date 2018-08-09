@@ -3,15 +3,12 @@
 %autoreload 2
 %load_ext line_profiler
 
-from collections import Counter
-import matplotlib.pyplot as plt
-import numpy             as np
-import pandas            as pd
+import  matplotlib.pyplot   as      plt
 
-from rta.read_in_data import col_names,\
-                             col_names_unlabelled
-from rta.isoquant     import retrieve_data
-from rta.config       import *
+from rta.config             import *
+from rta.plotters.runs      import plot_runs,\
+                                   plot_experiment_comparison
+from rta.quality_control.process_project import process_project
 
 # # the first HELA dataset I've analysed.
 # data_path = "../../../Data/annotated_and_unanottated_data.csv"
@@ -20,55 +17,69 @@ from rta.config       import *
 # data_path = "~/ms/Matteo/4Ute/2016-141 HYE Microflow_20180716_MF_120min_paper.csv"
 # data = pd.read_csv(data_path)
 
+# First shoot, than ask.
+mass_projects = ["Proj__15272392369260_8293106731954075_100_1",
+                 "Proj__15272392369260_8293106731954075_100_2",
+                 "Proj__15272392369260_8293106731954075_100_3",
+                 "Proj__15264893889320_6353458109334729_100_8",
+                 "Proj__15264893889320_6353458109334729_100_11",
+                 "Proj__15260213186990_6379462481554944_100_8",
+                 "Proj__15260213186990_6379462481554944_100_10",
+                 "Proj__15272392369260_8293106731954075_100_8",
+                 "Proj__15264893889320_6353458109334729_100_17"
+]
 
-project = "Proj__15272392369260_8293106731954075_100_1"
-data    = retrieve_data(password  = password,
-                        user      = user,
-                        ip        = ip,
-                        project   = project,
-                        verbose   = True)
+results = {}
+
+for project in mass_projects:
+    results[project] = process_project(project, password, user, ip)
+
+# plot_runs(c.D, title=title, run_2_name=run_2_name)
+# plot_experiment_comparison()
+
+c, run_2_name, project, title = results[mass_projects[6]]
+plot_runs(c.D, title=title, run_2_name=run_2_name)
 
 
-def split(L, cond):
-    wrong = L[ L.index.isin(cond[cond  > 1].index) ]
-    good  = L[ L.index.isin(cond[cond == 1].index) ]
-    return good, wrong
+plot_experiment_comparison([
+    results["Proj__15264893889320_6353458109334729_100_8"][0].D,
+    results["Proj__15260213186990_6379462481554944_100_10"][0].D,
+    results["Proj__15272392369260_8293106731954075_100_1"][0].D
+])
 
-def filter_peptides_with_unique_types(data, return_filtered = True):
-    """Filter out peptides that appear in more than one type per run.
+plot_experiment_comparison(results,
+                           ["Proj__15272392369260_8293106731954075_100_8",
+                            "Proj__15264893889320_6353458109334729_100_17"],
+                            show = False)
 
-    Also, find peptides that appear with in different types across different runs.
 
-    Args:
-        data (pd.DataFrame):       Mass Project data.
-        return_filtered (logical): Return the filtered out peptides too.
-    Returns:
-        tuple : filtered peptides and unlabelled petides. Optionally, filtered out peptides, too.
-    """
-    # data that has not been given any sequence.
-    U = data.loc[data.sequence.isna(), col_names_unlabelled].copy()
-    # all the identified peptides.
-    L = data.dropna(subset = ['sequence']).copy()
-    L.set_index(['sequence', 'modification', 'run', 'type'], inplace = True)
-    L.sort_index(inplace = True)
-    # filter peptides that appear multpile time with the same type in the same run
-    id_run_type_cnt = L.groupby(L.index).size()
-    L, non_unique_id_run_type = split(L, id_run_type_cnt)
-    # filter peptides identified in more than one type per run
-    L.reset_index(level = ['type'], inplace = True)
-    L.sort_index(inplace = True)
-    types_per_id_run = L.groupby(L.index).size()
-    L, non_unique_type_per_id_run = split(L, types_per_id_run)
-    # filter out peptides identified with different types in different runs
-    L.reset_index(level = 'run', inplace = True)
-    L.sort_index(inplace = True)
-    diff_types_diff_runs = L.groupby(L.index).type.nunique()
-    L, diff_types_in_diff_runs = split(L, diff_types_diff_runs)
-    if return_filtered:
-        return L, U, non_unique_id_run_type, non_unique_type_per_id_run, diff_types_in_diff_runs
-    else: # HAHAHA, LU decomposition - FU!!!
-        return L, U
 
-L, U = filter_peptides_with_unique_types(data, False)
+projects = mass_projects[-3:]
 
-# L['id'] = L['sequence'] + " " + L['modification'].astype(str) # old way
+def plot_experiment_comparison(projects_results,
+                               projects,
+                               show      = True, 
+                               plt_style = 'dark_background'):
+    K = len(projects)
+    i = 0
+    first_plot = plt.subplot(K,1,i+1)
+    c, run_2_name, project, title = results[projects[i]]
+    plot_runs(c.D, 
+              title         = title,
+              run_2_name    = run_2_name,
+              show          = False,
+              plt_style     = plt_style)
+    for e in range(1, K):
+        i += 1
+        plt.subplot(K,1,i+1, 
+                    sharex = first_plot,
+                    sharey = first_plot)
+        c, run_2_name, project, title = results[projects[i]]
+        plot_runs(c.D, 
+                  title         = title,
+                  run_2_name    = run_2_name,
+                  show          = False,
+                  plt_style     = plt_style)
+    if show:
+        plt.show()
+

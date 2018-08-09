@@ -2,6 +2,8 @@
 import numpy  as np
 import pandas as pd
 
+from rta.read_in_data import col_names,\
+                             col_names_unlabelled
 
 #TODO: replace this with C.
 def ordered_str(x):
@@ -10,8 +12,54 @@ def ordered_str(x):
     return "_".join(str(i) for i in x)
 
 
-# TODO: add preprocessing that right now is done in R,
-# filtering out 'nonsensical' peptides.
+def split(L, cond):
+    """Split the DataFrame accoring to the count in the condition.
+
+    Things with cond > 1 are wrong, == 1 are right.
+    """
+    wrong = L[ L.index.isin(cond[cond  > 1].index) ]
+    good  = L[ L.index.isin(cond[cond == 1].index) ]
+    return good, wrong
+
+
+def filter_peptides_with_unique_types(data, return_filtered = True):
+    """Filter out peptides that appear in more than one type per run.
+
+    Also, find peptides that appear with in different types across different runs.
+
+    Args:
+        data (pd.DataFrame):       Mass Project data.
+        return_filtered (logical): Return the filtered out peptides too.
+    Returns:
+        tuple : filtered peptides and unlabelled petides. Optionally, filtered out peptides, too.
+    """
+    # data that has not been given any sequence.
+    U = data.loc[data.sequence.isna(), col_names_unlabelled].copy()
+    # all the identified peptides.
+    L = data.dropna(subset = ['sequence']).copy()
+    L.set_index(['sequence', 'modification', 'run', 'type'], inplace = True)
+    L.sort_index(inplace = True)
+    # filter peptides that appear multpile time with the same type in the same run
+    id_run_type_cnt = L.groupby(L.index).size()
+    L, non_unique_id_run_type = split(L, id_run_type_cnt)
+    # filter peptides identified in more than one type per run
+    L.reset_index(level = ['type'], inplace = True)
+    L.sort_index(inplace = True)
+    types_per_id_run = L.groupby(L.index).size()
+    L, non_unique_type_per_id_run = split(L, types_per_id_run)
+    # filter out peptides identified with different types in different runs
+    L.reset_index(level = 'run', inplace = True)
+    L.sort_index(inplace = True)
+    diff_types_diff_runs = L.groupby(L.index).type.nunique()
+    L, diff_types_in_diff_runs = split(L, diff_types_diff_runs)
+    if return_filtered:
+        return L, U, non_unique_id_run_type, non_unique_type_per_id_run, diff_types_in_diff_runs
+    else: # HAHAHA, LU decomposition - FU!!!
+        return L, U
+
+
+# It does make sense to introduce convention, that the annotated peptides DataFrame always has 
+# columns: run, charge, sequence, and modification.
 def preprocess(annotated_peptides,
                min_runs_no = 5,
                var_names   = ('rt', 'dt', 'mass'),
