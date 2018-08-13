@@ -8,6 +8,9 @@ pypi: ## deploy (haha, no it won't... need to write it first ;)
 	git tag -d GutenTag
 	git push gh :refs/tags/GutenTag
 
+py3: ## Activate python3 virtualevn
+	source ../py3_6/bin/activate
+
 projectName = rta
 
 

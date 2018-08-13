@@ -6,17 +6,12 @@ from rta.preprocessing      import filter_peptides_with_unique_types,\
                                    preprocess,\
                                    filter_unfoldable
 
-def process_project(project,
-                    password,
-                    user,
-                    ip, 
-                    verbose=True):
-    data, proj_rep, worklow_rep = retrieve_data(password  = password,
-                                                user      = user,
-                                                ip        = ip,
-                                                project   = project,
-                                                verbose   = verbose, 
-                                                metadata  = True)
+
+def process_retrieved_data(data,
+                           proj_rep,
+                           worklow_rep,
+                           project,
+                           min_runs_no = 1):
     run_2_name = dict(zip(worklow_rep.workflow_index.values,
                       worklow_rep.acquired_name.values))
     title = proj_rep.title[0]
@@ -28,7 +23,6 @@ def process_project(project,
     folds_no  = len(used_runs)
     d = preprocess(L, folds_no)
     d = filter_unfoldable(d, folds_no)
-    min_runs_no = 3
     c = calibrate(feature     = 'rt',
                   data        = d,
                   folds_no    = folds_no,
@@ -37,3 +31,16 @@ def process_project(project,
     return c, run_2_name, project, title
 
 
+def process_project(project,
+                    password,
+                    user,
+                    ip,
+                    min_runs_no,
+                    verbose=True):
+    data, proj_rep, worklow_rep = retrieve_data(password  = password,
+                                                user      = user,
+                                                ip        = ip,
+                                                project   = project,
+                                                verbose   = verbose, 
+                                                metadata  = True)
+    return process_retrieved_data(data, proj_rep, worklow_rep, project, min_runs_no)
