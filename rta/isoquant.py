@@ -59,6 +59,7 @@ def retrieve_data(password,
             m.Mobility      as dt,
             m.LiftOffRT     as LiftOffRT,
             m.InfUpRT       as InfUpRT,
+            m.InfDownRT     as InfDownRT,
             m.TouchDownRT   as TouchDownRT,
             p.sequence      as sequence,
             p.modifier      as modification,
@@ -79,3 +80,11 @@ def retrieve_data(password,
         return df, project_report, workflow_report
     else:
         return df
+
+
+def run_2_names_from(worklow_report):
+    """Retrieve the maps between run numbers and run names from 'workflow_report'."""
+    return (dict(zip(worklow_report.workflow_index.values,
+                     worklow_report.acquired_name.values)),
+            dict(zip(worklow_report.acquired_name.values,
+                     worklow_report.workflow_index.values)))

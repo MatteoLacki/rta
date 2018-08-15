@@ -73,6 +73,7 @@ col_names = ['run',
              'dt',
              'LiftOffRT',
              'InfUpRT',
+             'InfDownRT',
              'TouchDownRT',
              'sequence',
              'modification',
@@ -89,7 +90,8 @@ col_names_unlabelled = [ 'run',
                          'dt',
                          'LiftOffRT',
                          'InfUpRT',
-                         'TouchDownRT' ]
+                         'InfDownRT',
+                         'TouchDownRT']
 
 
 # list(variables.keys())

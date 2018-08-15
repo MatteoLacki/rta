@@ -13,7 +13,7 @@ pd.set_option('display.max_columns', 4)
 
 from rta.align.calibrator   import Calibrator
 from rta.read_in_data       import big_data
-from rta.pre.processing     import preprocess
+from rta.preprocessing     import preprocess
 
 # from rta.models.base_model import Model
 # from rta.models.base_model import predict, fitted, coef, residuals

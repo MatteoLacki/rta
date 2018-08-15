@@ -15,7 +15,9 @@ def process_retrieved_data(data,
     run_2_name = dict(zip(worklow_rep.workflow_index.values,
                       worklow_rep.acquired_name.values))
     title = proj_rep.title[0]
+
     L, U = filter_peptides_with_unique_types(data, False)
+
     # Adjust L to the old reasoning: we need a column id for coding convenience.
     L.reset_index(inplace = True)
     L['id'] = L['sequence'] + " " + L['modification'].astype(str) # old way

@@ -65,4 +65,7 @@ plot_experiment_comparison(results_6oo6, names)
 c.D.groupby('run').rt_0.apply(np.percentile, q=[2.5, 97.5])
 c.D.groupby('run').rt_0.agg({'perc2.5': lambda x: np.percentile(x, 2.5),
                              'perc97.5': lambda x: np.percentile(x, 97.5)})
+# Write a method to save the outcomes and plot them again.
+c.D.head()
+c.D.columns
 
