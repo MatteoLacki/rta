@@ -1,16 +1,66 @@
 %load_ext autoreload
 %autoreload 2
-%load_ext line_profiler
 
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
+import matplotlib.pyplot    as plt
+import matplotlib
+import numpy                as np
+import os
+import pandas               as pd
+import seaborn              as sns
 
 from rta.config             import *
 from rta.isoquant           import retrieve_data, run_2_names_from
 from rta.read_in_data       import big_data
-from rta.quality_control.process_project import process_retrieved_data
-from rta.serialization.isoquant_data import dump_retieved, load_retrieved
+from rta.quality_control.process_project    import process_retrieved_data
+from rta.serialization.isoquant_data        import dump_retieved, load_retrieved
+
+projects = {
+    "Proj__15272392369260_8293106731954075_100_5":{
+        ('S180424_02', 'S180424_03', 'S180424_04'):
+        {'title': 'NF\n0.2μg',
+         't_g'  : 93.0,
+         't'    : 120}
+    },
+    'Proj__15264893889320_6353458109334729_100_15':{
+        ('S180424_06', 'S180424_07', 'S180424_08'):
+            {'title': 'NF\n0.1μg',
+             't_g'  : 36,
+             't'    : 60},
+        ('S180427_05', 'S180427_06', 'S180427_07'):
+            {'title': 'MF\n1μg',
+             't_g'  : 50.5,
+             't'    : 60},
+        ('S180427_30', 'S180427_31', 'S180427_32'):
+            {'title': 'MF\n1μg',
+             't_g'  : 28,
+             't'    : 35}
+    },
+    'Proj__15272392369260_8293106731954075_100_7':{
+        ('S180424_09', 'S180424_10', 'S180424_11'):{
+            'title': 'NF\n0.1μg',
+            't_g'  : 18.5,
+            't'    : 35},
+    },
+    'Proj__15264893889320_6353458109334729_100_8':{
+        ('S180427_20', 'S180427_21', 'S180427_22'):{
+            'title': 'MF\n2μg',
+            't_g'  : 106,
+            't'    : 120}
+    },
+    'Proj__15264893889320_6353458109334729_100_14':{
+        ('S180427_27', 'S180427_28', 'S180427_29'):{
+            'title': 'MF\n0.5μg',
+            't_g'  : 28,
+            't'    : 35}
+    }
+    # 'Proj__15264893889320_6353458109334729_100_18':{
+    #     ('S180502_31','S180502_32','S180502_33','S180502_34','S180502_35','S180502_36'):{
+    #         'title': ''
+    #     }
+
+    # }
+}
+#
 
 projects = {
     "Proj__15272392369260_8293106731954075_100_5":
@@ -54,73 +104,65 @@ projects = {
         'runs' : ['S180427_30', 'S180427_31', 'S180427_32'],
         't_g'  : 28,
         't'    : 35
+    },
+    'Proj__15260213186990_6379462481554944_100_10':
+    {
+        'title': 'Micro 120 min No PCS',
+        'runs' : ['S180507_10', 'S180507_11', 'S180507_12'],
+        't_g'  : 106,
+        't'    : 120
+    },
+    'Proj__15264893889320_6353458109334729_100_14':
+    {
+        'title': 'MF\n0.5μg',
+        'runs' : ['S180427_27', 'S180427_28', 'S180427_29'],
+        't_g'  : 28,
+        't'    : 35
     }
 }
 
 
 
 
-retrieved_data = [retrieve_data(password  = password,
-                                user      = user,
-                                ip        = ip,
-                                project   = p,
-                                verbose   = True, 
-                                metadata  = True) for p in projects]
 
-for rd, p in zip(retrieved_data, projects):
-    projects[p]['data'] = rd
+# 'Proj__15260213186990_6379462481554944_100_10':
+    # {
+    #     'title': 'Micro 120 min No PCS',
+    #     'runs' : ['S180507_10', 'S180507_11', 'S180507_12'],
+    #     't_g'  : 106,
+    #     't'    : 120
+    # },
 
-# additional data:
-p_add  = "Proj__15260213186990_6379462481554944_100_10"
-rd_add = retrieve_data(password  = password,
-                       user      = user,
-                       ip        = ip,
-                       project   = p_add,
-                       verbose   = True, 
-                       metadata  = True)
-projects[p_add] = {'title' : 'Micro 120 min No PCS',
-                   'runs'  : ['S180507_10', 'S180507_11', 'S180507_12'],
-                   't_g'   : 106,
-                   't'     : 120,
-                   'data'  : rd_add}
+# order = ['Proj__15272392369260_8293106731954075_100_7',
+#          'Proj__15264893889320_6353458109334729_100_14',
+#          'Proj__15264893889320_6353458109334729_100_15',
+#          'Proj__15264893889320_6353458109334729_100_15',]
 
+# get data
+try:
+    folder = "/home/matteo/Projects/rta/data"
+    data = {p: load_retrieved(os.path.join(folder, p)) for p in projects}
+except FileNotFoundError:
+    data = {p: retrieve_data(password  = password,
+                             user      = user,
+                             ip        = ip,
+                             project   = p,
+                             verbose   = True, 
+                             metadata  = True) for p in projects}
+    for p in projects:
+        dump_retieved(data[p],
+                      f'/home/matteo/Projects/rta/data/{p}')
 
-# dump all intermediate results.
-
-experiments = ''
-for p in projects:
-    dump_retieved(projects[p]['data'],
-                  f'/home/matteo/Projects/retentiontimealignment/Data/{experiments}/{p}')
-
-
-# data, proj_rep, worklow_rep = projects[p_add]['data']
-# dump_retieved(projects[p_add]['data'],
-#               '/home/matteo/Projects/retentiontimealignment/Data/test')
-# folder = '/home/matteo/Projects/retentiontimealignment/Data/test/'
-
-# load_retrieved(folder)
-# dump results to something.
-# testing pyarrow: don't know if it's worth it...
-# import sys
-# table = pa.Table.from_pandas(data)
-# data.to_csv('/home/matteo/Projects/retentiontimealignment/Data/test.csv')
-# pq.write_table(table, '/home/matteo/Projects/retentiontimealignment/Data/test.parquet')
-# pq.write_table(table,
-#                '/home/matteo/Projects/retentiontimealignment/Data/test.gzip',
-#                compression='gzip')
-# pq.write_table(table,
-#                '/home/matteo/Projects/retentiontimealignment/Data/test.brotli',
-#                compression='brotli')
-
-import seaborn as sns
 
 
 to_plot = projects
-to_plot = ['Proj__15272392369260_8293106731954075_100_6', 'Proj__15264893889320_6353458109334729_100_15']
+# to_plot = ['Proj__15272392369260_8293106731954075_100_6', 'Proj__15264893889320_6353458109334729_100_15']
+
+matplotlib.rcParams.update({'font.size':   9,
+                            'font.sans-serif': 'DejaVu Sans'})
 f, axes = plt.subplots(1, len(to_plot),
                        figsize=(7, 7),
                        sharex=True, sharey=True)
-
 for i, p in enumerate(to_plot):
     data, proj_rep, worklow_rep = projects[p]['data']
     ax = sns.boxplot(x    = "run", 
@@ -131,6 +173,8 @@ for i, p in enumerate(to_plot):
 plt.show()
 
 
+from matplotlib import font_manager
+font_manager.findfont('Arial')
 
 
 # run2name, name2run = run_2_names_from(retrieved_data[0][2])

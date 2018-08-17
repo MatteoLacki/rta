@@ -24,7 +24,13 @@ setup(
     install_requires=[
         'numpy',
         'sklearn',
-        'pandas'
+        'pandas',
+        'scipy',
+        'matplotlib',
+        'statsmodels',
+        'pymysql',
+        'sqlalchemy',
+        'pyarrow'
     ]
     # scripts=[
     #     'bin/rta']

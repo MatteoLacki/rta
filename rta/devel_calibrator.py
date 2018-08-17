@@ -1,7 +1,7 @@
 """Develop the calibrator."""
 %load_ext autoreload
 %autoreload 2
-%load_ext line_profiler
+# %load_ext line_profiler
 
 import matplotlib.pyplot as plt
 import numpy             as np
