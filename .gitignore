@@ -21,7 +21,7 @@ rta/data/
 # VIM
 *.swo
 
-# configs
+# configs with passwords
 rta/config.py
 
 
