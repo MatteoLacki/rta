@@ -1,7 +1,7 @@
 """Develop the calibrator."""
 %load_ext autoreload
 %autoreload 2
-# %load_ext line_profiler
+%load_ext line_profiler
 
 import matplotlib.pyplot as plt
 import numpy             as np
@@ -47,3 +47,23 @@ plt.hist(c.D.runs_stat_dist_1, bins=5000, color='blue')
 # plt.hist(c.D.runs_stat_dist_2, bins=1000, color='green')
 plt.show()
 
+r, x, y, m, f, p = next(c.iter_run_param())
+it = c.iter_run_param()
+next(it)
+for x in c.iter_run_param():
+    print(x)
+
+from rta.models.splines.robust import robust_spline
+
+M = robust_spline(x, y, **p)
+M.plot()
+
+%prun robust_spline(x, y, **p)
+%lprun -f robust_spline robust_spline(x, y, **p)
+
+from rta.models.splines.robust import robust_spline
+M = RobustSpline(20, 3)
+
+%lprun -f M.fit M.fit(x,y,False,False)
+%%timeit
+robust_spline(x, y, drop_duplicates=False, sort=False)
