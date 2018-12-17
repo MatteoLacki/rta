@@ -83,6 +83,7 @@ class Calibrator(object):
         self.D.columns = ['id', 'run', self.x]
         self.best_models = {}
 
+
     def increase_align_cnt(self):
         self.align_it += 1
         self.stat_col = 'runs_stat_{}'.format(self.align_it)
@@ -100,7 +101,7 @@ class Calibrator(object):
             stat (function): the statistic to be applied.
         """
         # let align_it store always the most recent alignment.
-        peptide_grouped_feature   = self.D.groupby(self.d['pept_id'])[self.x]
+        peptide_grouped_feature = self.D.groupby(self.d['pept_id'])[self.x]
         # the current name of the summary statistic in the stats
         self.stats[self.stat_col] = peptide_grouped_feature.agg(stat)
         self.D = pd.merge(self.D,

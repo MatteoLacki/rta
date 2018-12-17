@@ -20,7 +20,7 @@ if __name__ == "__main__":
     annotated_all, unlabelled_all = big_data()
     d = preprocess(annotated_all, min_runs_no)
     d = filter_unfoldable(d, folds_no)
-    c = calibrate(feature     = 'rt',
+    c = calibrate(feature     ='rt',
                   data        = d,
                   folds_no    = folds_no,
                   min_runs_no = min_runs_no, 
@@ -37,7 +37,6 @@ if __name__ == "__main__":
 c.plot_run_alignments(2,  max_alignments=3, point_size=.1)
 c.plot_run_alignments(9,  max_alignments=3, point_size=.1)
 c.plot_run_alignments(10, max_alignments=3, point_size=.1)
-
 
 
 # investigating the distribution of distances to the 'median'.
