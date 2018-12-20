@@ -23,8 +23,6 @@ from masstodon.plot.spectrum import plot_spectrum
 from collections import Counter
 from rta.stats.stats import mad
 
-Counter(Counter(np.round(x*15)).values())
-
 
 folds_no    = 10
 min_runs_no = 5
@@ -32,18 +30,20 @@ annotated_all, unlabelled_all = big_data()
 d = preprocess(annotated_all, min_runs_no)
 d = filter_unfoldable(d, folds_no)
 c = calibrate(feature     ='rt',
-                  data        = d,
-                  folds_no    = folds_no,
-                  min_runs_no = min_runs_no, 
-                  model       = gaussian_mixture_spline,
-                  align_cnt   = 0)
-next(c.iter_run_param())
-
+              data        = d,
+              folds_no    = folds_no,
+              min_runs_no = min_runs_no, 
+              model       = gaussian_mixture_spline,
+              align_cnt   = 0)
 x_min = min(c.D.rt_0)
 x_max = max(c.D.rt_0)
 
 x = np.array(c.D.rt_0[c.D.run == 1])
 y = np.array(c.D.runs_stat_dist_0[c.D.run == 1])
+
+# how many things end up in 4 second intervals
+Counter(Counter(np.round(x*15)).values())
+
 # plt.scatter(x,y)
 # plt.show()
 # how much the RTs differ?
@@ -57,8 +57,7 @@ plt.show()
 
 from rta.array_operations.misc import percentile_pairs_of_N_integers
 
-
-
+k_tile = 100
 %%timeit
 x_medians = np.empty(k_tile+4, dtype = np.float64)
 y_medians = np.empty(k_tile+4, dtype = np.float64)
@@ -93,11 +92,7 @@ plt.plot(xs, b_sd_interpolation(xs), color='orange')
 plt.show()
 
 
-
 # seems that the approach with seconds should be better.
-
-
-
 def get_conditional_means(x, y,
                            = 60,
                           sort = True):
