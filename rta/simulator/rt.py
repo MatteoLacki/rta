@@ -2,6 +2,8 @@ import numpy as np
 import numpy.random as npr
 import pandas as pd
 
+from rta.array_operations.functional import act
+from rta.stats.random import runif
 
 pi = np.pi
 
@@ -14,41 +16,6 @@ def array2df(x, stack=True):
         x = x.reset_index(level=1)
         x.columns = ['run', 'rt']
     return x
-
-
-def draw_peptide_rt(size=10000,
-                    min_rt=16,
-                    max_rt=180,
-                    runs_no=10,
-                    precision=None,
-                    systematic_shifts=None,
-                    stack=True):
-    """Draw retention times fo peptides.
-    
-    Args:
-        size (int): the number of peptides
-        systematic_shifts (functions): the applied functions.
-    """
-    rt = npr.random(size) * (max_rt - min_rt) + min_rt
-    if precision:
-        rtp = npr.normal(loc=rt,
-                         scale=precision,
-                         size=(runs_no, size)).T
-        if systematic_shifts:
-            assert len(systematic_shifts) == runs_no, "Wrong number of shift functions: is {} should be {}.".format(len(systematic_shifts), runs_no)
-            rtps = np.empty(shape=rtp.shape, dtype=rtp.dtype)
-            for i in range(runs_no):
-                rtps[:,i] = systematic_shifts[i](rtp[:,i])
-            if stack:
-                return rt, array2df(rtp), array2df(rtps)
-            else:
-                return rt, rtp, rtps
-        if stack:
-            return rt, array2df(rtp)
-        else:
-            return rt, rtp
-    return rt
-
 
 def draw_rt(size=10000,
             min_rt=16,
@@ -78,21 +45,6 @@ def draw_runs(rt,
     """
     return npr.normal(loc=rt, scale=precision, size=(runs_no, len(rt))).T
 
-def act(F, X):
-    """Act with functions in F on the columns of X.
-
-    Create a matrix Y = [F(X1)|F(X2)|...|F(Xd)]
-
-    Args:
-        F (tuple of vectorized callables): Functions to apply over the columns of X. Each function should be vectorized,
-        X (np.array): A matrix with n rows and d columns.
-    """
-    n, d = X.shape
-    assert len(F) == d, "There are {} functions and {} columns of X.".format(len(F), d)
-    Y = np.empty(shape=(n,d), dtype=X.dtype)
-    for i in range(d):
-        Y[:,i] = F[i](X[:,i])
-    return Y
 
 rt = draw_rt()
 rts = draw_runs(rt, 3)
@@ -101,12 +53,14 @@ shifts = (lambda x: 10 + x * (1 + .01 * np.sin(x/20)),
           lambda x: 15 + x * (1.01 + .25 * np.sin(x/18)))
 rtss = act(shifts, rts)
 
+import matplotlib.pyplot as plt
+plt.scatter(rtss[:,0], rtss[:,1])
+e = rtss.min(), rtss.max()
+plt.plot(e, e, color='black')
+plt.show()
+
 
 # automate shift maker
-import matplotlib.pyplot as plt
-
-def runif(n, a, b):
-    return npr.random(n)*(b-a)+a
 def random_diag_sin_shifts(n,
                            min_c=0,
                            max_c=10,
@@ -125,33 +79,11 @@ def random_diag_sin_shifts(n,
     return tuple([lambda x: c + x + a*np.sin(2*pi*x/f)
                   for c,a,f in zip(C,A,F)])
 
-systematic_shifts = random_diag_sin_shifts(10)
-rt, rtp, rtps = draw_peptide_rt(precision=.05,
-                                systematic_shifts=systematic_shifts,
-                                stack=False)
+rt = draw_rt()
+rts = draw_runs(rt, 10)
+shifts = random_diag_sin_shifts(10)
+rtss = act(shifts, rts)
 
-# x=np.linspace(0,100,10000)
-# y=systematic_shifts[0](x)
-# plt.plot(x,y)
-#z plt.show()
-shifts = (lambda x: 10 + x * (1 + .01 * np.sin(x/20)),
-          lambda x: 7  + x * (1 + .05 * np.cos(x/15)))
 
-rt, rtp, rtps = draw_peptide_rt(runs_no=2,
-                                precision=.5,
-                                systematic_shifts=shifts,
-                                stack=False)
-
-plt.scatter(rtss[:,0], rtss[:,1])
-# plt.scatter(rt, rtps[:,1])
-e = rtss.min(), rtss.max()
-plt.plot(e, e, color='black')
-plt.show()
-
-# adding big noise
-rt, rtp, rtps = draw_peptide_rt(runs_no=2,
-                                precision=.5,
-                                systematic_shifts=shifts,
-                                stack=True)
-npr.binomial(10000, .01, )
-n.shape()
+# add big jumps here.
+npr.binomial(10000, .01)
