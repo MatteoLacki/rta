@@ -46,18 +46,20 @@ def draw_runs(rt,
     return npr.normal(loc=rt, scale=precision, size=(runs_no, len(rt))).T
 
 
-rt = draw_rt()
-rts = draw_runs(rt, 3)
-shifts = (lambda x: 10 + x * (1 + .01 * np.sin(x/20)),
-          lambda x: 7  + x * (1 + .05 * np.cos(x/15)),
-          lambda x: 15 + x * (1.01 + .25 * np.sin(x/18)))
-rtss = act(shifts, rts)
+if name == "__main__":
+    rt = draw_rt()
+    rts = draw_runs(rt, 3)
+    shifts = (lambda x: 10 + x * (1 + .01 * np.sin(x/20)),
+              lambda x: 7  + x * (1 + .05 * np.cos(x/15)),
+              lambda x: 15 + x * (1.01 + .25 * np.sin(x/18)))
+    rtss = act(shifts, rts)
 
-import matplotlib.pyplot as plt
-plt.scatter(rtss[:,0], rtss[:,1])
-e = rtss.min(), rtss.max()
-plt.plot(e, e, color='black')
-plt.show()
+    import matplotlib.pyplot as plt
+
+    plt.scatter(rtss[:,0], rtss[:,1])
+    e = rtss.min(), rtss.max()
+    plt.plot(e, e, color='black')
+    plt.show()
 
 
 # automate shift maker
@@ -79,11 +81,12 @@ def random_diag_sin_shifts(n,
     return tuple([lambda x: c + x + a*np.sin(2*pi*x/f)
                   for c,a,f in zip(C,A,F)])
 
-rt = draw_rt()
-rts = draw_runs(rt, 10)
-shifts = random_diag_sin_shifts(10)
-rtss = act(shifts, rts)
+if name == "__main__":
+    rt = draw_rt()
+    rts = draw_runs(rt, 10)
+    shifts = random_diag_sin_shifts(10)
+    rtss = act(shifts, rts)
 
 
-# add big jumps here.
-npr.binomial(10000, .01)
+    # add big jumps here.
+    npr.binomial(10000, .01)
