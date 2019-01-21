@@ -39,7 +39,7 @@ def filter_peptides_with_unique_types(data, return_filtered = True):
     L = data.dropna(subset = ['sequence']).copy()
     L.set_index(['sequence', 'modification', 'run', 'type'], inplace = True)
     L.sort_index(inplace = True)
-    # filter peptides that appear multpile time with the same type in the same run
+    # filter peptides that appear multiple time with the same type in the same run
     id_run_type_cnt = L.groupby(L.index).size()
     L, non_unique_id_run_type = split(L, id_run_type_cnt)
     # filter peptides identified in more than one type per run
@@ -54,7 +54,7 @@ def filter_peptides_with_unique_types(data, return_filtered = True):
     L, diff_types_in_diff_runs = split(L, diff_types_diff_runs)
     if return_filtered:
         return L, U, non_unique_id_run_type, non_unique_type_per_id_run, diff_types_in_diff_runs
-    else: # HAHAHA, LU decomposition - FU!!!
+    else:
         return L, U
 
 
@@ -90,8 +90,10 @@ def preprocess(annotated_peptides,
 
     ### get basic statistics on D.
     stats = pd.DataFrame({'runs_no': D_id.id.count()})
+
     # this should be rewritten in C.
     stats['runs'] = D_id.run.agg(ordered_str)
+
     # counting unique charge states per peptide group
     stats['charges'] = D_id.charge.nunique()
     peptides_in_runs_cnt = stats.groupby('runs_no').size()
