@@ -9,6 +9,7 @@ class Model(object):
         """
         raise NotImplementedError
 
+    #TODO: is this really needed?
     def refit(self, **kwds):
         """Refit the model."""
         raise NotImplementedError
@@ -27,6 +28,7 @@ class Model(object):
         """
         raise NotImplementedError
 
+    #TODO: is this really needed?
     def predict(self, x, *args, **kwds):
         """Predict the values at the new data points.
 
@@ -37,6 +39,7 @@ class Model(object):
         """
         self(x, y, *args, **kwds)
 
+    #TODO: is this really needed? Some methods don't have coefs.
     def coef(self):
         """Retrieve spline coefficient.
 

@@ -33,8 +33,6 @@ def cv_run_param_old(r, x, y, f, p):
     return r, p, m
 
 
-
-
 def cv_run_param(r, x, y, m, f, p):
     """Little wrapper around the robust splines.
 
@@ -296,11 +294,12 @@ class Calibrator(object):
                                  title = "Alignment No 1")
         self.best_models[0][run_tag].plot(show = False, **kwds)
         for i in range(1, max_plots):
+            plt.style.use(plt_style)
             plt.subplot(max_plots, 1, i+1,
                         sharex = first_plot,
                         sharey = first_plot,
                         title  = "Alignment No {}".format(i+1))
-            self.best_models[i][run_tag].plot(show = False, **kwds)
+            self.best_models[i][run_tag].plot(show = False, plt_style=plt_style, **kwds)
         if show:
             plt.show()
 

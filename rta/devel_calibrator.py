@@ -1,7 +1,7 @@
 """Develop the calibrator."""
 %load_ext autoreload
 %autoreload 2
-%load_ext line_profiler
+# %load_ext line_profiler
 
 import matplotlib.pyplot as plt
 import numpy             as np
@@ -38,6 +38,10 @@ c.plot_run_alignments(2,  max_alignments=3, point_size=.1)
 c.plot_run_alignments(9,  max_alignments=3, point_size=.1)
 c.plot_run_alignments(10, max_alignments=3, point_size=.1)
 
+plt.style.use('seaborn-white')
+c.plot_run_alignments(9, max_alignments=3, point_size=.1, plt_style = 'seaborn-white')
+
+
 
 # investigating the distribution of distances to the 'median'.
 # It still seems, that we should not recalculate the medians all 
@@ -67,3 +71,5 @@ M = RobustSpline(20, 3)
 %lprun -f M.fit M.fit(x,y,False,False)
 %%timeit
 robust_spline(x, y, drop_duplicates=False, sort=False)
+
+
