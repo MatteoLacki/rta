@@ -1,6 +1,6 @@
 """The Robust Spline class 2: the final countdown.
 
-Here I trykb
+Here I try to use the robust median.
 """
 
 import numpy as np

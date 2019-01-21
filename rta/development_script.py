@@ -8,12 +8,13 @@ import matplotlib.pyplot as plt
 from multiprocessing import Pool, cpu_count
 import numpy as np
 import pandas as pd
+
 pd.set_option('display.max_rows', 10)
 pd.set_option('display.max_columns', 4)
 
-from rta.align.calibrator   import Calibrator
-from rta.read_in_data       import big_data
-from rta.preprocessing     import preprocess
+from rta.align.calibrator import Calibrator
+from rta.read_in_data import big_data
+from rta.preprocessing import preprocess
 
 # from rta.models.base_model import Model
 # from rta.models.base_model import predict, fitted, coef, residuals
@@ -25,13 +26,13 @@ if __name__ == "__main__":
     annotated_all, unlabelled_all = big_data()
 
     d = preprocess(annotated_peptides=annotated_all)
-
-    d.D
-    d.stats.columns
+    d.keys()
+    d['data']
+    d['stats'].columns
     feature = 'rt'
 
     calibrator = Calibrator(d, feature)
-    calibrator.set_folds(folds_no, stratified_group_folds, True)
+    calibrator.fold(folds_no, stratified_group_folds, True)
 
 
     from rta.models.SQSpline import SQSpline
