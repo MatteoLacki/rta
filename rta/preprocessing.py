@@ -70,7 +70,7 @@ def preprocess(annotated_peptides,
 
     ### get basic statistics on D.
     stats = pd.DataFrame({'runs_no': D_id.id.count()})
-    stats['runs'] = D_id.run.agg(set)
+    stats['runs'] = D_id.run.agg(frozenset)
     assert all(stats.runs.apply(len) == stats['runs_no']), "sets have wrong number of members."
 
     # peptides distribuant w.r.t. decreasing run appearance
@@ -81,35 +81,35 @@ def preprocess(annotated_peptides,
     # filtering out infrequent peptides
     stats = stats[stats.runs_no >= min_runs_no].copy()
     D = D[D.id.isin(stats.index)].copy()
-
+    
     return D, stats, pddra
 
 
-def filter_unfoldable(peptides, folds_no = 10):
-    """Filter peptides that cannot be folded.
+# def filter_unfoldable(peptides, folds_no = 10):
+#     """Filter peptides that cannot be folded.
 
-    Trim both stats on peptides and run data of all peptides
-    that are not appearing in the same runs in a group of at
-    least 'folds_no' other peptides.
+#     Trim both stats on peptides and run data of all peptides
+#     that are not appearing in the same runs in a group of at
+#     least 'folds_no' other peptides.
 
-    Args:
-        folds_no (int): the number of folds to divide the data into.
-    """
-    s = peptides['stats']
-    # count how many peptides appear together in the same runs, e.g. run 1, 2, 4.
-    # Peptides appearing together in a given set of runs form a stratum.
-    strata_cnts = s.groupby("runs").runs.count()
-    # Filter strata that have less than folds_no peptides.
-    # E.G. if only 4 peptides appear in runs 1, 2, and 4, then we cannot 
-    # meaningfully place them in 10 different folds. 
-    # We could place them in at most 4 folds.
-    strata_cnts             = strata_cnts[strata_cnts >= folds_no].copy()
-    peptides['strata_cnts'] = strata_cnts
-    # filter out peptides groups that cannot take part in the folding.
-    s = s[ np.isin(s.runs, strata_cnts.index) ].copy()
-    peptides['stats'] = s
-    # filter out individual peptides (in different runs) that cannot take part in the folding.
-    data = peptides['data']
-    data = data[ data[ peptides['pept_id'] ].isin(s.index) ].copy()
-    peptides['data'] = data
-    return peptides
+#     Args:
+#         folds_no (int): the number of folds to divide the data into.
+#     """
+#     s = peptides['stats']
+#     # count how many peptides appear together in the same runs, e.g. run 1, 2, 4.
+#     # Peptides appearing together in a given set of runs form a stratum.
+#     strata_cnts = s.groupby("runs").runs.count()
+#     # Filter strata that have less than folds_no peptides.
+#     # E.G. if only 4 peptides appear in runs 1, 2, and 4, then we cannot 
+#     # meaningfully place them in 10 different folds. 
+#     # We could place them in at most 4 folds.
+#     strata_cnts             = strata_cnts[strata_cnts >= folds_no].copy()
+#     peptides['strata_cnts'] = strata_cnts
+#     # filter out peptides groups that cannot take part in the folding.
+#     s = s[ np.isin(s.runs, strata_cnts.index) ].copy()
+#     peptides['stats'] = s
+#     # filter out individual peptides (in different runs) that cannot take part in the folding.
+#     data = peptides['data']
+#     data = data[ data[ peptides['pept_id'] ].isin(s.index) ].copy()
+#     peptides['data'] = data
+#     return peptides
