@@ -2,7 +2,7 @@
 
 %load_ext autoreload
 %autoreload 2
-%load_ext line_profiler
+
 
 import matplotlib.pyplot as plt
 from multiprocessing import Pool, cpu_count
