@@ -11,7 +11,7 @@ import pandas            as pd
 from rta.align.calibrator       import calibrate
 from rta.read_in_data           import big_data
 from rta.preprocessing          import preprocess, filter_unfoldable
-from rta.models.splines.gaussian_mixture import gaussian_mixture_spline
+from rta.models.splines.gaussian_mixture import ga1ussian_mixture_spline
 
 
 if __name__ == "__main__":

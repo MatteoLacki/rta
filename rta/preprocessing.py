@@ -5,12 +5,6 @@ import pandas as pd
 from rta.read_in_data import col_names,\
                              col_names_unlabelled
 
-#TODO: replace this with C.
-def ordered_str(x):
-    x = x.values
-    x.sort()
-    return "_".join(str(i) for i in x)
-
 
 def split(L, cond):
     """Split the DataFrame accoring to the count in the condition.
@@ -58,62 +52,37 @@ def filter_peptides_with_unique_types(data, return_filtered = True):
         return L, U
 
 
-# It does make sense to introduce convention, that the annotated peptides DataFrame always has 
-# columns: run, charge, sequence, and modification.
 def preprocess(annotated_peptides,
-               min_runs_no = 5,
-               var_names   = ('rt', 'dt', 'mass'),
-               pept_id     = 'id',
-               run_name    = 'run',
-               charge_name = 'charge'):
+               min_runs_no = 5):
     """Preprocess the data.
 
     Args:
-        annotated_peptides (pd.DataFrame): A DataFrame with identified peptides.
-        min_runs_no (int):                 Minimal number of runs a peptide occurs in to qualify for further analysis.
-        var_names (iter of strings):       Names of columns for which to obtain the statistic.
-        pept_id (str):                     Name of the column that identifies peptides in different runs.
-        run_name (str):                    Name of the column with runs.
-        charge_names (str):                Name of the column with charges.
+        annotated_peptides (pd.DataFrame): A DataFrame with columns 'id', 'run', and some measuments in other columns. 
+        min_runs_no (int): Minimal number of runs a peptide occurs in to qualify for further analysis.
 
     Returns:
-        Peptides: a named tuple with fields 'data', 'statistics', 'runs' and 'distribuant'.
+        tuple: preprocessed data, statistics on it, and peptides distibuant
     """
-    all_col_names = list((pept_id, run_name, charge_name) + var_names)
-    assert all(vn in annotated_peptides.columns for vn in all_col_names),\
-             "Not all variable names are among the column names of the supplied data frame."
-
     # work on smaller copy of the data.
-    D = annotated_peptides[all_col_names].copy()
-    runs = D[run_name].unique()
+    D = annotated_peptides.copy()
+    runs = D.run.unique()
     D_id = D.groupby('id')
 
     ### get basic statistics on D.
     stats = pd.DataFrame({'runs_no': D_id.id.count()})
-
-    # this should be rewritten in C.
-    stats['runs'] = D_id.run.agg(ordered_str)
-
-    # counting unique charge states per peptide group
-    stats['charges'] = D_id.charge.nunique()
-    peptides_in_runs_cnt = stats.groupby('runs_no').size()
+    stats['runs'] = D_id.run.agg(set)
+    assert all(stats.runs.apply(len) == stats['runs_no']), "sets have wrong number of members."
 
     # peptides distribuant w.r.t. decreasing run appearance
+    peptides_in_runs_cnt = stats.groupby('runs_no').size()
     pddra = np.flip(peptides_in_runs_cnt.values, 0).cumsum()
     pddra = {i + 1:pddra[-i-1] for i in range(len(peptides_in_runs_cnt))}
 
     # filtering out infrequent peptides
     stats = stats[stats.runs_no >= min_runs_no].copy()
-    D = D[ D[pept_id].isin(stats.index) ].copy()
+    D = D[D.id.isin(stats.index)].copy()
 
-    return dict(data             = D,
-                stats            = stats,
-                runs             = runs,
-                quasidistribuant = pddra,
-                var_names        = var_names,
-                pept_id          = pept_id,
-                run_name         = run_name,
-                charge_name      = charge_name)
+    return D, stats, pddra
 
 
 def filter_unfoldable(peptides, folds_no = 10):
