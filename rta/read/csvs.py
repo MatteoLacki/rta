@@ -93,11 +93,3 @@ col_names_unlabelled = [ 'run',
                          'InfDownRT',
                          'TouchDownRT']
 
-
-# list(variables.keys())
-
-# A = pd.read_csv(
-#   path+'annotated_data.csv',
-#   names=variables.keys(),
-#   dtype=variables)
-

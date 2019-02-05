@@ -27,6 +27,9 @@ def K_folds(N, folds_no=10):
         groups[-N_mod_K:] = group_tags[0:N_mod_K]
     shuffle(groups)
     return groups
+# what if group has less elements then needed?
+# K_folds(3, 5)
+# simply we attribute points to one of the things they can go.
 
 
 def drop(X, col):
@@ -72,11 +75,14 @@ def stratified_grouped_fold(D, stats, K, strata='runs'):
         g['fold'] = K_folds(len(g), K)
         return g
 
-    # gettin group-stratum specific fold assignments
-    stats = stats.groupby(strata).apply(f)
+    try:
+        # gettin group-stratum specific fold assignments
+        stats = stats.groupby(strata).apply(f)
 
-    # passing it to main data
-    D = D.join(stats.fold, on='id')
-
+        # passing it to main data
+        D = D.join(stats.fold, on='id')
+    except KeyError as e:
+        print("We typically strata = 'runs' or strata = 'runs_no'. Try these or assure the column you use is in stats.")
+        raise e
     return D, stats
 
