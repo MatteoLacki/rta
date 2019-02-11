@@ -1,13 +1,12 @@
-"""The class that applies a given model to each coordinate x."""
+"""Align towards one chosen reference retention time."""
 
 
-class Aligner(object):
-    def __init__(self, M, *M_args, **M_kwds):
+class StarAligner(object):
+    def __init__(self, M):
         """Constuctor.
         Args:
-            M (callable): the type of model to be fitted to model y-x.
+            M (callable or dict of callables): the type of model to be fitted to each coordinate.
         """
-        self.M = M
         self.m = {}
 
     def fit(self, X):

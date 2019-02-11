@@ -1,3 +1,8 @@
+try:
+    import matplotlib.pyplot as plt
+except ModuleNotFoundError:
+    plt = None
+
 class Model(object):
     """A container for storing results of fitting."""
     def fit(self, x, y, **kwds):
@@ -7,11 +12,6 @@ class Model(object):
             x (np.array): The control variable.
             y (np.array): The response variable.
         """
-        raise NotImplementedError
-
-    #TODO: is this really needed?
-    def refit(self, **kwds):
-        """Refit the model."""
         raise NotImplementedError
 
     def __call__(self, x, *args, **kwds):
@@ -28,43 +28,27 @@ class Model(object):
         """
         raise NotImplementedError
 
-    #TODO: is this really needed?
-    def predict(self, x, *args, **kwds):
-        """Predict the values at the new data points.
+    def __repr__(self):
+        return 'Model.'
 
-        Args:
-            x (np.array): control variable.
-            *args       : additional arguments.
-            **kwds      : additional arguments.
-        """
-        self(x, y, *args, **kwds)
-
-    #TODO: is this really needed? Some methods don't have coefs.
-    def coef(self):
-        """Retrieve spline coefficient.
-
-        Then again, why would you?
-        """
-        raise NotImplementedError
+    def fitted(self):
+        """Get the fitted values."""
+        return self(self.x)
 
     def res(self):
-        """Get residuals."""
-        raise NotImplementedError
+        """Get model residuals."""
+        return self.y - self.fitted()
 
-    def residuals(self):
-        """Get residuals: syntactic sugar for 'res'."""
-        return self.res
-
-    def __repr__(self):
-        return 'This is the logic for all models.'
-
-    def plot(self, **kwds):
+    def plot(self, plt_style = 'dark_background', show=True, **kwds):
         """Plot results."""
-        raise NotImplementedError
-
-    def cv(self, x, y, folds):
-        """Run cross-validation."""
-        raise NotImplementedError
+        if plt:
+            plt.style.use(plt_style)
+            plt.scatter(self.x, self.y, **kwds)
+            if show:
+                plt.show()
+        else:
+            print('Install matplotlib to use this function.')
+            raise ModuleNotFoundError
 
 
 def predict(model, x, *args, **kwds):
@@ -86,20 +70,11 @@ def predict(model, x, *args, **kwds):
 def fitted(model):
     return model.fitted()
 
-def coef(model):
-    return model.coef()
-
-def coefficients(model):
-    return model.coef()
-
 def residuals(model):
     return model.res()
 
 def res(model):
     return model.res()
-
-def cv(model, **kwds):
-    return model.cv(**kwds)
 
 def plot(model, **kwds):
     model.plot(**kwds)
