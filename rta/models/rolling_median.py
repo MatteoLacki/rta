@@ -3,10 +3,18 @@ import numpy as np
 from scipy.interpolate import interp1d
 from scipy.signal import medfilt
 
-from rta.models.base_model import Model
+from rta.models.model import Model
 
 
-class RollingMedianInterpolation(Model):
+class RollingMedian(Model):
+    """The rolling median interpolator.
+
+    Idea is as straight as a hair of a Mongol: get rid of the noise by
+    fitting a roling median and interpolate every other k-th median.
+    Of course, since we calculate all other medians too, we could get more
+    playful with their evaluation.
+    TODO: add a wrapper around this method.
+    """
     def __init__(self, ws=51, k=10):
         """Constructor.
         
@@ -16,6 +24,9 @@ class RollingMedianInterpolation(Model):
         """
         self.ws = ws
         self.k = k
+
+    def __repr__(self):
+        return "RollingMedian(ws:{} k:{})".format(self.ws, self.k)
 
     def fit(self, x, y, sort=False):
         if sort:
@@ -40,15 +51,9 @@ class RollingMedianInterpolation(Model):
         if show:
             plt.show()
 
-# rmi = RollingMedianInterpolation()
+# rmi = RollingMedian()
 # rmi.fit(x, y-x)
 # rmi.plot()
-
-# should we recalculate the median or not?
-# will recalculating it ease the effect of zeros?
-    # of course not!
-    # it all boils down to points being closer.
-
 # plt.axhline(y=0, color='red')
 # plt.scatter(x, y - x - rmi(x), s=1)
 # plt.show()

@@ -2,36 +2,30 @@
 
 
 class StarAligner(object):
-    def __init__(self, M):
+    def __init__(self, models):
         """Constuctor.
         Args:
-            M (callable or dict of callables): the type of model to be fitted to each coordinate.
+            m (dict of callables): mapping between runs and the coordinate models to be fitted.
         """
-        self.m = {}
+        self.m = models
 
     def fit(self, X):
-        """Fit all coordinate models of distances to reference.
+        """Fit coordinate models to the distances to the reference.
 
         Args:
-            X (pd.DataFrame): dataframe with (at least) columns r, x, y,
-            where r - runs, x - observed, y - reference.
+            X (pd.DataFrame): dataframe with columns run, x (values to align), y (reference values).
         """
         for r, Xr in X.groupby('run'):
-            # y consists of reference RT
-            self.m[r] = self.M(Xr.x.values,
-                               Xr.y.values - Xr.x.values,
-                               *self.M_args,
-                               **self.M_kwds)
-        # hence: we model the distance to the reference retention time.
+            self.m[r].fit(Xr.x.values, Xr.y.values - Xr.x.values)
+            # we model the distances to the reference values
 
-    # to do: this might be not ordered according to the r values...
     def __call__(self, X):
         """Align the observations in X.
 
         Args:
             X (pd.DataFrame): dataframe with columns runs and x,
             where x are the values to be aligned.
-            ATTENTION! sort X by r!!!
+            ATTENTION! sort X by r!!! WTF?!!!?!?!?!?!?!
         """
         dx = np.zeros(X.shape[0])
         i = 0

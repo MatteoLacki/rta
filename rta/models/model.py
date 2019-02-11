@@ -3,6 +3,7 @@ try:
 except ModuleNotFoundError:
     plt = None
 
+
 class Model(object):
     """A container for storing results of fitting."""
     def fit(self, x, y, **kwds):
@@ -29,7 +30,7 @@ class Model(object):
         raise NotImplementedError
 
     def __repr__(self):
-        return 'Model.'
+        return 'Model'
 
     def fitted(self):
         """Get the fitted values."""
