@@ -17,7 +17,7 @@ class Aligner(object):
             X (pd.DataFrame): dataframe with (at least) columns r, x, y,
             where r - runs, x - observed, y - reference.
         """
-        for r, Xr in X.groupby('r'):
+        for r, Xr in X.groupby('run'):
             # y consists of reference RT
             self.m[r] = self.M(Xr.x.values,
                                Xr.y.values - Xr.x.values,
@@ -30,7 +30,8 @@ class Aligner(object):
         """Align the observations in X.
 
         Args:
-            X (pd.DataFrame): dataframe with (at least) columns r, x, where r - runs, and x - values to be aligned.
+            X (pd.DataFrame): dataframe with columns runs and x,
+            where x are the values to be aligned.
             ATTENTION! sort X by r!!!
         """
         dx = np.zeros(X.shape[0])

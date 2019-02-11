@@ -3,7 +3,7 @@
 
 import pandas as pd
 
-from rta.read_in_data import big_data
+from rta.read.csvs import big_data
 from rta.preprocessing import preprocess
 
 pd.set_option('display.max_rows', 5)

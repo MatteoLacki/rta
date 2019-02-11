@@ -21,17 +21,21 @@ setup(
         'Topic :: Scientific/Engineering :: Chemistry',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.6'],
-    install_requires=[
+    install_requires=[ #TODO: trim the unused dependencies.
         'numpy',
-        'sklearn',
+        'sklearn',      # like this one
         'pandas',
         'scipy',
         'matplotlib',
-        'statsmodels',
+        'statsmodels',  # like this one
         'pymysql',
         'sqlalchemy',
-        'pyarrow'
+        'pyarrow'       # like this one
     ]
+    # include_package_data=True,
+    # package_data={
+    #     'data': 'data/annotated_data.csv'
+    # }
     # scripts=[
     #     'bin/rta']
 )

@@ -2,8 +2,8 @@
 import numpy  as np
 import pandas as pd
 
-from rta.read_in_data import col_names,\
-                             col_names_unlabelled
+from rta.read.csvs import col_names,\
+                          col_names_unlabelled
 
 
 def split(L, cond):
