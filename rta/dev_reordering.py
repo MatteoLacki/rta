@@ -45,3 +45,5 @@ sa.m
 #TODO: now it's time to play with the two aligning strategies.
 	# eliminate the requirement to sort anything.
 	# the outputs of the method should be writen down to X and returned.
+# StarAligner -> Aligner
+# Introduce StarAligning and Repeated StarAligning?
