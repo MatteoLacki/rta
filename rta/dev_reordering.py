@@ -26,22 +26,26 @@ X, uX = choose_statistical_run(D, 'rt', 'median')
 
 from rta.models.model import Model
 from rta.align.starlike import StarAligner
-
-
-# need some real model by now.
 from rta.models.rolling_median import RollingMedian
-
-X1 = X.loc[X.run == 1,]
-x = X1.x.values
-y = X1.y.values - X1.x.values
-rmi = RollingMedian()
-
 
 runs = D.run.unique()
 m = {r: RollingMedian() for r in runs}
 sa = StarAligner(m)
-sa.m
+sa.fit(X)
+sa.plot()
+
+from math import sqrt, ceil, floor
+
+ceil(3.1)
+floor(3.1)
+
+
+sqrt(len(sa.m))
+
+
+
 
 #TODO: now it's time to play with the two aligning strategies.
 	# eliminate the requirement to sort anything.
 	# the outputs of the method should be writen down to X and returned.
+

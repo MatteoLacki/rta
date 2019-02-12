@@ -40,7 +40,7 @@ class Model(object):
         """Get model residuals."""
         return self.y - self.fitted()
 
-    def plot(self, plt_style = 'dark_background', show=True, **kwds):
+    def plot(self, plt_style='dark_background', show=True, **kwds):
         """Plot results."""
         if plt:
             plt.style.use(plt_style)
