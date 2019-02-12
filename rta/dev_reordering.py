@@ -34,17 +34,6 @@ sa = StarAligner(m)
 sa.fit(X)
 sa.plot()
 
-from math import sqrt, ceil, floor
-
-ceil(3.1)
-floor(3.1)
-
-
-sqrt(len(sa.m))
-
-
-
-
 #TODO: now it's time to play with the two aligning strategies.
 	# eliminate the requirement to sort anything.
 	# the outputs of the method should be writen down to X and returned.
