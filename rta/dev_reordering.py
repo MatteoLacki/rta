@@ -23,18 +23,58 @@ D, stats = stratified_grouped_fold(D, stats, 10)
 # X, uX = choose_statistical_run(D, 'rt', 'mean')
 X, uX = choose_statistical_run(D, 'rt', 'median')
 
-
 from rta.models.model import Model
-from rta.align.starlike import StarAligner
+from rta.align.aligner import Aligner
 from rta.models.rolling_median import RollingMedian
 
 runs = D.run.unique()
-m = {r: RollingMedian() for r in runs}
-sa = StarAligner(m)
-sa.fit(X)
-sa.plot()
+m = {r: RollingMedian() for r in runs} # each run can have its own model
+#TODO: add backfitting models.
+
+a = Aligner(m)
+a.fit(X)
+# a.plot(plt_style='default') # works!
+# a.plot(plt_style='ggplot') # works! All themes work.
+
+y = a(X)
+X['yhat'] = y
+# X = X.drop(['yhat'], 1)
+# a.res()
+# a.fitted()
+# a.plot(s=1)
+# a.plot(s=1, residuals=True)
+# a.plot_residuals(s=1)
+## Plot results of the coordinate models.
+# a.m[1].plot(s=1)
+# a.m[1].plot_residuals(s=1)
+
+plt.scatter()
+a.m[1].x
+a.m[1].res()
 
 #TODO: now it's time to play with the two aligning strategies.
 	# eliminate the requirement to sort anything.
 	# the outputs of the method should be writen down to X and returned.
 
+# rename the choose to something else, like prepare?
+X.index.name
+
+def get_distances_to_
+
+if D.index.name:
+	print('s')
+else:
+	print('b')
+
+choose_statistical_run(X, )
+
+import numpy as np
+
+def stat_reference(X, stat='median', ref_name='y1'):
+	assert stat in ('median', 'mean')
+	ref = X.groupby('id').x.median()
+	ref.name = ref_name
+	
+
+X.groupby('id').x.median().loc['YYVTI NA']
+np.median(X.loc['YYVTI NA'].x.values)
