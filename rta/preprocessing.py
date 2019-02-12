@@ -30,20 +30,20 @@ def filter_peptides_with_unique_types(data, return_filtered = True):
     # data that has not been given any sequence.
     U = data.loc[data.sequence.isna(), col_names_unlabelled].copy()
     # all the identified peptides.
-    L = data.dropna(subset = ['sequence']).copy()
-    L.set_index(['sequence', 'modification', 'run', 'type'], inplace = True)
-    L.sort_index(inplace = True)
+    L = data.dropna(subset=['sequence']).copy()
+    L.set_index(['sequence', 'modification', 'run', 'type'], inplace=True)
+    L.sort_index(inplace=True)
     # filter peptides that appear multiple time with the same type in the same run
     id_run_type_cnt = L.groupby(L.index).size()
     L, non_unique_id_run_type = split(L, id_run_type_cnt)
     # filter peptides identified in more than one type per run
-    L.reset_index(level = ['type'], inplace = True)
-    L.sort_index(inplace = True)
+    L.reset_index(level=['type'], inplace=True)
+    L.sort_index(inplace=True)
     types_per_id_run = L.groupby(L.index).size()
     L, non_unique_type_per_id_run = split(L, types_per_id_run)
     # filter out peptides identified with different types in different runs
-    L.reset_index(level = 'run', inplace = True)
-    L.sort_index(inplace = True)
+    L.reset_index(level='run', inplace=True)
+    L.sort_index(inplace=True)
     diff_types_diff_runs = L.groupby(L.index).type.nunique()
     L, diff_types_in_diff_runs = split(L, diff_types_diff_runs)
     if return_filtered:

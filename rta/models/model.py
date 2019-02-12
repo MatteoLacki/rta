@@ -40,8 +40,14 @@ class Model(object):
         """Get model residuals."""
         return self.y - self.fitted()
 
-    def plot(self, plt_style = 'dark_background', show=True, **kwds):
-        """Plot results."""
+    def plot(self, plt_style='dark_background', show=True, **kwds):
+        """Plot the model's results.
+
+        Args:
+            plt_style (str): The style of the matplotlib visualization. Check https://matplotlib.org/gallery/style_sheets/style_sheets_reference.html
+            show (bool): Show the figure, or just add it to the canvas.
+            kwds: optional keyword arguments for matplotlib.plt
+        """
         if plt:
             plt.style.use(plt_style)
             plt.scatter(self.x, self.y, **kwds)
@@ -51,6 +57,23 @@ class Model(object):
             print('Install matplotlib to use this function.')
             raise ModuleNotFoundError
 
+    def plot_residuals(self, plt_style='dark_background', show=True, **kwds):
+        """Plot the model's residuals.
+
+        Args:
+            plt_style (str): The style of the matplotlib visualization. Check https://matplotlib.org/gallery/style_sheets/style_sheets_reference.html
+            show (bool): Show the figure, or just add it to the canvas.
+            kwds: optional keyword arguments for matplotlib.plt
+        """
+        if plt:
+            plt.style.use(plt_style) 
+            plt.scatter(self.x, self.res(), **kwds)
+            plt.plot((0,max(self.x)), (0,0), c='orange')
+            if show:
+                plt.show()
+        else:
+            print('Install matplotlib to use this function.')
+            raise ModuleNotFoundError
 
 def predict(model, x, *args, **kwds):
     """Predict the values at the new data points.
@@ -78,4 +101,5 @@ def res(model):
     return model.res()
 
 def plot(model, **kwds):
+    """Plot the model's outcomes."""
     model.plot(**kwds)

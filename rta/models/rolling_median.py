@@ -43,9 +43,12 @@ class RollingMedian(Model):
     def __call__(self, x):
         return self.interpo(x)
 
-    def plot(self, nodes=1000, plt_style='dark_background', show=True):
-        plt.style.use(plt_style)
-        plt.scatter(self.x, self.y, s=1)
+    def plot(self,
+             plt_style='dark_background',
+             show=True,
+             nodes=1000,
+             **kwds):
+        super().plot(plt_style, False, **kwds)
         xs = np.linspace(min(self.x), max(self.x), nodes)
         plt.plot(xs, self(xs), c='orange')
         if show:
