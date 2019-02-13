@@ -29,6 +29,10 @@ class Model(object):
         """
         raise NotImplementedError
 
+    def copy(self):
+        """Copy a model (including its parameters)."""
+        return 
+
     def __repr__(self):
         return 'Model'
 

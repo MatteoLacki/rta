@@ -6,11 +6,13 @@ import numpy as np
 from collections import Counter
 pd.set_option('display.max_rows', 5)
 pd.set_option('display.max_columns', 100)
+import matplotlib.pyplot as plt
 
 from rta.read.csvs import big_data
 from rta.preprocessing import preprocess
 from rta.cv.folds import stratified_grouped_fold
 from rta.reference import choose_run, choose_most_shared_run, choose_statistical_run
+from rta.reference import stat_reference
 
 annotated_all, unlabelled_all = big_data()
 D, stats, pddra, pepts_per_run = preprocess(annotated_all, 5)
@@ -21,6 +23,9 @@ D, stats = stratified_grouped_fold(D, stats, 10)
 # X, uX = choose_run(D, 'rt', 1)
 # X, uX = choose_most_shared_run(D, 'rt', stats)
 # X, uX = choose_statistical_run(D, 'rt', 'mean')
+
+var2align = 'rt'
+
 X, uX = choose_statistical_run(D, 'rt', 'median')
 
 from rta.models.model import Model
@@ -36,8 +41,8 @@ a.fit(X)
 # a.plot(plt_style='default') # works!
 # a.plot(plt_style='ggplot') # works! All themes work.
 
-y = a(X)
-X['yhat'] = y
+x1 = a(X)
+X['x1'] = x1
 # X = X.drop(['yhat'], 1)
 # a.res()
 # a.fitted()
@@ -48,28 +53,38 @@ X['yhat'] = y
 # a.m[1].plot(s=1)
 # a.m[1].plot_residuals(s=1)
 
-plt.scatter()
-a.m[1].x
-a.m[1].res()
+X = stat_reference(X[['run', 'x']], 'median')
 
-X.index.name
+def centiles(x):
+    """Get centiles of x"""
+    return np.quantile(x, [i/100 for i in range(101)])
 
-def get_distances_to_
+# X = X.drop(['x1', 'y1'], 1)
+# X.rename(columns={"x": "x0", "y": "y0"}, inplace=True)
 
-if D.index.name:
-	print('s')
-else:
-	print('b')
+# Maybe the model should be initialized?
+def Tenzerize(X, n, a, stat='median'):
+    """Perform a hunt for correct alignment."""
+    for i in range(n):
+        a.fit(X)
+        x = a(X)
+        X.rename(columns={'x':'x'+str(i), 'y':'y'+str(i)}, inplace=True)
+        X['x'] = x
+        X = stat_reference(X, stat)
+    X.rename(columns={'x':'x'+str(n), 'y':'y'+str(n)}, inplace=True)
+    return X
 
-choose_statistical_run(X, )
+n = 4
+X = Tenzerize(X, n, a)
+for i in range(n+1):
+    pass
 
-import numpy as np
 
-def stat_reference(X, stat='median', ref_name='y1'):
-	assert stat in ('median', 'mean')
-	ref = X.groupby('id').x.median()
-	ref.name = ref_name
-	
+def Matteotize(X, a, stat='median'):
+    """Simply run one alignment once (maybe twice), but good."""
+    pass
 
-X.groupby('id').x.median().loc['YYVTI NA']
-np.median(X.loc['YYVTI NA'].x.values)
+
+
+
+
