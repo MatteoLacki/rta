@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 
+# TODO eliminate this.
 def dedup_sort(x, y, 
                drop_duplicates=True,
                sort=True):

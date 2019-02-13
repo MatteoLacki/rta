@@ -25,12 +25,13 @@ D, stats = stratified_grouped_fold(D, stats, 10)
 # X, uX = choose_statistical_run(D, 'rt', 'mean')
 
 var2align = 'rt'
-
 X, uX = choose_statistical_run(D, 'rt', 'median')
+
 
 from rta.models.model import Model
 from rta.align.aligner import Aligner
 from rta.models.rolling_median import RollingMedian
+from rta.math.stats import centiles
 
 runs = D.run.unique()
 m = {r: RollingMedian() for r in runs} # each run can have its own model
@@ -39,7 +40,7 @@ m = {r: RollingMedian() for r in runs} # each run can have its own model
 a = Aligner(m)
 a.fit(X)
 # a.plot(plt_style='default') # works!
-# a.plot(plt_style='ggplot') # works! All themes work.
+# a.plot(plt_style='ggplot', s=1) # works! All themes work.
 
 x1 = a(X)
 X['x1'] = x1
@@ -52,37 +53,39 @@ X['x1'] = x1
 ## Plot results of the coordinate models.
 # a.m[1].plot(s=1)
 # a.m[1].plot_residuals(s=1)
-
-X = stat_reference(X[['run', 'x']], 'median')
-
-def centiles(x):
-    """Get centiles of x"""
-    return np.quantile(x, [i/100 for i in range(101)])
-
+# X = stat_reference(X[['run', 'x']], 'median')
 # X = X.drop(['x1', 'y1'], 1)
 # X.rename(columns={"x": "x0", "y": "y0"}, inplace=True)
 
-# Maybe the model should be initialized?
-def Tenzerize(X, n, a, stat='median'):
-    """Perform a hunt for correct alignment."""
-    for i in range(n):
-        a.fit(X)
-        x = a(X)
-        X.rename(columns={'x':'x'+str(i), 'y':'y'+str(i)}, inplace=True)
-        X['x'] = x
-        X = stat_reference(X, stat)
-    X.rename(columns={'x':'x'+str(n), 'y':'y'+str(n)}, inplace=True)
-    return X
+from rta.align.strategies import Tenzerize
+
 
 n = 4
-X = Tenzerize(X, n, a)
+X_tenzer = Tenzerize(X, n, a)
 for i in range(n+1):
     pass
-
 
 def Matteotize(X, a, stat='median'):
     """Simply run one alignment once (maybe twice), but good."""
     pass
 
+# median extrapolation fit
+from rta.models.rolling_median import RollingMedianSpline
 
+X, uX = choose_statistical_run(D, 'rt', 'median')
 
+rmi = RollingMedianSpline()
+m = {r: RollingMedianSpline() for r in runs} # each run can have its own model
+a = Aligner(m)
+a.fit(X)
+a.plot(s=1)
+
+# This doesn't look good: maybe it should be applied to second order of error?
+# from rta.models.denoiser import DenoiserRollingOrder
+
+# x = X.x[X.run == 1].values
+# y = X.y[X.run == 1].values
+# d = y - x
+# dro = DenoiserRollingOrder(l=6, w=np.ones(101), u=95, n=100)
+# dro.fit(x, d)
+# dro.plot()

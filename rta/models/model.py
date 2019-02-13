@@ -2,6 +2,7 @@ try:
     import matplotlib.pyplot as plt
 except ModuleNotFoundError:
     plt = None
+import numpy as np
 
 
 class Model(object):
@@ -31,7 +32,7 @@ class Model(object):
 
     def copy(self):
         """Copy a model (including its parameters)."""
-        return 
+        return self.__class__(**self.params)
 
     def __repr__(self):
         return 'Model'
@@ -44,17 +45,27 @@ class Model(object):
         """Get model residuals."""
         return self.y - self.fitted()
 
-    def plot(self, plt_style='dark_background', show=True, **kwds):
+    def plot(self, plt_style='dark_background',
+                   show=True,
+                   nodes=1000,
+                   points=True,
+                   **kwds):
         """Plot the model's results.
 
         Args:
             plt_style (str): The style of the matplotlib visualization. Check https://matplotlib.org/gallery/style_sheets/style_sheets_reference.html
             show (bool): Show the figure, or just add it to the canvas.
+            nodes (int): The number of nodes used to evaluate the fitted curve.
             kwds: optional keyword arguments for matplotlib.plt
         """
         if plt:
             plt.style.use(plt_style)
-            plt.scatter(self.x, self.y, **kwds)
+            if points:
+                plt.scatter(self.x, self.y, **kwds)
+            if nodes:
+                xs = np.linspace(min(self.x), max(self.x), nodes)
+                ys = self(xs)
+                plt.plot(xs, ys, c='orange')
             if show:
                 plt.show()
         else:

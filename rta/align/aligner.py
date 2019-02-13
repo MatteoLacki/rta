@@ -1,4 +1,8 @@
-"""Align towards one chosen reference retention time."""
+"""Align towards one chosen reference retention time.
+
+To align differently, have a look at Tenzerization.
+"""
+
 try:
     import matplotlib.pyplot as plt
 except ModuleNotFoundError:

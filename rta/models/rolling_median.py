@@ -1,19 +1,25 @@
-import matplotlib.pyplot as plt
+try:
+    import matplotlib.pyplot as plt
+except ModuleNotFoundError:
+    plt = None
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.signal import medfilt
 
-from rta.models.model import Model
+from rta.models.interpolant import Interpolant
+from rta.models.spline import Spline
+from rta.array_operations.dedupy import dedup_np
+from rta.math.splines import beta as beta_spline
 
 
-class RollingMedian(Model):
+
+class RollingMedian(Interpolant):
     """The rolling median interpolator.
 
     Idea is as straight as a hair of a Mongol: get rid of the noise by
     fitting a roling median and interpolate every other k-th median.
     Of course, since we calculate all other medians too, we could get more
     playful with their evaluation.
-    TODO: add a wrapper around this method.
     """
     def __init__(self, ws=51, k=10):
         """Constructor.
@@ -24,11 +30,18 @@ class RollingMedian(Model):
         """
         self.ws = ws
         self.k = k
+        self.params = {'ws':ws, 'k':k}
 
     def __repr__(self):
         return "RollingMedian(ws:{} k:{})".format(self.ws, self.k)
 
-    def fit(self, x, y, sort=False):
+    def fit(self, x, y, sort=True):
+        """Fit the model.
+
+        Args:
+            x (np.array): The control variable.
+            y (np.array): The response variable.
+        """
         if sort:
             i = np.argsort(x)
             x, y = x[i], y[i]
@@ -40,23 +53,43 @@ class RollingMedian(Model):
         self.x = x
         self.y = y
 
-    def __call__(self, x):
-        return self.interpo(x)
 
-    def plot(self,
-             plt_style='dark_background',
-             show=True,
-             nodes=1000,
-             **kwds):
-        super().plot(plt_style, False, **kwds)
-        xs = np.linspace(min(self.x), max(self.x), nodes)
-        plt.plot(xs, self(xs), c='orange')
-        if show:
-            plt.show()
+#TODO: implement this.
+class RolllingMedianSimple(RollingMedian):
+    """Avoid calculating too many medians."""
+    def fit(self, x, y, sort=True):
+        """Fit the model.
 
-# rmi = RollingMedian()
-# rmi.fit(x, y-x)
-# rmi.plot()
-# plt.axhline(y=0, color='red')
-# plt.scatter(x, y - x - rmi(x), s=1)
-# plt.show()
+        Args:
+            x (np.array): The control variable.
+            y (np.array): The response variable.
+        """
+        pass
+
+
+
+class RollingMedianSpline(Spline):
+    """The rolling median spline."""
+    def __init__(self, ws=51, n=100):
+        """Constructor.
+        
+        Args:
+            ws (odd int): window size.
+            n (int): the number of nodes used for the beta spline (roughly correspond to 100/k-percentiles).
+        """
+        self.ws = ws
+        self.n = n
+        self.params = {'ws':ws, 'n':n} # this is for copy to work
+
+    def __repr__(self):
+        return "RollingMedianSpline(ws:{})".format(self.ws)
+
+    def fit(self, x, y, sort=True, dedup=True):
+        if sort:
+            i = np.argsort(x)
+            x, y = x[i], y[i]
+        self.x = x
+        self.y = y
+        x, y = dedup_np(x, y)
+        self.medians = medfilt(y, self.ws)
+        self.spline = beta_spline(x, self.medians, self.n)
