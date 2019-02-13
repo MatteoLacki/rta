@@ -74,7 +74,7 @@ def stat_reference(X, stat='median', ref_name='y1'):
 	assert stat in ('median', 'mean')
 	ref = X.groupby('id').x.median()
 	ref.name = ref_name
-	
+	X = 
 
 X.groupby('id').x.median().loc['YYVTI NA']
 np.median(X.loc['YYVTI NA'].x.values)
