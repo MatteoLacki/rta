@@ -28,6 +28,9 @@ class Aligner(object):
             # we model the distances to the reference values!
             self.m[r].fit(Xr.x.values, Xr.y.values - Xr.x.values)
 
+    def __repr__(self):
+        return "Aligner"
+
     def __call__(self, X):
         """Align the observations in X.
 
@@ -38,11 +41,11 @@ class Aligner(object):
             np.array: aligned retention times, for each pair (run, x) specified in X.
         """
         runs = X.run.unique()
-        y = np.zeros((len(X),))
+        x_new = np.zeros((len(X),))
         for r in runs:
             x = X.x[X.run == r]
-            y[X.run == r] = x + self.m[r](x)
-        return y
+            x_new[X.run == r] = x + self.m[r](x)
+        return x_new
 
     def res(self):
         """Return the residuals."""
