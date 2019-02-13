@@ -23,10 +23,8 @@ D, stats = stratified_grouped_fold(D, stats, 10)
 # X, uX = choose_run(D, 'rt', 1)
 # X, uX = choose_most_shared_run(D, 'rt', stats)
 # X, uX = choose_statistical_run(D, 'rt', 'mean')
-
 var2align = 'rt'
 X, uX = choose_statistical_run(D, 'rt', 'median')
-
 
 from rta.models.model import Model
 from rta.align.aligner import Aligner
@@ -59,7 +57,6 @@ X['x1'] = x1
 
 from rta.align.strategies import Tenzerize
 
-
 n = 4
 X_tenzer = Tenzerize(X, n, a)
 for i in range(n+1):
@@ -73,19 +70,23 @@ def Matteotize(X, a, stat='median'):
 from rta.models.rolling_median import RollingMedianSpline
 
 X, uX = choose_statistical_run(D, 'rt', 'median')
-
 rmi = RollingMedianSpline()
 m = {r: RollingMedianSpline() for r in runs} # each run can have its own model
 a = Aligner(m)
 a.fit(X)
 a.plot(s=1)
-
 # This doesn't look good: maybe it should be applied to second order of error?
 # from rta.models.denoiser import DenoiserRollingOrder
-
 # x = X.x[X.run == 1].values
 # y = X.y[X.run == 1].values
 # d = y - x
 # dro = DenoiserRollingOrder(l=6, w=np.ones(101), u=95, n=100)
 # dro.fit(x, d)
 # dro.plot()
+
+# how to do backfitting properly?
+# it does sound like an operation on the model.
+
+
+class Backfit(Model):
+	
