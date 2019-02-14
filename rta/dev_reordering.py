@@ -8,11 +8,13 @@ pd.set_option('display.max_rows', 5)
 pd.set_option('display.max_columns', 100)
 import matplotlib.pyplot as plt
 
-from rta.read.csvs import big_data
+from rta.plot.runs import plot_distances_to_reference
 from rta.preprocessing import preprocess
+from rta.read.csvs import big_data
 from rta.cv.folds import stratified_grouped_fold
 from rta.reference import choose_run, choose_most_shared_run, choose_statistical_run
 from rta.reference import stat_reference
+
 
 annotated_all, unlabelled_all = big_data()
 D, stats, pddra, pepts_per_run = preprocess(annotated_all, 5)
@@ -25,6 +27,7 @@ D, stats = stratified_grouped_fold(D, stats, 10)
 # X, uX = choose_statistical_run(D, 'rt', 'mean')
 var2align = 'rt'
 X, uX = choose_statistical_run(D, 'rt', 'median')
+plot_distances_to_reference(X, 'ggplot', s=1)
 
 from rta.models.model import Model
 from rta.align.aligner import Aligner
@@ -87,6 +90,33 @@ a.plot(s=1)
 # how to do backfitting properly?
 # it does sound like an operation on the model.
 
+from rta.models.backfit import Backfit
+brmi = Backfit(rmi, 2)
+brmi.fit(x, y-x)
+brmi.plot_all()
+brmi.plot()
 
-class Backfit(Model):
-	
+X, uX = choose_statistical_run(D, 'rt', 'median')
+m = {r: RollingMedianSpline() for r in runs} # each run can have its own model
+
+def Matteotti(X, m, stat='median'):
+	"""A simple strategy.
+
+	Fit once, get better reference than medians, and refit.
+	"""
+	a = Aligner(m)
+	a.fit(X)
+	# a.plot()
+	X.rename(columns={'y':'y0'}, inplace=True)
+	X['y'] = a.fitted()	
+	a.fit(X)
+	X.rename(columns={'y':'y1'}, inplace=True)
+	X['y2'] = a.fitted()
+	return a, X
+
+
+
+
+distances2reference(X)
+a.plot()
+a.plot_all()

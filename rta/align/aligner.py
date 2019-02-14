@@ -9,8 +9,7 @@ except ModuleNotFoundError:
     plt = None
 import numpy as np
 
-from math import sqrt, ceil, floor
-
+from rta.misc import plot_matrix_sizes
 
 
 class Aligner(object):
@@ -90,20 +89,12 @@ class Aligner(object):
             show (bool): Show the figure, or just add it to the canvas [default True].
             shared_selection (boolean): Should the selection in one window work for all [default True].
             residuals (boolean): Should the plot contain the residuals instead of the fitting?
-            kwds: optional keyword arguments for matplotlib.plt
+            kwds: optional keyword arguments for the 'plot' functions of the underlying models.
         """
         if plt:
-            # matplotlib follows lexicographic numbering starting
-            # from 1 (instead of zero) from the top left plot, with
-            # numbers growing as they go to the right and down.
             plt.style.use(plt_style)
+            rows_no, cols_no = plot_matrix_sizes(len(self.m))
             i = 1
-            runs_no = len(self.m)
-            # Fit plots into the smallest rectangle with the biggest area:
-            # select the minimal number of rows and enlarge the number of 
-            # columns appropriately by ceil(...)
-            rows_no = floor(sqrt(runs_no))
-            cols_no = rows_no + ceil((runs_no - rows_no**2)/rows_no)
             for run, model in self.m.items():
                 if i == 1:
                     ax1 = plt.subplot(rows_no, cols_no, i)

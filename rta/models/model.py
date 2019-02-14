@@ -56,6 +56,7 @@ class Model(object):
             plt_style (str): The style of the matplotlib visualization. Check https://matplotlib.org/gallery/style_sheets/style_sheets_reference.html
             show (bool): Show the figure, or just add it to the canvas.
             nodes (int): The number of nodes used to evaluate the fitted curve.
+            points (boolean): Show the original points fitted to in the background?
             kwds: optional keyword arguments for matplotlib.plt
         """
         if plt:

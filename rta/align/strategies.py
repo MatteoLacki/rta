@@ -10,4 +10,4 @@ def Tenzerize(X, n, a, stat='median'):
         X['x'] = x
         X = stat_reference(X, stat)
     X.rename(columns={'x':'x'+str(n), 'y':'y'+str(n)}, inplace=True)
-    return X
+    return a, X
