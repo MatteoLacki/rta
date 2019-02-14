@@ -99,24 +99,3 @@ brmi.plot()
 X, uX = choose_statistical_run(D, 'rt', 'median')
 m = {r: RollingMedianSpline() for r in runs} # each run can have its own model
 
-def Matteotti(X, m, stat='median'):
-	"""A simple strategy.
-
-	Fit once, get better reference than medians, and refit.
-	"""
-	a = Aligner(m)
-	a.fit(X)
-	# a.plot()
-	X.rename(columns={'y':'y0'}, inplace=True)
-	X['y'] = a.fitted()	
-	a.fit(X)
-	X.rename(columns={'y':'y1'}, inplace=True)
-	X['y2'] = a.fitted()
-	return a, X
-
-
-
-
-distances2reference(X)
-a.plot()
-a.plot_all()
