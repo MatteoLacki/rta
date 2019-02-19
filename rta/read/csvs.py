@@ -9,8 +9,34 @@ import pandas as pd
 import platform
 import os
 
-from rta.data.column_names import vars_annotated, vars_unlabelled
+vars_annotated = [ 'id',
+                    'run',
+                    'mass',
+                    'intensity',
+                    'charge',
+                    'FWHM',
+                    'rt',
+                    'rt_sd',
+                    'dt',
+                    'LiftOffRT',
+                    'InfUpRT',
+                    'TouchDownRT',
+                    'sequence',
+                    'modification',
+                    'type',
+                    'score' ]
 
+vars_unlabelled = [ 'run',
+                    'mass',
+                    'intensity',
+                    'charge',
+                    'FWHM',
+                    'rt',
+                    'rt_sd',
+                    'dt',
+                    'LiftOffRT',
+                    'InfUpRT',
+                    'TouchDownRT' ]
 # TODO eliminate the 'id' column and use indexing based on 
 # sequence and modification instead (to save memory)
 
