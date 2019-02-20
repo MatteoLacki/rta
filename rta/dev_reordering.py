@@ -10,13 +10,13 @@ import matplotlib.pyplot as plt
 
 from rta.plot.runs import plot_distances_to_reference
 from rta.preprocessing import preprocess
-from rta.read.csvs import big_data
 from rta.cv.folds import stratified_grouped_fold
 from rta.reference import choose_run, choose_most_shared_run, choose_statistical_run
 from rta.reference import stat_reference
 
+unlabelled_all = pd.read_msgpack('/Users/matteo/Projects/rta/data/unlabelled_all.msg')
+annotated_all = pd.read_msgpack('/Users/matteo/Projects/rta/data/annotated_all.msg')
 
-annotated_all, unlabelled_all = big_data()
 D, stats, pddra, pepts_per_run = preprocess(annotated_all, 5)
 D, stats = stratified_grouped_fold(D, stats, 10)
 # D, stats = stratified_grouped_fold(D, stats, 3, "runs_no")
