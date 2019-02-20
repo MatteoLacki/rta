@@ -52,6 +52,7 @@ def filter_peptides_with_unique_types(data, return_filtered = True):
         return L, U
 
 
+#TODO: this should be done faster!
 def preprocess(annotated_peptides,
                min_runs_no = 5):
     """Preprocess the data.
