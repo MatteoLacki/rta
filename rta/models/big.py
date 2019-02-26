@@ -38,8 +38,7 @@ class BigModel(object):
         """Return the aligned retention times."""
         return self(self.x, self.g)
 
-    def plot(self, plt_style='dark_background',
-                   show=True, 
+    def plot(self, show=True, 
                    shared_selection=True,
                    shape=None,
                    residuals=False,
@@ -47,10 +46,10 @@ class BigModel(object):
         """Plot all fitting results."""
         if plt:
             if residuals:
-                plots = (lambda: mo.plot_residuals(plt_style=plt_style, show=False, **kwds)
+                plots = (lambda: mo.plot_residuals(show=False, **kwds)
                          for gr, mo in self.models.items())
             else:
-                plots = (lambda: mo.plot(plt_style=plt_style, show=False, **kwds)
+                plots = (lambda: mo.plot(show=False, **kwds)
                          for gr, mo in self.models.items())
             multiplot(plots,
                       len(self.models), 

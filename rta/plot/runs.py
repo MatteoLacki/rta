@@ -33,7 +33,6 @@ def simple_xy_plot(x, y,
 
 
 def plot_distances_to_reference(x, y, g=None,
-                                plt_style='dark_background',
                                 shared_selection=True,
                                 shape=None,
                                 show=True,
@@ -44,8 +43,6 @@ def plot_distances_to_reference(x, y, g=None,
         x (np.array): x values
         y (np.array): y values
         g (np.array): grouping variable
-        plt_style (str): The style of the matplotlib visualization [default 'dark_background'].
-                         Check https://matplotlib.org/gallery/style_sheets/style_sheets_reference.html
         shared_selection (boolean): Should the selection in one window work for all [default True].
         show (bool): Show the figure, or just add it to the canvas [default True].
         kwds: optional keyword arguments for the 'plot' functions of the underlying models.
