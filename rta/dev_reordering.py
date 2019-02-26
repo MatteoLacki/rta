@@ -4,8 +4,6 @@
 import pandas as pd
 import numpy as np
 from collections import Counter
-pd.set_option('display.max_rows', 5)
-pd.set_option('display.max_columns', 100)
 import matplotlib.pyplot as plt
 
 from rta.plot.runs import plot_distances_to_reference
