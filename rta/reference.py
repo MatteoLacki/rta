@@ -10,15 +10,14 @@ def cond_medians(x, g):
     
     Args:
         x: inputs
-        g: groups
+        g: groups (identifications)
     Returns:
         np.array(shape=x.shape): medians
     """
     DF = pd.DataFrame(dict(x=x, id=g)).set_index('id')
     W = DF.groupby('id').median().rename(columns={'x':'y'})
     y = pd.concat([DF, W], join='inner', axis=1).y.values
-    unalignable = np.array([])
-    return y, unalignable
+    return y
 
 
 def _choose_run(X, j):
@@ -34,6 +33,7 @@ def _choose_run(X, j):
 
 
 def choose_run(x, pept_id, run, j):
+    """Use one run for reference."""
     X = pd.DataFrame({'id':pept_id, 'x':x, 'run':run})
     X, unalignable_peptides = _choose_run(X, j)
     return X.y.values, unalignable_peptides

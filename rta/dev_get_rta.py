@@ -12,7 +12,7 @@ def data_for_clustering(annotated_all, min_runs_per_id, unlabelled_all):
     rt = D.rt.values
     ids = D.id.values
     g = D.run.values
-    rt_me, _ = cond_medians(rt, ids)
+    rt_me = cond_medians(rt, ids)
     D['rt_me'] = rt_me
     runs = np.unique(g)
     B = BigModel({r: RollingMedian() for r in runs})
