@@ -32,7 +32,8 @@ def simple_xy_plot(x, y,
 
 
 
-def plot_distances_to_reference(x, y, g=None,
+def plot_distances_to_reference(x, y,
+                                g=None,
                                 shared_selection=True,
                                 shape=None,
                                 show=True,

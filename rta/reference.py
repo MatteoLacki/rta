@@ -5,7 +5,7 @@ from rta.misc import max_key_val
 
 
 
-def choose_statistical_run(x, g):
+def cond_medians(x, g):
     """Get Me(x|g) cast over all entries of x.
     
     Args:
@@ -39,7 +39,7 @@ def choose_run(x, pept_id, run, j):
     return X.y.values, unalignable_peptides
 
 
-def choose_run_pd(D, var2align, j):
+def cond_medians_pd(D, var2align, j):
     """Get input for the alignment.
 
     Do it by indicating a run to align to.
