@@ -52,29 +52,11 @@ class Aligner(object):
 
     def res(self):
         """Return the residuals."""
-        return self(self.X) - self.X.x.values
+        return self.fitted() - self.X.x.values
 
     def fitted(self):
         """Return the aligned retention times."""
         return self(self.X)
-
-    # def cv(self, X):
-    #     """Cross-validate the model.
-
-    #     Args:
-    #         X (pd.DataFrame): dataframe with (at least) columns f, r, x, y, where f are folds, r - runs.
-    #     Return:
-    #         Average median test error across runs.
-    #     """
-    #     tot_err = 0
-    #     f_vals = np.unique(X.f.values)
-    #     for f in f_vals:
-    #         X_train = X[X.f != f]
-    #         X_test = X[X.f == f]
-    #         m = Model(self.M, *self.M_args, **self.M_kwds)
-    #         m.fit(X_train)
-    #         tot_err += m.error(X_test)
-    #     return tot_err / len(f_vals)
 
     def plot(self, plt_style='dark_background',
                    show=True, 

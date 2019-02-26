@@ -23,15 +23,15 @@ setup(
         'Programming Language :: Python :: 3.6'],
     install_requires=[ #TODO: trim the unused dependencies.
         'numpy',
-        'sklearn',      # like this one
         'pandas',
         'scipy',
         'matplotlib',
-        'statsmodels',  # like this one
         'pymysql',
-        'sqlalchemy',
-        'pyarrow'       # like this one
-    ]
+        'sqlalchemy'
+    ],
+    extras_require={
+        'dev': ['ipython', 'sklearn', 'statsmodels']
+    }
     # include_package_data=True,
     # package_data={
     #     'data': 'data/annotated_data.csv'

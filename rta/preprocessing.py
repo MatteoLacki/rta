@@ -19,7 +19,7 @@ def split(L, cond):
 def filter_peptides_with_unique_types(data, return_filtered = True):
     """Filter out peptides that appear in more than one type per run.
 
-    Also, find peptides that appear with in different types across different runs.
+    Also, find peptides that have different types across different runs.
 
     Args:
         data (pd.DataFrame):       Mass Project data.
@@ -53,6 +53,7 @@ def filter_peptides_with_unique_types(data, return_filtered = True):
 
 
 #TODO: this should be done faster!
+#TODO: maybe use sorted tuples instead of frozendicts?
 def preprocess(annotated_peptides,
                min_runs_no = 5):
     """Preprocess the data.

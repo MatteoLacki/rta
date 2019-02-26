@@ -46,3 +46,6 @@ a.fit(X)
 # a.plot(s=1)
 a(X)
 
+
+
+
