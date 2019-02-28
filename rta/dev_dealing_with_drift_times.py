@@ -30,7 +30,10 @@ D = pd.concat([D,W], join='inner', axis=1)
 # plt.show()
 q_cnt = D.q_cnt.values
 
-plot_distances_to_reference(dt[q_cnt==1], dt_me[q_cnt==1], run[q_cnt==1])
+plot_distances_to_reference(dt[q_cnt==1],
+                            dt_me[q_cnt==1],
+                            run[q_cnt==1],
+                            s=1)
 
 # plt.scatter(dt[q_cnt==1], dt_me[q_cnt==1]-dt[q_cnt==1], s=1)
 # plt.show()

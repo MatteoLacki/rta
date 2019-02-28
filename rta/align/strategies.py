@@ -19,7 +19,6 @@ def Tenzerize(X, n, a):
     return a, X
 
 
-
 def Matteotti(X, a):
 	"""A simple strategy.
 
@@ -33,4 +32,6 @@ def Matteotti(X, a):
 
 
 
-
+def IterativeReferenceHunt():
+	"""Perform iterative reference hunt."""
+	pass
