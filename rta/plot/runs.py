@@ -11,6 +11,7 @@ from rta.plot.multi import multiplot
 
 def simple_xy_plot(x, y,
                    plt_style='dark_background',
+                   add_line=True,
                    show=True,
                    label="",
                    **kwds):
@@ -25,7 +26,8 @@ def simple_xy_plot(x, y,
         kwds: optional keyword arguments for the 'plot' functions of the underlying models.
     """
     plt.scatter(x, y-x, **kwds)
-    plt.plot((0,max(x)), (0,0), c='orange')
+    if add_line:
+        plt.plot((0,max(x)), (0,0), c='orange')
     plt.title(label)
     if show:
         plt.show()

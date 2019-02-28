@@ -5,6 +5,7 @@ from pathlib import Path
 from rta.reference import cond_medians
 from rta.filters.angry import is_angry
 
+
 def get_data():
     """Get data after filtering, ready for clustering."""
     data = Path("~/Projects/rta/data").expanduser()
