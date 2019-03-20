@@ -5,6 +5,8 @@ from collections import Counter
 import numpy as np
 import pandas as pd
 from pathlib import Path
+# import matplotlib
+# matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
 from rta.read.csvs import big_data
@@ -24,53 +26,55 @@ min_runs_per_id = 5 # how many times should peptides appear out of 10 times
 ## get alignmets
 D, stats, pddra, pepts_per_run = preprocess(A, min_runs_per_id)
 D = D.reset_index()
-D['rt_me'] = cond_medians(D.rt, D.id)
-runs = np.unique(D.run)
-B = BigModel({r: RollingMedian() for r in runs})
-B.fit(D.rt.values, D.rt_me.values, D.run.values)
-D['rta'] = B(D.rt, D.run)
+x = 'rt'
 
-## filtering out the identification that are too far from median
-D['rta_me'] = cond_medians(D.rta, D.id)
-D['rta_d'] = D.rta_me - D.rta
-minmax_rta_d_run = D.groupby('run').rta_d.apply(robust_chebyshev_interval).apply(pd.Series)
-minmax_rta_d_run.columns = ['rta_d_min', 'rta_d_max']
-A['rta'] = B(A.rt, A.run)
-A['rta_me'] = cond_medians(A.rta, A.id)
-A['rta_d'] = A.rta_me - A.rta
-A = A.join(minmax_rta_d_run, on='run')
-angry = A.loc[np.logical_or(A.rta_d < A.rta_d_min,
-							A.rta_d > A.rta_d_max),]
-A = A.loc[np.logical_and(A.rta_d >= A.rta_d_min,
-						 A.rta_d <= A.rta_d_max),]
-angry = angry.loc[:,['run', 'mass', 'intensity', 'rt', 'dt', 'rta']]
-angry['who'] = 'rt_outlier'
-U = U.loc[:,['run', 'mass', 'intensity', 'rt', 'dt']]
-U['rta'] = B(U.rt, U.run)
-U['who'] = 'no_id'
-U = U.append(angry, sort=False)
+def align_and_denoise(A, U, D, x):
+	x_med = x + '_med'
+	x_d = x + '_d'
+	xa = x + 'a'
+	xa_med = xa + '_med'
+	xa_d = xa + '_d'
+	xa_dmin, xa_dmax = xa + '_dmin', xa + '_dmax'
+	D[x_med] = cond_medians(D[x], D.id)
+	runs = np.unique(D.run)
+	B = BigModel({r: RollingMedian() for r in runs})
+	B.fit(D[x].values, D[x_med].values, D.run.values)
+	D[xa] = B(D[x], D.run)
+	D[xa_med] = cond_medians(D[xa], D.id)
+	D[xa_d] = D[xa_med] - D[xa]
+	minmax_xta_d_run = D.groupby('run')[xa_d].apply(robust_chebyshev_interval).apply(pd.Series)
+	minmax_xta_d_run.columns = [xa_dmin, xa_dmax]
+	A[xa] = B(A[x], A.run)
+	A[xa_med] = cond_medians(A[xa], A.id)
+	A[xa_d] = A[xa_med] - A[xa]
+	A = A.join(minmax_xta_d_run, on='run')
+	angry = A.loc[np.logical_or(A[xa_d] < A[xa_dmin], A[xa_d] > A[xa_dmax]),]
+	A = A.loc[np.logical_and(A[xa_d] >= A[xa_dmin],  A[xa_d] <= A[xa_dmax]),]
+	angry = angry.loc[:,['run', 'mass', 'intensity', 'rt', 'dt', 'rta']]
+	angry['who'] = xa + '_outlier'
+	U = U.loc[:,['run', 'mass', 'intensity', 'rt', 'dt']]
+	U[xa] = B(U[x], U.run)
+	if not 'who' in U.columns:
+		U['who'] = 'no_id'
+	U = U.append(angry, sort=False)
+	return A, U, D, angry
 
-## getting rid of the dt problem
-# dt = A.dt
-# dt_me = cond_medians(A.dt, A.id)
-# plot_distances_to_reference(dt, dt_me, A.run, s=1)
+A, U, D, angry_rt = align_and_denoise(A, U, D, 'rt')
 
-X = A[['id', 'charge']].set_index('id')
-W = X.groupby('id').charge.nunique()
-W = pd.DataFrame(W)
+W = pd.DataFrame(A[['id', 'charge']].set_index('id').groupby('id').charge.nunique())
 W.columns = ['q_cnt']
 A = A.join(W, on='id')
 multicharged = A.loc[A.q_cnt > 1,] # 9 064
 A = A.loc[A.q_cnt == 1,] # 269 291
 
-dt = A.dt
-dt_me = cond_medians(A.dt, A.id)
-plot_distances_to_reference(dt, dt_me, A.run, s=1)
-
-
+A, U, D, angry_dt = align_and_denoise(A, U, D, 'dt')
+plot_distances_to_reference(A.dta, A.dta_med, A.run, s=1)
+plot_distances_to_reference(A.rta, A.rta_med, A.run, s=1)
 
 ## saving
 A.to_msgpack(data/"A.msg")
 U.to_msgpack(data/"U.msg")
-angry.to_msgpack(data/"angry.msg")
+D.to_msgpack(data/"D.msg")
+angry_rt.to_msgpack(data/"angry_rt.msg")
+angry_dt.to_msgpack(data/"angry_dt.msg")
 multicharged.to_msgpack(data/"multi_q.msg")

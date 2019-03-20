@@ -37,7 +37,6 @@ plot_distances_to_reference(dt[q_cnt==1],
 
 # plt.scatter(dt[q_cnt==1], dt_me[q_cnt==1]-dt[q_cnt==1], s=1)
 # plt.show()
-
 sum(q_cnt > 1) # annotated 6602 peptides
 # points are diagonal, because we plot distances to medians,
 # and for all the runs
@@ -48,7 +47,6 @@ dt_r = D_same_charge_r.dt
 dt_r_me = cond_medians(dt_r, D_same_charge_r.index)
 D_same_charge_r['dt_me'] = dt_r_me
 D_same_charge_r['D_dt'] = dt_r_me - dt_r
-
 # plt.scatter(dt_r, dt_r_me - dt_r, s=1)
 # plt.show()
 
