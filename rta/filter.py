@@ -1,7 +1,8 @@
 import numpy as np
 
+from rta.math.stats import med_mad
 
-def is_angry(x, std_no=5, no_0=True):
+def is_angry(x, std_no=5, no_0=False):
     """Find points that are more than MAD (angry).
 
     Estimate standard deviation by median absolute distance
@@ -9,14 +10,10 @@ def is_angry(x, std_no=5, no_0=True):
 
     Args:
         x (np.array): 1D floats
-        std_no (float): number of
+        std_no (float): number of standard deviations.
     Return:
         np.array of booleans: True if is angry, False otherwise.
     """
     y = x[x != 0] if no_0 else x
-    y_me = np.median(y)
-    y_mad = np.median(np.abs(y - y_me))
-    # k is for Gaussian data
-    # https://en.wikipedia.org/wiki/Median_absolute_deviation
-    k = 1.4826
-    return np.abs(x - y_me) > std_no*y_mad*k
+    y_med, y_mad = med_mad(y)
+    return np.abs(x - y_med) > std_no * y_mad

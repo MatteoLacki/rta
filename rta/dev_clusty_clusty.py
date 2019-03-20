@@ -11,10 +11,12 @@ from rta.models.big import BigModel
 from rta.models.rolling_median import RollingMedianSpline
 from rta.plot.runs import plot_distances_to_reference
 
-
 data = Path("~/Projects/rta/data").expanduser()
 D = pd.read_msgpack(data/"D.msg")
 U = pd.read_msgpack(data/"U.msg")
+
+DW = D[['id','run','rt']].pivot(index='id', columns='run', values='rt')
+sum(DW.isnull())
 
 from scipy.spatial import KDTree
 
