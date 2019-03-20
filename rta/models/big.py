@@ -17,13 +17,15 @@ class BigModel(object):
         self.models = models
 
     def fit(self, x, y, g):
-        self.x = x
-        self.y = y
-        self.g = g
-        for X, Y, gr in xyg_iter(x, y ,g):
+        self.x = np.array(x)
+        self.y = np.array(y)
+        self.g = np.array(g)
+        for X, Y, gr in xyg_iter(x, y, g):
             self.models[gr].fit(X, Y - X)
 
     def __call__(self, x, g):
+        x = np.array(x)
+        g = np.array(g)
         x_new = np.zeros(x.shape)
         for gr, model in self.models.items():
             X_gr = x[g == gr]
