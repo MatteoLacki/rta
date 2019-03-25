@@ -30,7 +30,9 @@ from scipy.spatial import KDTree, cKDTree
 
 u1 = U.loc[U.run == 1,['mass', 'rta', 'dt']]
 # this is one time only
-kd = KDTree(u1)
+
+%%time
+kd = cKDTree(u1)
 kd.data
 pts = np.array([[0, 0, 0], [2.1, 2.9, 3.3]])
 d1 = D.loc[D.run == 1, ['mass', 'rta', 'dt']]
