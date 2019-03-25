@@ -1,9 +1,11 @@
 %load_ext autoreload
 %autoreload 2
 
+from math import inf
 import numpy as np
 import pandas as pd
 pd.set_option('display.max_rows', 5)
+pd.set_option('display.max_columns', 100)
 from pathlib import Path
 import matplotlib.pyplot as plt
 plt.style.use('dark_background')
@@ -24,21 +26,35 @@ AW = A[['id','run','rt']].pivot(index='id', columns='run', values='rt')
 # plt.show()
 
 
-from scipy.spatial import KDTree, cKDTree
+from scipy.spatial import cKDTree as kd_tree
+
+runs = np.unique(A.run)
+
+# forest of kd_trees
+F = {run: kd_tree(A.loc[A.run == run, ['mass', 'rta', 'dt']]) for run in runs}
+
+
+# normalizing data in all DataFrames based on D.
+
 
 
 u1 = U.loc[U.run == 1,['mass', 'rta', 'dt']]
 # this is one time only
+kd = cKDTree(u1)
+
+pts = np.array([[0, 0, 0], [2.1, 2.9, 3.3]])
+kd.query(pts, k=3)
+pt = np.array([[2.1, 2.9, 3.3]])
+d, i = kd.query(pt, k=3)
+u1.iloc[[8277, 5783, 358199],]
+
+a1 = A.loc[D.run == 1, ['mass', 'rta', 'dt']]
 
 %%time
-kd = cKDTree(u1)
-kd.data
-pts = np.array([[0, 0, 0], [2.1, 2.9, 3.3]])
-d1 = D.loc[D.run == 1, ['mass', 'rta', 'dt']]
+d, i = kd.query(d1, k=1, p=inf, distance_upper_bound=1)
 
-from math import inf
-d, i = kd.query(d1, k=10, p=inf, distance_upper_bound=1)
 
-# OK, this is not yet meaningful, but gets there.
+
+
 
 
