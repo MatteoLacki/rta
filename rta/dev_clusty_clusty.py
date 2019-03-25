@@ -25,7 +25,8 @@ AW = A[['id','run','rt']].pivot(index='id', columns='run', values='rt')
 # plt.show()
 
 
-from scipy.spatial import KDTree
+from scipy.spatial import KDTree, cKDTree
+
 
 u1 = U.loc[U.run == 1,['mass', 'rta', 'dt']]
 # this is one time only
