@@ -1,7 +1,3 @@
-try:
-    import matplotlib.pyplot as plt
-except ModuleNotFoundError:
-    plt = None
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.signal import medfilt
@@ -10,7 +6,6 @@ from rta.models.interpolant import Interpolant
 from rta.models.spline import Spline
 from rta.array_operations.dedupy import dedup_np
 from rta.math.splines import beta as beta_spline
-
 
 
 class RollingMedian(Interpolant):

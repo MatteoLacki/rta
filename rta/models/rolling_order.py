@@ -1,7 +1,3 @@
-try:
-    import matplotlib.pyplot as plt
-except ModuleNotFoundError:
-    plt = None
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.signal import order_filter

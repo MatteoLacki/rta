@@ -35,6 +35,7 @@ F = {run: kd_tree(A.loc[A.run == run, ['mass', 'rta', 'dt']]) for run in runs}
 
 
 # normalizing data in all DataFrames based on D.
+D
 
 
 
