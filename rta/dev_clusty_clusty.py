@@ -3,10 +3,10 @@
 
 import numpy as np
 import pandas as pd
+pd.set_option('display.max_rows', 5)
 from pathlib import Path
 import matplotlib.pyplot as plt
 plt.style.use('dark_background')
-
 
 data = Path("~/Projects/rta/data").expanduser()
 A = pd.read_msgpack(data/"A.msg")
