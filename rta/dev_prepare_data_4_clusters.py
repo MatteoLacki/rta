@@ -18,19 +18,26 @@ from rta.math.stats import med_mad, robust_chebyshev_interval
 from rta.filter import is_angry
 from rta.plot.runs import plot_distances_to_reference
 
-data = Path("~/Projects/rta/data/").expanduser()
-A = pd.read_msgpack(data/"annotated_all.msg")
-U = pd.read_msgpack(data/'unlabelled_all.msg')
+data = Path("~/Projects/rta/rta/data/").expanduser()
+
+
+A = pd.read_msgpack(data/"annotated_zlib.msg")
+A = A.drop(A.columns[0], 1)
+U = pd.read_msgpack(data/'unannotated_zlib.msg')
+U = U.drop(U.columns[0], 1)
+
 A_cnt = A.shape[0]
 U.index = pd.RangeIndex(A_cnt, A_cnt + U.shape[0])
 min_runs_per_id = 5 # how many times should peptides appear out of 10 times
 
 ## get alignmets
+annotated_peptides = A
 D, stats, pddra, pepts_per_run = preprocess(A, min_runs_per_id)
-D = D.reset_index()
+
 
 # x = 'dt'
 def align_and_denoise(A, U, D, x):
+    """Applicable to any column of A,U,D DataFrames, like rt, dt, mass."""
     x_med = x + '_med'
     x_d = x + '_d'
     xa = x + 'a'
@@ -78,9 +85,9 @@ A, U, D, angry_dt, M_dt = align_and_denoise(A, U, D, 'dt')
 # plot_distances_to_reference(A.rta, A.rta_med, A.run, s=1)
 
 ## saving
-A.to_msgpack(data/"A.msg")
-U.to_msgpack(data/"U.msg")
-D.to_msgpack(data/"D.msg")
-angry_rt.to_msgpack(data/"angry_rt.msg")
-angry_dt.to_msgpack(data/"angry_dt.msg")
-multicharged.to_msgpack(data/"multi_q.msg")
+A.to_msgpack(data/"A.msg", compress='zlib')
+U.to_msgpack(data/"U.msg", compress='zlib')
+D.to_msgpack(data/"D.msg", compress='zlib')
+angry_rt.to_msgpack(data/"angry_rt.msg", compress='zlib')
+angry_dt.to_msgpack(data/"angry_dt.msg", compress='zlib')
+multicharged.to_msgpack(data/"multi_q.msg", compress='zlib')

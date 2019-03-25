@@ -8,11 +8,10 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 plt.style.use('dark_background')
 
-data = Path("~/Projects/rta/data").expanduser()
+data = Path("~/Projects/rta/rta/data").expanduser()
 A = pd.read_msgpack(data/"A.msg")
 D = pd.read_msgpack(data/"D.msg")
 U = pd.read_msgpack(data/"U.msg")
-
 
 AW = A[['id','run','rt']].pivot(index='id', columns='run', values='rt')
 100 * AW.isnull().values.sum() / np.prod(AW.shape) # 80% of slots are free!
