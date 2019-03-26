@@ -63,3 +63,7 @@ rMAD = RollingMAD()
 rMAD.fit(x, y)
 rMAD.plot()
 
+len(y)
+len(medfilt(y))
+
+
