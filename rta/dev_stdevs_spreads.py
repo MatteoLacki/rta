@@ -18,27 +18,15 @@ A = pd.read_msgpack(data/"A.msg")
 D = pd.read_msgpack(data/"D.msg")
 U = pd.read_msgpack(data/"U.msg")
 
-def normalize_madly(X, var):
-	X[var + "_n"] = X[var] / np.median(np.abs(X[var] - X[var+'_med']))
 
-normalize_madly(A, 'rta')
-normalize_madly(A, 'dta')
-
-plt.scatter(A.rta_n, A.dta_n, s=1)
-plt.show()
 
 arta = A.loc[np.logical_and(A.rta_n > 9300, A.rta_n < 10000),]
 a = arta.loc[np.logical_and(arta.dta_n > 3200, arta.dta_n < 4200),]
 
-plt.scatter(a.rta_n, a.dta_n, s=1, c=a.id)
-plt.show()
-
-(ggplot(a, aes(x='rta_n', y='dta_n', color='id')) + 
-	geom_point())
-
-
-(ggplot(A, aes(x='rta', y='dta', xend='rta_med', yend='dta_med')) + 
-	geom_segment())
+# (ggplot(a, aes(x='rta_n', y='dta_n', color='id')) + 
+# 	geom_point())
+# (ggplot(A, aes(x='rta', y='dta', xend='rta_med', yend='dta_med')) + 
+# 	geom_segment())
 
 
 # for each peptide find the bordering rectangle

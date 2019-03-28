@@ -20,7 +20,6 @@ from rta.plot.runs import plot_distances_to_reference
 
 data = Path("~/Projects/rta/rta/data/").expanduser()
 
-
 A = pd.read_msgpack(data/"annotated_zlib.msg")
 A = A.drop(A.columns[0], 1)
 U = pd.read_msgpack(data/'unannotated_zlib.msg')
@@ -81,15 +80,23 @@ A = A.loc[A.q_cnt == 1,] # 269 291
 # print_NaNs(A, U, D)
 
 A, U, D, angry_dt, M_dt = align_and_denoise(A, U, D, 'dt')
+A, U, D, angry_mass, M_mass = align_and_denoise(A, U, D, 'mass')
+
 # print_NaNs(A, U, D)
 # plot_distances_to_reference(A.dta, A.dta_med, A.run, s=1)
 # plot_distances_to_reference(A.rta, A.rta_med, A.run, s=1)
+# plot_distances_to_reference(A.massa, A.massa_med, A.run, s=1)
 
-A, U, D, angry_mass, M_mass = align_and_denoise(A, U, D, 'mass')
+def get_normalization(X, var):
+    return np.median(np.abs(X[var] - X[var+'_med']))
 
-# mass = A.mass
-# mass_med = cond_medians(mass, A.id)
-# plot_distances_to_reference(mass, mass_med, A.run, s=1)
+def normalize(X, var, value):
+    X[var + "_n"] = X[var] / value 
+
+for var in ['rta', 'dta', 'massa']:
+    nor = get_normalization(A, var)
+    for X in [A, U, D]:
+        normalize(X, var, nor)
 
 
 ## saving
@@ -100,3 +107,4 @@ angry_rt.to_msgpack(data/"angry_rt.msg", compress='zlib')
 angry_dt.to_msgpack(data/"angry_dt.msg", compress='zlib')
 angry_mass.to_msgpack(data/"angry_mass.msg", compress='zlib')
 multicharged.to_msgpack(data/"multi_q.msg", compress='zlib')
+
