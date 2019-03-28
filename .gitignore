@@ -16,7 +16,8 @@ rta/.ipynb_checkpoints/
 .pytest_cache/
 py3/
 
-rta/data/
+rta/data/*.{msg,csv}
+
 
 # VIM
 *.swo

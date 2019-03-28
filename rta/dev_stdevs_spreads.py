@@ -10,8 +10,10 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 plt.style.use('dark_background')
 # plt.style.use('default')
-
 from plotnine import *
+
+from rta.array_operations.dataframe_ops import get_hyperboxes
+
 
 data = Path("~/Projects/rta/rta/data").expanduser()
 A = pd.read_msgpack(data/"A.msg")
@@ -31,22 +33,6 @@ a = arta.loc[np.logical_and(arta.dta_n > 3200, arta.dta_n < 4200),]
 
 # for each peptide find the bordering rectangle
 
-def get_hyperboxes(X, vars, grouping_var='id'):
-	"""Get minimal and maximal values of grouped variables."""
-	if not type(vars) == list:
-		vars = [vars]
-	cols = []
-	names = []
-	vid = X.groupby(grouping_var)
-	for var in vars:
-		v = vid[var]
-		cols.append(v.min())
-		cols.append(v.max())
-		names.append(var+"_min")
-		names.append(var+"_max")
-	B = pd.DataFrame(pd.concat(cols, axis=1))
-	B.columns = names
-	return B
 
 HB = get_hyperboxes(A, ['rta', 'dta', 'mass'])
 HB = HB.reset_index()

@@ -11,12 +11,17 @@ import matplotlib.pyplot as plt
 plt.style.use('dark_background')
 from collections import Counter
 from scipy.spatial import cKDTree as kd_tree
+from plotnine import *
 
+from rta.array_operations.dataframe_ops import get_hyperboxes
+from rta.reference import cond_medians
 
 data = Path("~/Projects/rta/rta/data").expanduser()
 A = pd.read_msgpack(data/"A.msg")
 D = pd.read_msgpack(data/"D.msg")
 U = pd.read_msgpack(data/"U.msg")
+
+
 
 AW = A[['id','run','rt']].pivot(index='id', columns='run', values='rt')
 100 * AW.isnull().values.sum() / np.prod(AW.shape) # 80% of slots are free!
@@ -44,7 +49,8 @@ A_agg = pd.concat([
 var_names = [v + "_med" for v in variables]
 var_names.extend(['signal_cnt', 'runs'])
 A_agg.columns = var_names
-# Counter(A_agg.signal_cnt)
+counts = Counter(A_agg.signal_cnt)
+print(["{}: {}".format(k,v) for k, v in sorted(list(counts.items()))])
 ## There are vastly more peptides appearing at only one run out of ten then any other
 # This points to what? That the neighbourhood of such points should be a really nice cluster
 # we should be ultra-conservative
@@ -61,7 +67,7 @@ runs = np.unique(U.run)
 """Idea here:
 
 Query for the closest points in U next to the mediods calculated for peptides in A.
-Every 
+Every fucking thing.
 """
 
 # a forest of kd_trees
@@ -82,16 +88,96 @@ def fill_iter(X):
 		yield from nn_iter(x)
 
 FILLED = pd.DataFrame(fill_iter(A_agg_no_fulls))
-variables = ['id', 'run', 'massa', 'rta', 'dta', 'u_idx']
+variables = ['id', 'run', 'massa', 'rta', 'dta', 'idx']
 FILLED.columns = variables
+FILLED['origin'] = 'U'
+
+A_ = A[variables[:-1]].reset_index()
+names = list(A_.columns)
+names[0] = 'idx'
+A_.columns = names
+A_['origin'] = 'A'
+
+ALL = pd.concat([A_, FILLED], axis=0, sort=False)
+ALL.to_msgpack(data/"nnn_zlib.msg", compress='zlib') # naive nearest neighbours
 
 
+from itertools import islice
+ALL_id = islice(ALL.groupby('id').__iter__(), 30)
+d = pd.concat((b for a, b in ALL_id), axis=0)
 
-A[variables[:-1]]
+(ggplot(d, aes(x='rta', y='dta', color='origin', label='run')) +
+	geom_text() +
+	facet_wrap('id') +
+	theme_dark())
 
 
 # design a multiprocessor version of it???
-#
+
+# divide the data into subproblems and see, how much faster it can work?
+
+# check, on the existing solution, how it looks like.
+	# remember, the one and only real way to test it, is to x-validate the whole process
+	# but for this, we need speed.
 
 
+# plotting the log-volume of the boxes containing the points
+def get_volumes(X, vars):
+	for v in vars:
+		X[v+'_v'] = X[v+'_max'] - X[v+'_min']
+
+
+vars2 = ['massa', 'rta', 'dta']
+HB = get_hyperboxes(ALL, vars2, 'id')
+get_volumes(HB, vars2)
+A_agg['logV'] = np.log(HB[[c for c in HB.columns if "_v" in c]]).sum(axis=1)
+plt.hist(A_agg.logV, bins=300)
+plt.show()
+
+plt.style.use('default')
+
+(ggplot(A_agg, aes(x='logV')) + 
+	geom_histogram() +
+	theme_lines())
+
+(ggplot(A_agg, aes(x='logV')) + 
+	geom_histogram() +
+	facet_wrap('signal_cnt', scales='free_y'))
+
+HBA = get_hyperboxes(A, vars2, 'id')
+get_volumes(HBA, vars2)
+
+A_agg['logV_0'] = np.log(HBA[[c for c in HB.columns if "_v" in c]]).sum(axis=1)
+A_agg_non_inf = A_agg.loc[A_agg.logV_0 != -inf,]
+
+(ggplot(A_agg_non_inf, aes(x='logV_0')) + 
+	geom_histogram() +
+	facet_wrap('signal_cnt', scales='free_y'))
+
+(ggplot(A_agg_non_inf, aes(x='rta_med', y='dta_med', color='logV_0', size='logV_0')) +
+	geom_point() +
+	scale_size(range = (.1, 1)))
+
+# How many points are shared?
+idx_cnt = ALL.loc[ALL.origin != 'A',].groupby('idx').size()
+peptide_sharing = Counter(idx_cnt)
+non_shared_peptides_perc = peptide_sharing[1]/sum(v for k,v in peptide_sharing.items() if k > 1)
+
+# find the farthest distance to the medoid in each group
+Aidit = Aid.__iter__()
+g, d = next(next(next(Aidit)))
+d = d[vars2]
+
+A['signal2medoid_d'] = np.abs(A[['massa_d', 'rta_d', 'dta_d']]).max(axis=1)
+Aid = A.groupby('id')
+A_agg['radius'] = Aid.signal2medoid_d.max()
+A_agg_pos_radius = A_agg.loc[A_agg.radius > 0]
+
+(ggplot(A_agg_pos_radius, aes(x='radius')) + 
+	geom_histogram(bins=100) + 
+	facet_wrap('signal_cnt'))
+
+(ggplot(A_agg_pos_radius, aes(x='radius**2')) + 
+	geom_histogram(bins=100) + 
+	facet_wrap('signal_cnt', scales='free_y'))
 
