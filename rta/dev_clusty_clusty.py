@@ -20,8 +20,7 @@ data = Path("~/Projects/rta/rta/data").expanduser()
 A = pd.read_msgpack(data/"A.msg")
 D = pd.read_msgpack(data/"D.msg")
 U = pd.read_msgpack(data/"U.msg")
-
-
+A['signal2medoid_d'] = np.abs(A[['massa_d', 'rta_d', 'dta_d']]).max(axis=1)
 
 AW = A[['id','run','rt']].pivot(index='id', columns='run', values='rt')
 100 * AW.isnull().values.sum() / np.prod(AW.shape) # 80% of slots are free!
@@ -81,18 +80,19 @@ def nn_iter(x):
 		if not r in p_runs:
 			d, idx = F[r].query([p_mass, p_rta, p_dta], p=inf, k=1)
 			nn_mass, nn_rta, nn_dta = F[r].data[idx]
-			yield (peptID, r, nn_mass, nn_rta, nn_dta, idx)
+			yield (peptID, r, nn_mass, nn_rta, nn_dta, idx, d)
 
 def fill_iter(X):
 	for x in X.values:
 		yield from nn_iter(x)
 
 FILLED = pd.DataFrame(fill_iter(A_agg_no_fulls))
-variables = ['id', 'run', 'massa', 'rta', 'dta', 'idx']
+variables = ['id', 'run', 'massa', 'rta', 'dta', 'idx', 'd']
 FILLED.columns = variables
 FILLED['origin'] = 'U'
 
-A_ = A[variables[:-1]].reset_index()
+A_ = A.loc[:,variables[:-2] + ['signal2medoid_d']]
+A_ = A_.reset_index()
 names = list(A_.columns)
 names[0] = 'idx'
 A_.columns = names
@@ -173,11 +173,15 @@ Aid = A.groupby('id')
 A_agg['radius'] = Aid.signal2medoid_d.max()
 A_agg_pos_radius = A_agg.loc[A_agg.radius > 0]
 
-(ggplot(A_agg_pos_radius, aes(x='radius')) + 
+(	ggplot(A_agg_pos_radius, aes(x='radius')) + 
 	geom_histogram(bins=100) + 
-	facet_wrap('signal_cnt'))
+	facet_wrap('signal_cnt')	)
 
-(ggplot(A_agg_pos_radius, aes(x='radius**2')) + 
+(	ggplot(A_agg_pos_radius, aes(x='radius**2')) + 
 	geom_histogram(bins=100) + 
-	facet_wrap('signal_cnt', scales='free_y'))
+	facet_wrap('signal_cnt', scales='free_y')	)
+
+(	ggplot(ALL.loc[ALL.d > 0,], aes(x='np.log(d)')) + 
+	geom_histogram(bins=100) + 
+	facet_wrap('origin', scales='free_y')	)
 
