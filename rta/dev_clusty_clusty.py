@@ -13,8 +13,9 @@ from collections import Counter
 from scipy.spatial import cKDTree as kd_tree
 from plotnine import *
 
-from rta.array_operations.dataframe_ops import get_hyperboxes
+from rta.array_operations.dataframe_ops import get_hyperboxes, conditional_medians
 from rta.reference import cond_medians
+
 
 data = Path("~/Projects/rta/rta/data").expanduser()
 A = pd.read_msgpack(data/"A.msg")
@@ -24,51 +25,26 @@ A['signal2medoid_d'] = np.abs(A[['massa_d', 'rta_d', 'dta_d']]).max(axis=1)
 
 AW = A[['id','run','rt']].pivot(index='id', columns='run', values='rt')
 100 * AW.isnull().values.sum() / np.prod(AW.shape) # 80% of slots are free!
+# more than one million free slots
 
 # prepare data for hdbscan
 variables = ['rta', 'dta', 'massa']
 
-
-# almost 4 MLN points...
-# AU = pd.concat([ A[variables], U[variables] ], axis=0)
-# import hdbscan
-# clusterer = hdbscan.HDBSCAN()
-# clusterer.fit(AU) # takes FOREVER!!!!
-# how to make it quicker?
-# somehow arrange the points
-
-
 ## simplify to peptide-medoids
 Aid = A.groupby('id')
-A_agg = pd.concat([
-	Aid[variables].median(),
-	Aid.size(),
-	Aid.run.agg(frozenset)
-], axis=1)
-var_names = [v + "_med" for v in variables]
-var_names.extend(['signal_cnt', 'runs'])
-A_agg.columns = var_names
-counts = Counter(A_agg.signal_cnt)
-print(["{}: {}".format(k,v) for k, v in sorted(list(counts.items()))])
-## There are vastly more peptides appearing at only one run out of ten then any other
-# This points to what? That the neighbourhood of such points should be a really nice cluster
-# we should be ultra-conservative
+A_agg = pd.concat(	[Aid[variables].median(),
+					 pd.DataFrame(Aid.size(), columns=['signal_cnt']),
+					 Aid.run.agg(frozenset)],
+					 axis = 1)
+# counts = Counter(A_agg.signal_cnt)
+
 A_agg_no_fulls = A_agg.loc[A_agg.signal_cnt != 10]
 A_agg_no_fulls = A_agg_no_fulls.reset_index()
-
-
-# I need more data-sets to check, if it all works as shown.
-# I need to parse the xmls myselfs to bypass IsoQuant imports and the dependence upon MariaDB.
-# Or, I might use it to my advantage: set up a database to store the parsed projects.
 runs = np.unique(U.run)
-
-
 """Idea here:
-
 Query for the closest points in U next to the mediods calculated for peptides in A.
 Every fucking thing.
 """
-
 # a forest of kd_trees
 F = {run: kd_tree(U.loc[U.run == run, ['mass', 'rta', 'dta']]) for run in runs}
 a_agg_no_fulls = A_agg_no_fulls.iloc[[0,1,2,3]]
@@ -86,6 +62,7 @@ def fill_iter(X):
 	for x in X.values:
 		yield from nn_iter(x)
 
+%%time
 FILLED = pd.DataFrame(fill_iter(A_agg_no_fulls))
 variables = ['id', 'run', 'massa', 'rta', 'dta', 'idx', 'd']
 FILLED.columns = variables
@@ -101,7 +78,14 @@ A_['origin'] = 'A'
 ALL = pd.concat([A_, FILLED], axis=0, sort=False)
 ALL.to_msgpack(data/"nnn_zlib.msg", compress='zlib') # naive nearest neighbours
 
+##### Accelaration
 
+
+
+
+
+
+#####
 from itertools import islice
 ALL_id = islice(ALL.groupby('id').__iter__(), 30)
 d = pd.concat((b for a, b in ALL_id), axis=0)
