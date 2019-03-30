@@ -5,8 +5,6 @@ from collections import Counter
 import numpy as np
 import pandas as pd
 from pathlib import Path
-# import matplotlib
-# matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
 from rta.read.csvs import big_data
@@ -29,12 +27,13 @@ A_cnt = A.shape[0]
 U.index = pd.RangeIndex(A_cnt, A_cnt + U.shape[0])
 min_runs_per_id = 5 # how many times should peptides appear out of 10 times
 
-## get alignmets
 annotated_peptides = A
 D, stats, pddra, pepts_per_run = preprocess(A, min_runs_per_id)
-
-
 # x = 'dt'
+
+
+# Divide this into align and denoise, as we will have to align everything from 
+# scratch again after aligning for the first time and denoising
 def align_and_denoise(A, U, D, x, std_cnt=5):
     """Applicable to any column of A,U,D DataFrames, like rt, dt, mass."""
     x_med = x + '_med'
@@ -42,7 +41,8 @@ def align_and_denoise(A, U, D, x, std_cnt=5):
     xa = x + 'a'
     xa_med = xa + '_med'
     xa_d = xa + '_d'
-    xa_dmin, xa_dmax = xa + '_dmin', xa + '_dmax'
+
+
     D[x_med] = cond_medians(D[x], D.id)
     runs = np.unique(D.run)
     M = BigModel({r: RollingMedian() for r in runs})
@@ -50,14 +50,17 @@ def align_and_denoise(A, U, D, x, std_cnt=5):
     D[xa] = M(D[x], D.run)
     D[xa_med] = cond_medians(D[xa], D.id)
     D[xa_d] = D[xa_med] - D[xa]
-    minmax_xta_d_run = D.groupby('run')[xa_d].apply(robust_chebyshev_interval, std_cnt=std_cnt).apply(pd.Series)
-    minmax_xta_d_run.columns = [xa_dmin, xa_dmax]
+    # denoising
+    minmax_xa_d_run = D.groupby('run')[xa_d].apply(robust_chebyshev_interval, std_cnt=std_cnt).apply(pd.Series)
+    minmax_xa_d_run.columns = [x+'a_dmin', x+'a_dmax']
+    
     A[xa] = M(A[x], A.run)
     A[xa_med] = cond_medians(A[xa], A.id)
     A[xa_d] = A[xa_med] - A[xa]
-    A = A.join(minmax_xta_d_run, on='run')
-    angry = A.loc[np.logical_or(A[xa_d] < A[xa_dmin], A[xa_d] > A[xa_dmax]),]
-    A = A.loc[np.logical_and(A[xa_d] >= A[xa_dmin],  A[xa_d] <= A[xa_dmax]),]
+    A = A.join(minmax_xa_d_run, on='run')
+    
+    angry = A.loc[np.logical_or(A[xa_d] < A[x+'a_dmin'], A[xa_d] > A[x+'a_dmax']),]
+    A = A.loc[np.logical_and(A[xa_d] >= A[x+'a_dmin'],  A[xa_d] <= A[x+'a_dmax']),]
     angry['who'] = xa + '_outlier'
     if not 'who' in U.columns:
         U['who'] = 'no_id'
