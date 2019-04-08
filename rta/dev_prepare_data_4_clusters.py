@@ -93,7 +93,7 @@ def print_NaNs(A, U, D):
         print(X[['rt', 'rta', 'dt', 'run', 'mass', 'intensity']].isnull().sum().sum())
 
 A, U, D, M_rt = align(A, U, D, 'rt')
-A, A_noise, D, D_noise, U = denoise_cheb(A, U, D, 'rta')
+A, A_noise_rt, D, D_noise_rt, U = denoise_cheb(A, U, D, 'rta')
 # OK, and now, reapply the reallignment
 
 W = pd.DataFrame(A[['id', 'charge']].set_index('id').groupby('id').charge.nunique())
@@ -104,9 +104,15 @@ A = A.loc[A.q_cnt == 1,] # 269 291
 # print_NaNs(A, U, D)
 
 A, U, D, M_dt = align(A, U, D, 'dt')
-A, U, D, angry_dt = denoise_cheb(A, U, D, 'dt')
+A, A_noise_dt, D, D_noise_dt, U = denoise_cheb(A, U, D, 'dta')
+
 A, U, D, M_mass = align(A, U, D, 'mass')
-A, U, D, angry_mass = denoise_cheb(A, U, D, 'mass')
+A, A_noise_m, D, D_noise_m, U = denoise_cheb(A, U, D, 'massa')
+
+
+A, U, D, M_rt = align(A, U, D, 'rt')
+A, U, D, M_dt = align(A, U, D, 'dt')
+A, U, D, M_mass = align(A, U, D, 'mass')
 # print_NaNs(A, U, D)
 # plot_distances_to_reference(A.dta, A.dta_med, A.run, s=1)
 # plot_distances_to_reference(A.rta, A.rta_med, A.run, s=1)
@@ -114,13 +120,8 @@ A, U, D, angry_mass = denoise_cheb(A, U, D, 'mass')
 
 # OK, so now, we should perform all that again.
 
-
-
 def get_normalization(X, var):
     return np.median(np.abs(X[var] - X[var+'_med']))
-
-def normalize(X, var, value):
-    X[var + "_n"] = X[var] / value 
 
 for var in ['rta', 'dta', 'massa']:
     nor = get_normalization(A, var)
@@ -132,8 +133,11 @@ for var in ['rta', 'dta', 'massa']:
 A.to_msgpack(data/"A.msg", compress='zlib')
 U.to_msgpack(data/"U.msg", compress='zlib')
 D.to_msgpack(data/"D.msg", compress='zlib')
-angry_rt.to_msgpack(data/"angry_rt.msg", compress='zlib')
-angry_dt.to_msgpack(data/"angry_dt.msg", compress='zlib')
-angry_mass.to_msgpack(data/"angry_mass.msg", compress='zlib')
+A_noise_rt.to_msgpack(data/"A_noise_rt.msg", compress='zlib')
+D_noise_rt.to_msgpack(data/"D_noise_rt.msg", compress='zlib')
+A_noise_dt.to_msgpack(data/"A_noise_dt.msg", compress='zlib')
+D_noise_dt.to_msgpack(data/"D_noise_dt.msg", compress='zlib')
+A_noise_m.to_msgpack(data/"A_noise_m.msg", compress='zlib')
+D_noise_m.to_msgpack(data/"D_noise_m.msg", compress='zlib')
 multicharged.to_msgpack(data/"multi_q.msg", compress='zlib')
 

@@ -16,7 +16,7 @@ rta/.ipynb_checkpoints/
 .pytest_cache/
 py3/
 
-rta/rta/data/*.{msg,csv}
+rta/data/*.{msg,csv}
 
 
 # VIM

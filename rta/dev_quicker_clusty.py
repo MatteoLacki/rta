@@ -13,7 +13,7 @@ from collections import Counter
 from scipy.spatial import cKDTree as kd_tree
 from plotnine import *
 
-from rta.array_operations.dataframe_ops import get_hyperboxes, conditional_medians
+from rta.array_operations.dataframe_ops import get_hyperboxes, conditional_medians, normalize
 from rta.reference import cond_medians
 from rta.parse import threshold as parse_thr
 
@@ -37,20 +37,21 @@ A_agg = pd.concat(	[Aid[variables].median(),
 					 pd.DataFrame(Aid.size(), columns=['signal_cnt']),
 					 Aid.run.agg(frozenset)],
 					 axis = 1)
-# counts = Counter(A_agg.signal_cnt)
+# counts = Counter(A_agg.signal_cnt)    # number of peptides that occur a given number of times
+# [(k, k*v) for k, v in counts.items()] # number of signals
 
 A_agg_no_fulls = A_agg.loc[A_agg.signal_cnt != 10]
 A_agg_no_fulls = A_agg_no_fulls.reset_index()
 runs = np.unique(U.run)
+
+
 """Idea here:
 Query for the closest points in U next to the mediods calculated for peptides in A.
 """
-# a forest of kd_trees
-# this could be done multicore ;)
-F = {run: kd_tree(U.loc[U.run == run, ['massa', 'rta', 'dta']]) for run in runs}
+# a forest of kd_trees this could be done multicore?
+# maybe, but wait for the CV
+F = {run: kd_tree(U.loc[U.run == run, variables]) for run in runs}
 # 5.37s on modern computer
-
-
 
 a_agg_no_fulls = A_agg_no_fulls.iloc[[0,1,2,3]]
 x = a_agg_no_fulls.iloc[0]
@@ -82,14 +83,13 @@ def fill_iter(X):
 A_agg = A_agg.sort_values('massa')
 sum(np.diff(A_agg.massa) > .1)
 
+
+
 # define few meaningful splits: based on mmu (mili-mass units)
 thr = '5mmu'
 parse_thr(thr)
-
-
 thr = '5da'
 parse_thr(thr)
-
 thr = '5ppm'
 parse_thr(thr)
 
@@ -104,7 +104,7 @@ w = np.arange(len(x)-1)[np.diff(x) > max_allowed]
 res = {}
 for r in runs:
 	res[r] = F[r].query(
-		A_agg.loc[A_agg.run.apply(lambda x: r not in x), ['massa', 'rta', 'dta']],
+	 	A_agg.loc[A_agg.run.apply(lambda x: r not in x), variables],
 		p=inf,
 		k=1)
 # to do: check for balls instead
@@ -112,5 +112,58 @@ for r in runs:
 # make test
 # also, maybe it is still a good idea to get the closest points in all directions
 # to somehow estimate the noise level? No, this is to vague
+
+
+from rta.array_operations.dataframe_ops import get_hyperboxes
+
+Did = D.groupby('id')
+HB = pd.concat(	[	get_hyperboxes(D, variables),
+					Did[variables].median(),
+					pd.DataFrame(Did.size(), columns=['signal_cnt']),
+				 	Did.run.agg(frozenset)],
+					axis = 1)
+HB = HB[HB.signal_cnt > 5]
+
+# HB_long = pd.melt(HB[[v+'_edge' for v in variables]])
+HB_long = pd.melt(HB[['signal_cnt', 'rta_edge', 'dta_edge', 'massa_edge']], id_vars='signal_cnt')
+
+
+np.percentile(HB.rta_edge/np.percentile(HB.rta_edge, .99), .95)
+
+lim_rect = HB[['rta_edge', 'dta_edge', 'massa_edge']].apply(lambda x: np.percentile(x, .99))
+# lim_rect = np.log(HB[['rta_edge', 'dta_edge', 'massa_edge']]).apply(lambda x: np.percentile(x, .99))
+W = HB[['rta_edge', 'dta_edge', 'massa_edge']]/lim_rect
+X = pd.melt(W)
+
+
+
+(ggplot(X, aes(x='value', color='variable', group='variable')) + geom_density())
+
+# applying the normalization for test.
+lim_rect.index = pd.Index(variables)
+variables_n = [v+'_n' for v in variables]
+U[variables_n] = U[variables]/lim_rect
+A
+
+
+
+
+HB_long.groupby('variable').value.apply(lambda x: (np.median(x), np.percentile(x, .99)))
+HB_long.groupby('variable').value
+
+
+
+for var in ['rta', 'dta', 'massa']:
+    nor = get_normalization(A, var)
+    for X in [A, U, D]:
+        normalize(X, var, nor)
+
+from plotnine import *
+
+(ggplot(HB, aes(x='np.log(vol)')) + geom_density() + facet_wrap('signal_cnt'))
+
+
+
+HB_long
 
 

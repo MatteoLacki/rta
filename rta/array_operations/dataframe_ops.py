@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from itertools import chain
 
@@ -6,7 +7,7 @@ def get_vars(vars, colnames):
 	"""Prepare variables for analysis."""
 	if not type(vars) == list:
 		vars = [vars]
-	assert all(v in X.columns for v in vars), "Please provide variables that are among the column names."
+	assert all(v in colnames for v in vars), "Please provide variables that are among the column names."
 	return vars
 
 
@@ -22,6 +23,10 @@ def get_hyperboxes(X, vars, grouping_var='id'):
 	Xg = X.groupby(grouping_var)
 	B = pd.concat([Xg[vars].min(), Xg[vars].max()], axis=1)
 	B.columns = list(v+s for s in ('_min', '_max') for v in vars)
+	B['vol'] = np.ones(B.shape[0])
+	for v in vars:
+		B[v+'_edge'] = B[v+'_max'] - B[v+'_min']
+		B['vol'] *= B[v+'_edge']
 	return B
 
 
@@ -56,3 +61,13 @@ def conditional_medians(X, vars, grouping_var='id'):
 	return X.groupby(grouping_var)[vars].median()
 
 
+def normalize(X, var, value):
+    """Add a normalized column to the DataFrame.
+
+    Args:
+        X (pd.DataFrame): Contains column 'var'.
+        var (str): The name of the column to normalize by 'value'.
+        value (float): A non-zero value to normalize by column 'var'.
+    """
+    assert value != 0, "Pass a non-zero normalization factor."
+    X[var + "_n"] = X[var] / value 
