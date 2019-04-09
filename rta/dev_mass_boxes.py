@@ -87,19 +87,32 @@ oi = OpenIntervals([0, 6], [3, 10])
 oi._spec
 oi[mz]
 
+# check larger then last element.
+mz = np.array([1, 2, 9, 13.5, 13.6, 3, -10])
+intervals = [(1,5), (8,10), (13,14)]
+
+def in_closed_intervals(mz, intervals):
+    left_mz, right_mz = (np.array(l) for l in zip(*intervals))
+    i = np.searchsorted(right_mz, mz, side='left')
+    out = np.full(mz.shape, -1)
+    smaller = mz <= right_mz[-1]
+    out[smaller] = np.where(np.take(left_mz, i[smaller]) <= mz[smaller],
+                            i[smaller], -1)
+    return out
+
+%%timeit
+mz = np.array([0, 1, 2, 9, 13.5, 13.6, 3, 50])
+intervals = [(1,5), (8,10), (13,14)]
+x = in_closed_intervals(mz, intervals)
 
 
 
 
 
 
-mz = [-1,0,1,2,3]
-w = [0,2]
-il = np.searchsorted(w, mz, side='left')
-ir = np.searchsorted(w, mz, side='right')
 
-mz > np.take(mz, il)
 
+left_mz[i]
 
 il_div_2, il_mod_2 = np.divmod(il, 2)
 ir_div_2, ir_mod_2 = np.divmod(ir, 2)

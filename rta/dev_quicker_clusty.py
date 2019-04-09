@@ -50,7 +50,7 @@ Query for the closest points in U next to the mediods calculated for peptides in
 """
 # a forest of kd_trees this could be done multicore?
 # maybe, but wait for the CV
-F = {run: kd_tree(U.loc[U.run == run, variables]) for run in runs}
+# F = {run: kd_tree(U.loc[U.run == run, variables]) for run in runs}
 # 5.37s on modern computer
 
 a_agg_no_fulls = A_agg_no_fulls.iloc[[0,1,2,3]]
