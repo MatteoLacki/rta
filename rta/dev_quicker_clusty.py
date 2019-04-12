@@ -167,6 +167,9 @@ charges = np.array(list(set(U.charge.unique()) | set(A.charge.unique())))
 #         F[(r,q)] = U_var.loc[row_select,:] if np.any(row_select) else None
 # # 3.01 sec
 
+
+# U.sort_values(['run', 'charge', 'massa']) # this is lenghty.
+
 %%time
 F = {}
 U_var = U.loc[:,variables]
