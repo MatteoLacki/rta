@@ -29,55 +29,88 @@ A['signal2medoid_d'] = np.abs(A[['massa_d', 'rta_d', 'dta_d']]).max(axis=1)
 
 # prepare data for hdbscan
 variables = ['rta', 'dta', 'massa']
-
-## simplify to peptide-medoids
-# Aid = A.groupby('id')
-# assumption: no multiple charges per id!!!
-# A_agg = pd.concat(  [
-#                         Aid[variables].median(),
-#                         pd.DataFrame(Aid.size(), columns=['signal_cnt']),
-#                         Aid.run.agg(frozenset), # this takes a lot of time...,
-#                         Aid.charge.first()
-#                     ],
-#                     axis = 1)
-# HOW to quickly simplify runs?
-# %%time
-# Aid.run.agg(frozenset)
-# # 5 [s] 
-# Aid.run.unique()
-
-# Wait, I need these runs only when selecting things.
 runs = np.array(list(set(A.run.unique()) | set(U.run.unique())))
-
-Aid = A.groupby('id')
-A_agg = pd.concat([ Aid[variables].median(),
-                    Aid.charge.first(), 
-                    pd.DataFrame(Aid.size(), columns=['signal_cnt'])], axis = 1)
+# Aid = A.groupby('id')
+# A_agg = pd.concat([ Aid[variables].median(),
+#                     Aid.charge.first(), 
+#                     pd.DataFrame(Aid.size(), columns=['signal_cnt'])], axis = 1)
 
 def iter_over_no_runs(A, runs, variables):
+    """Iterate over data not appearing in a given run.
+
+    This will not return a peptide that appeared in all the runs."""
     Aid = A.groupby('id')
     A_agg = pd.concat([ Aid[variables].median(), Aid.charge.first()], axis = 1)
     A_short = A.loc[:,['id', 'run']]
     for r in runs:
         yield r, A_agg.loc[A_short[A_short.run != r].id.unique(),:]
 
+# %%time
+s = (   (r,q,e[variables].sort_values('massa')) # sorting!!! watch out!!!
+        for r, d in iter_over_no_runs(A, runs, ['rta', 'dta', 'massa'])
+        for q, e in d.groupby('charge'))
+S = list(s)
+
+r, q, Arq = S[1]
+# add to index a mass range
+
+
+## classification based on run an charge only:
+# decided tp return the poitns from U that are closest to points in A.
+# indices show, to whih points in A the points found in U correspond to.
+
+def iter_run_charge_solution(max_radius=1):
+    s = (   (r,q,e[variables].sort_values('massa')) # sorting!!! watch out!!!
+            for r, d in iter_over_no_runs(A, runs, ['rta', 'dta', 'massa'])
+            for q, e in d.groupby('charge'))
+    U_var = U.loc[:,variables]
+    U_run_charge = U.loc[:,['run', 'charge']]
+    out_cols = variables + ['u_id'] + [ "u_"+v for v in variables]
+    for r,q,Arq in s:
+        row_select = np.logical_and(U_run_charge.run == r, U_run_charge.charge == q)
+        if np.any(row_select):
+            Urq = U_var.loc[row_select,:]
+            tree = kd_tree(Urq)
+            # %%time
+            # points = tree.query_ball_point(a, r=1, p=inf) # here the radius parametrizes the problem
+            # %%time
+            dist, points = tree.query(Arq, k=1, p=inf,
+                                      distance_upper_bound=max_radius) # here: the maximal number of neighours
+            out = Urq.iloc[points[dist < inf]].reset_index()
+            out['d'] = dist[dist < inf]
+            out['charge'] = q
+            out['run'] = r
+            out.index = Arq[dist < inf].index
+            yield out
+
+x = list(iter_run_charge_solution(max_radius=10))
+nearest_neighbours = pd.concat(x, axis=0, sort=False)
+
+plt.hist(nearest_neighbours.d, bins=200)
+plt.show()
+
+# 30 s on old computer for query_ball_point, 
+# 20 s for a simple query about 10 neighbors. # this is not bad, provided that we would actually want one point
+
+
+
+## classification based on run an charge only:
+
+mass_ppm_thr = 10
+# mass_ppm_thr = 100
+masses = d.massa.values
+
 %%time
-x = list(iter_over_no_runs(A, runs, ['rta', 'dta', 'massa']))
-
-for r, d in x:
-    try:
-        print(r, d.loc['AAAAAAAAA NA'])
-    except KeyError:
-        print()
-        print("'AAAAAAAAA NA' was found in {}".format(r))
-        print()
+masses = np.sort(A.massa.values)
+good_diffs = np.diff(masses)/masses[:-1]*1e6 > mass_ppm_thr
+L = masses[np.insert(good_diffs, 0, True)]
+R = masses[np.insert(good_diffs, -1, True)]
+I = pd.IntervalIndex.from_arrays(L, R, closed = 'left')
+x = pd.cut(masses, I)
 
 
-# counts = Counter(A_agg.signal_cnt)    # number of peptides that occur a given number of times
-# [(k, k*v) for k, v in counts.items()] # number of signals
-A_agg_no_fulls = A_agg.loc[A_agg.signal_cnt != 10]
-A_agg_no_fulls = A_agg_no_fulls.reset_index()
-runs = np.unique(U.run)
+masses
+
 
 
 """Idea here:
@@ -87,9 +120,6 @@ Query for the closest points in U next to the mediods calculated for peptides in
 # maybe, but wait for the CV
 # F = {run: kd_tree(U.loc[U.run == run, variables]) for run in runs}
 # 5.37s on modern computer
-
-a_agg_no_fulls = A_agg_no_fulls.iloc[[0,1,2,3]]
-x = a_agg_no_fulls.iloc[0]
 
 def nn_iter(x):
     peptID, p_rta, p_dta, p_mass, p_run_cnt, p_runs = x
@@ -102,21 +132,6 @@ def nn_iter(x):
 def fill_iter(X):
     for x in X.values:
         yield from nn_iter(x)
-# %%time
-# FILLED = pd.DataFrame(fill_iter(A_agg_no_fulls))
-# variables = ['id', 'run', 'massa', 'rta', 'dta', 'idx', 'd']
-# FILLED.columns = variables
-# FILLED['origin'] = 'U'
-# A_ = A.loc[:,variables[:-2] + ['signal2medoid_d']]
-# A_ = A_.reset_index()
-# names = list(A_.columns)
-# names[0] = 'idx'
-# A_.columns = names
-# A_['origin'] = 'A'
-# ALL = pd.concat([A_, FILLED], axis=0, sort=False)
-# ALL.to_msgpack(data/"nnn_zlib.msg", compress='zlib') # naive nearest neighbours
-# A_agg = A_agg.sort_values('massa')
-# sum(np.diff(A_agg.massa) > .1)
 
 # define few meaningful splits: based on mmu (mili-mass units)
 # thr = '5mmu'
@@ -126,25 +141,12 @@ def fill_iter(X):
 # thr = '5ppm'
 # parse_thr(thr)
 
-# w = A.groupby('id').massa_d.median()
-# w = w[w > 0]
-# sum(np.diff(A_agg.massa) > max(w))
-
-# x = A_agg.massa.values
-# max_allowed = 0.001
-# w = np.arange(len(x)-1)[np.diff(x) > max_allowed]
-
 # res = {}
 # for r in runs:
 #     res[r] = F[r].query(
 #         A_agg.loc[A_agg.run.apply(lambda x: r not in x), variables],
 #         p=inf,
 #         k=1)
-# to do: check for balls instead
-# what is this box-size? Maybe it's precisely the thing I look for?
-# make test
-# also, maybe it is still a good idea to get the closest points in all directions
-# to somehow estimate the noise level? No, this is to vague
 
 Did = D.groupby('id')
 HB = pd.concat( [   get_hyperboxes(D, variables),
@@ -157,20 +159,6 @@ HB = pd.concat( [   get_hyperboxes(D, variables),
 HB = HB[HB.signal_cnt > 5]
 # all values have been filtered so that only one charge state is used for the analysis
 # Counter(A.groupby('id').charge.nunique())
-
-
-
-
-mass_ppm_thr = 10
-
-# Ur1q2 = U.loc[np.logical_and(U.run == 1, U.charge == 2)]
-# masses = np.sort(Ur1q2.massa.values)
-
-masses = np.sort(U.massa.values)
-
-good_diffs = np.diff(masses)/masses[:-1]*1e6 > mass_ppm_thr
-L = masses[np.insert(good_diffs, 0, True)]
-R = masses[np.insert(good_diffs, -1, True)]
 # use this to divide the data
 
 def in_closed_intervals(mz, left_mz, right_mz):
@@ -221,14 +209,17 @@ x.loc[[4, 4.5, 5.5]]
 
 charges = np.array(list(set(U.charge.unique()) | set(A.charge.unique())))
 
-# %%time
-# F = {}
-# U_var = U.loc[:,variables]
-# for q in charges:
-#     for r in runs:
-#         row_select = np.logical_and(U.run == r, U.charge == q)
-#         F[(r,q)] = U_var.loc[row_select,:] if np.any(row_select) else None
-# # 3.01 sec
+%%time
+F = {}
+U_var = U.loc[:,variables]
+for q in charges:
+    for r in runs:
+        row_select = np.logical_and(U.run == r, U.charge == q)
+        F[(r,q)] = kd_tree(U_var.loc[row_select,:]) if np.any(row_select) else None
+# 3.01 sec / 13 sec old
+
+
+
 
 
 # U.sort_values(['run', 'charge', 'massa']) # this is lenghty.
