@@ -141,6 +141,7 @@ to_query, A_cond = next(iter_over_rq_exp(A, runs, variables))
 
 #TODO: change it so that freevars and condvars are explicity passed further on.
 # optimize this code: for sure it's stupid.
+# make a class of it.
 def get_iter_over_rq(A, runs,
                      peptID='id',
                      condvars=['id', 'run'],
@@ -152,9 +153,9 @@ def get_iter_over_rq(A, runs,
         for r in runs:
             d = A_agg.loc[A_short[A_short.run != r][peptID].unique(),:]
             for q, e in d.groupby('charge'):
-                to_query = "run == {} and charge == {}".format(r, q)
+                U_query = "run == {} and charge == {}".format(r, q)
                 Arq = e[freevars]
-                yield to_query, Arq
+                yield U_query, Arq
     return condvars, freevars, iter_over_rq_exp()
 
 
@@ -226,17 +227,54 @@ def find_nearest_neighbour_exp(A_iter, U, freevars, condvars, max_radius=1):
             yield out
 
 
-def find_nearest_neighbour_exp(A_iter, U, freevars, condvars, max_radius=1):
-    U_ = U.loc[:,freevars + condvars]
-    for cond, A_cond in A_iter:
-        U_cond = U_.query(cond)
-        if not U_cond.empty:
-            tree = kd_tree(U_cond[freevars])
-            dist, points = tree.query(A_cond, k=1, p=inf, distance_upper_bound=max_radius)
-            out = U_cond.iloc[points[dist < inf]].reset_index()
-            out['d'] = dist[dist < inf]
-            out.index = A_cond[dist < inf].index
-            yield out
+class DataGrouper(object):
+    def __init__(self, A, U,
+                 peptID='id',
+                 condvars=['run', 'charge'],
+                 freevars=['rta', 'dta', 'massa']):
+        self.runs = np.array(list(set(A.run.unique()) | set(U.run.unique())))
+        self._U = U.loc[:, freevars + condvars]
+        Aid = A.groupby(peptID)
+        self.A_agg = pd.concat([ Aid[freevars].median(), Aid.charge.first()], axis = 1) 
+        self.A_rq = A.loc[:,condvars]
+        self.freevars = freevars
+        self.peptID = peptID
+
+    def __iter__(self):    
+        for r in self.runs:
+            d = self.A_agg.loc[self.A_rq[self.A_rq.run != r][self.peptID].unique(),:]
+            for q, e in d.groupby('charge'):
+                A_cond = e[self.freevars]
+                U_cond = self._U.query("run == @r and charge == @q")
+                if not U_cond.empty:
+                    yield U_cond, A_cond
+
+rq_grouper = DataGrouper(A, U)
+rq_grouper._U
+
+# this is wrong! simplify
+r = 1
+rq_grouper.A_agg.loc[ rq_grouper.A_rq[rq_grouper.A_rq.run != r].index  ]
+
+rq_grouper.A_agg
+rq_grouper.A_rq
+
+
+list(rq_grouper)
+
+
+# to do: this should accept an iter-macher :), not A.
+# avoid passing existing information.
+# this should iter over both A and U.
+# no condvars
+def find_nearest_neighbour_exp(grouper, max_radius=1):
+    for U_cond, A_cond in grouper:
+        tree = kd_tree(U_cond[grouper.freevars])
+        dist, points = tree.query(A_cond, k=1, p=inf, distance_upper_bound=max_radius)
+        out = U_cond.iloc[points[dist < inf]].reset_index()
+        out['d'] = dist[dist < inf]
+        out.index = A_cond[dist < inf].index
+        yield out
 
 
 %%time
