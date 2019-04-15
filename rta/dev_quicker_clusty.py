@@ -24,7 +24,6 @@ U = pd.read_msgpack(data/"U.msg")
 A['signal2medoid_d'] = np.abs(A[['massa_d', 'rta_d', 'dta_d']]).max(axis=1)
 
 AW = A[['id','run','rt']].pivot(index='id', columns='run', values='rt')
-AW = A[['id','run','rt']].pivot(index='id', columns='run', values='rt')
 # 100 * AW.isnull().values.sum() / np.prod(AW.shape) # 80% of slots are free!
 # more than one million free slots
 
@@ -39,7 +38,6 @@ A_agg = pd.concat(  [Aid[variables].median(),
                      axis = 1)
 # counts = Counter(A_agg.signal_cnt)    # number of peptides that occur a given number of times
 # [(k, k*v) for k, v in counts.items()] # number of signals
-
 A_agg_no_fulls = A_agg.loc[A_agg.signal_cnt != 10]
 A_agg_no_fulls = A_agg_no_fulls.reset_index()
 runs = np.unique(U.run)
@@ -110,8 +108,6 @@ def fill_iter(X):
 # make test
 # also, maybe it is still a good idea to get the closest points in all directions
 # to somehow estimate the noise level? No, this is to vague
-
-from rta.array_operations.dataframe_ops import get_hyperboxes
 
 Did = D.groupby('id')
 HB = pd.concat( [   get_hyperboxes(D, variables),
