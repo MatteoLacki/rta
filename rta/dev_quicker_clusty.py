@@ -118,29 +118,6 @@ HB = pd.concat( [   get_hyperboxes(D, variables),
                     Did.FWHM.median()     ],
                     axis = 1)
 HB = HB[HB.signal_cnt > 5]
-
-plt.hexbin(HB.rta_min, HB.rta_edge)
-plt.hexbin(np.log(HB.rta_min), np.log(HB.rta_edge))
-plt.show()
-plt.hexbin(HB.dta_min, HB.dta_edge)
-plt.hexbin(np.log(HB.dta_min), np.log(HB.dta_edge))
-plt.show()
-(ggplot(HB, aes(x='dta_min', y='dta_edge')) +
-    geom_density_2d() +
-    facet_wrap('charge'))
-# (ggplot(HB, aes(x='FWHM', y='dta_edge')) +
-#   geom_density_2d() +
-#   facet_wrap('charge'))
-(ggplot(HB, aes(x='massa_min', y='massa_edge')) +
-    geom_density_2d())
-(ggplot(HB, aes(x='massa_min', y='massa_edge')) +
-    geom_density_2d() + facet_wrap('signal_cnt'))
-(ggplot(HB, aes(x='massa_min', y='massa_edge')) +
-    geom_density_2d() +
-    facet_wrap('charge'))
-(ggplot(HB, aes(x='massa_edge', group='charge', color='charge')) +
-    geom_density())
-
 # all values have been filtered so that only one charge state is used for the analysis
 Counter(A.groupby('id').charge.nunique())
 
@@ -196,8 +173,6 @@ plt.show()
 w = w[w > 0]
 sum(np.diff(A_agg.massa) > max(w))
 U.sort_values(['run', 'mass'])
-
-
 
 
 
