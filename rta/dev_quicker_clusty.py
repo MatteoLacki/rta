@@ -23,7 +23,7 @@ D = pd.read_msgpack(data/"D.msg")
 U = pd.read_msgpack(data/"U.msg")
 A['signal2medoid_d'] = np.abs(A[['massa_d', 'rta_d', 'dta_d']]).max(axis=1)
 
-AW = A[['id','run','rt']].pivot(index='id', columns='run', values='rt')
+# AW = A[['id','run','rt']].pivot(index='id', columns='run', values='rt')
 # 100 * AW.isnull().values.sum() / np.prod(AW.shape) # 80% of slots are free!
 # more than one million free slots
 
@@ -31,11 +31,48 @@ AW = A[['id','run','rt']].pivot(index='id', columns='run', values='rt')
 variables = ['rta', 'dta', 'massa']
 
 ## simplify to peptide-medoids
+# Aid = A.groupby('id')
+# assumption: no multiple charges per id!!!
+# A_agg = pd.concat(  [
+#                         Aid[variables].median(),
+#                         pd.DataFrame(Aid.size(), columns=['signal_cnt']),
+#                         Aid.run.agg(frozenset), # this takes a lot of time...,
+#                         Aid.charge.first()
+#                     ],
+#                     axis = 1)
+# HOW to quickly simplify runs?
+# %%time
+# Aid.run.agg(frozenset)
+# # 5 [s] 
+# Aid.run.unique()
+
+# Wait, I need these runs only when selecting things.
+runs = np.array(list(set(A.run.unique()) | set(U.run.unique())))
+
 Aid = A.groupby('id')
-A_agg = pd.concat(  [Aid[variables].median(),
-                     pd.DataFrame(Aid.size(), columns=['signal_cnt']),
-                     Aid.run.agg(frozenset)],
-                     axis = 1)
+A_agg = pd.concat([ Aid[variables].median(),
+                    Aid.charge.first(), 
+                    pd.DataFrame(Aid.size(), columns=['signal_cnt'])], axis = 1)
+
+def iter_over_no_runs(A, runs, variables):
+    Aid = A.groupby('id')
+    A_agg = pd.concat([ Aid[variables].median(), Aid.charge.first()], axis = 1)
+    A_short = A.loc[:,['id', 'run']]
+    for r in runs:
+        yield r, A_agg.loc[A_short[A_short.run != r].id.unique(),:]
+
+%%time
+x = list(iter_over_no_runs(A, runs, ['rta', 'dta', 'massa']))
+
+for r, d in x:
+    try:
+        print(r, d.loc['AAAAAAAAA NA'])
+    except KeyError:
+        print()
+        print("'AAAAAAAAA NA' was found in {}".format(r))
+        print()
+
+
 # counts = Counter(A_agg.signal_cnt)    # number of peptides that occur a given number of times
 # [(k, k*v) for k, v in counts.items()] # number of signals
 A_agg_no_fulls = A_agg.loc[A_agg.signal_cnt != 10]
@@ -113,13 +150,66 @@ Did = D.groupby('id')
 HB = pd.concat( [   get_hyperboxes(D, variables),
                     Did[variables].median(),
                     pd.DataFrame(Did.size(), columns=['signal_cnt']),
-                    Did.run.agg(frozenset),
+                    Did.run.agg(frozenset), # as usual, the slowest !!!
                     Did.charge.median(),
                     Did.FWHM.median()     ],
                     axis = 1)
 HB = HB[HB.signal_cnt > 5]
 # all values have been filtered so that only one charge state is used for the analysis
-Counter(A.groupby('id').charge.nunique())
+# Counter(A.groupby('id').charge.nunique())
+
+
+
+
+mass_ppm_thr = 10
+
+# Ur1q2 = U.loc[np.logical_and(U.run == 1, U.charge == 2)]
+# masses = np.sort(Ur1q2.massa.values)
+
+masses = np.sort(U.massa.values)
+
+good_diffs = np.diff(masses)/masses[:-1]*1e6 > mass_ppm_thr
+L = masses[np.insert(good_diffs, 0, True)]
+R = masses[np.insert(good_diffs, -1, True)]
+# use this to divide the data
+
+def in_closed_intervals(mz, left_mz, right_mz):
+    i = np.searchsorted(right_mz, mz, side='left')
+    out = np.full(mz.shape, -1)
+    smaller = mz <= right_mz[-1]
+    out[smaller] = np.where(np.take(left_mz, i[smaller]) <= mz[smaller],
+                            i[smaller], -1)
+    return out
+
+in_closed_intervals(U.massa.values, L, R)
+
+# Alternativ für Zukunft
+# first sort the bloody U and then do calculations on views.
+u_vars = ['run', 'charge', 'massa', 'rta', 'dta']
+
+UU = U.loc[:,u_vars]
+
+# UU = UU.sort_values(['run', 'charge', 'massa'])
+
+%%time
+UU_g = UU.groupby(['run', 'charge'])
+UU_g.describe()
+
+x = list(UU_g)
+
+%%time
+UU = U.loc[:,u_vars]
+UU = UU.sort_values(['run', 'charge'])
+UU = UU.set_index(['run', 'charge'])
+
+UU.loc[(1,1),'massa']
+UU.xs(1, level='run')
+
+x = pd.DataFrame({'a': [10, 20], 'b':['a', 'b']},
+                 index = pd.IntervalIndex.from_tuples([(0, 1), (3, 5)]))
+
+x.loc[[4, 4.5, 5.5]]
+
 
 # %%time
 # F = kd_tree(U[variables])

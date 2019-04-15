@@ -117,9 +117,9 @@ A, U, D, M_mass = align(A, U, D, 'mass')
 # plot_distances_to_reference(A.dta, A.dta_med, A.run, s=1)
 # plot_distances_to_reference(A.rta, A.rta_med, A.run, s=1)
 # plot_distances_to_reference(A.massa, A.massa_med, A.run, s=1)
-
 # OK, so now, we should perform all that again.
 
+# this will be modified
 def get_normalization(X, var):
     return np.median(np.abs(X[var] - X[var+'_med']))
 
