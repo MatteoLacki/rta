@@ -15,6 +15,7 @@ from rta.models.rolling_median import RollingMedian
 from rta.math.stats import med_mad, robust_chebyshev_interval
 from rta.filter import is_angry
 from rta.plot.runs import plot_distances_to_reference
+from rta.array_operations.dataframe_ops import normalize
 
 data = Path("~/Projects/rta/rta/data/").expanduser()
 
