@@ -25,186 +25,9 @@ A = pd.read_msgpack(data/"A.msg")
 D = pd.read_msgpack(data/"D.msg")
 U = pd.read_msgpack(data/"U.msg")
 A['signal2medoid_d'] = np.abs(A[['massa_d', 'rta_d', 'dta_d']]).max(axis=1)
-
 # AW = A[['id','run','rt']].pivot(index='id', columns='run', values='rt')
 # 100 * AW.isnull().values.sum() / np.prod(AW.shape) # 80% of slots are free!
 # more than one million free slots
-# variables = ['rta', 'dta', 'massa']
-# runs = np.array(list(set(A.run.unique()) | set(U.run.unique())))
-
-# Aid = A.groupby('id')
-# A_agg = pd.concat([ Aid[variables].median(),
-#                     Aid.charge.first(), 
-#                     pd.DataFrame(Aid.size(), columns=['signal_cnt'])], axis = 1)
-
-# def iter_over_no_runs(A, runs, variables):
-#     """Iterate over data not appearing in a given run.
-
-#     This will not return a peptide that appeared in all the runs."""
-#     Aid = A.groupby('id')
-#     A_agg = pd.concat([ Aid[variables].median(), Aid.charge.first()], axis = 1)
-#     A_short = A.loc[:,['id', 'run']]
-#     for r in runs:
-#         yield r, A_agg.loc[A_short[A_short.run != r].id.unique(),:]
-
-
-def iter_over_rq(A, runs, variables):
-    Aid = A.groupby('id')
-    A_agg = pd.concat([ Aid[variables].median(), Aid.charge.first()], axis = 1)
-    A_short = A.loc[:,['id', 'run']]
-    for r in runs:
-        d = A_agg.loc[A_short[A_short.run != r].id.unique(),:]
-        for q, e in d.groupby('charge'):
-            yield r, q, e[variables].sort_values('massa') # sorting!!! watch out!!!
-
-# def iter_over_rq(A, runs, variables):
-#     Aid = A.groupby('id')
-#     A_agg = pd.concat([ Aid[variables].median(), Aid.charge.first()], axis = 1)
-#     A_short = A.loc[:,['id', 'run']]
-#     for r in runs:
-#         d = A_agg.loc[A_short[A_short.run != r].id.unique(),:]
-#         for q, e in d.groupby('charge'):
-#             yield {'run':r, 'charge':q}, e[variables].sort_values('massa') # sorting!!! watch out!!!
-
-
-# %%time
-# s = iter_over_rq(A, runs, variables)
-# S = list(s)
-
-# r, q, Arq = next(iter_over_rq(A, runs, variables))
-# add to index a mass range
-
-
-## classification based on run an charge only:
-# decided tp return the poitns from U that are closest to points in A.
-# indices show, to whih points in A the points found in U correspond to.
-def iter_run_charge_solution(A, runs, variables, max_radius=1):
-    t0 = time()
-    U_var = U.loc[:,variables]
-    U_run_charge = U.loc[:,['run', 'charge']]
-    print(time() - t0)
-    out_cols = variables + ['u_id'] + [ "u_"+v for v in variables]
-    for r, q, Arq in iter_over_rq(A, runs, variables):
-        print(r, q)
-        t0 = time()
-        row_select = np.logical_and(U_run_charge.run == r, U_run_charge.charge == q)
-        print(time() - t0)
-        if np.any(row_select):
-            t0 = time()
-            Urq = U_var.loc[row_select,:]
-            tree = kd_tree(Urq)
-            # %%time
-            # points = tree.query_ball_point(a, r=1, p=inf) # here the radius parametrizes the problem
-            # %%time
-            dist, points = tree.query(Arq, k=1, p=inf,
-                                      distance_upper_bound=max_radius) # here: the maximal number of neighours
-            out = Urq.iloc[points[dist < inf]].reset_index()
-            out['d'] = dist[dist < inf]
-            out['charge'] = q
-            out['run'] = r
-            out.index = Arq[dist < inf].index
-            print(time() - t0)
-            print()
-            yield out
-
-
-%%time
-x = list(iter_run_charge_solution(A, runs, variables, max_radius=10))
-
-# nearest_neighbours = pd.concat(x, axis=0, sort=False)
-# plt.hist(nearest_neighbours.d, bins=200)
-# plt.show()
-
-
-# def iter_over_r(A, runs, variables):
-#     Aid = A.groupby('id')
-#     A_agg = pd.concat([ Aid[variables].median(), Aid.charge.first()], axis = 1)
-#     A_short = A.loc[:,['id', 'run']]
-#     for r in runs:
-#         d = A_agg.loc[A_short[A_short.run != r].id.unique(),:]
-#         yield r, d
-
-def iter_over_rq_exp(A, runs, variables):
-    Aid = A.groupby('id')
-    A_agg = pd.concat([ Aid[variables].median(), Aid.charge.first()], axis = 1)
-    A_short = A.loc[:,['id', 'run']]
-    for r in runs:
-        d = A_agg.loc[A_short[A_short.run != r].id.unique(),:]
-        for q, e in d.groupby('charge'):
-            to_query = "run == {} and charge == {}".format(r, q)
-            to_eval  = "run = {}\ncharge = {}".format(r, q)
-            Arq = e[variables].sort_values('massa') # sorting!!! watch out!!!
-            yield to_query, Arq
-
-to_query, A_cond = next(iter_over_rq_exp(A, runs, variables))
-
-
-#TODO: change it so that freevars and condvars are explicity passed further on.
-# optimize this code: for sure it's stupid.
-# make a class of it.
-def get_iter_over_rq(A, runs,
-                     peptID='id',
-                     condvars=['id', 'run'],
-                     freevars=['rta', 'dta', 'massa']):
-    def iter_over_rq_exp():
-        Aid = A.groupby(peptID)
-        A_agg = pd.concat([ Aid[freevars].median(), Aid.charge.first()], axis = 1)
-        A_short = A.loc[:,condvars]
-        for r in runs:
-            d = A_agg.loc[A_short[A_short.run != r][peptID].unique(),:]
-            for q, e in d.groupby('charge'):
-                U_query = "run == {} and charge == {}".format(r, q)
-                Arq = e[freevars]
-                yield U_query, Arq
-    return condvars, freevars, iter_over_rq_exp()
-
-
-def find_nearest_neighbour_exp(A_iter, U, freevars, condvars, max_radius=1):
-    t0 = time()
-    # U_freevars = U.loc[:, freevars]
-    # U_condvars = U.loc[:, condvars]
-    # U_ = U.loc[:,condvars + freevars]
-    U_ = U.loc[:,freevars + condvars]
-    print(time() - t0)
-    # U_ind = U.index
-    # U_condvars = U_condvars.reset_index().set_index(condvars)
-    # U_condvars
-    # %%time
-    # U_condvars[U_condvars.index.get_level_values('run') != 1]
-    # %%time
-    # U_freevars.loc[[U_ind[np.logical_and(U_condvars.run == 1, U_condvars.charge == 1)]]
-    for cond, A_cond in A_iter:
-        print(cond)
-        t0 = time()
-        # U_condvars.query(cond)
-        # %%time
-        # np.any()
-        # np.logical_and()
-        # %%time
-        # U.query(cond)
-        # %%timeit
-        # U_cond = U_freevars.loc[U_condvars.query(cond).index]
-        # %%timeit
-        U_cond = U_.query(cond)
-        print(time() - t0)
-        if not U_cond.empty:
-            t0 = time()
-            tree = kd_tree(U_cond[freevars])
-            print(time()-t0)
-            t0 = time()
-            dist, points = tree.query(A_cond,
-                                      k=1,
-                                      p=inf,
-                                      distance_upper_bound=max_radius) # here: the maximal number of neighours
-            print(time()-t0)
-            out = U_cond.iloc[points[dist < inf]].reset_index()
-            out['d'] = dist[dist < inf]
-            out.index = A_cond[dist < inf].index
-            print(time() - t0)
-            print()
-            yield out
-
-
 
 class RunChargeGrouper(object):
     def __init__(self, A, U,
@@ -233,10 +56,18 @@ class RunChargeGrouper(object):
                     yield A_agg_rq, Urq
 
 
-def find_nearest_neighbour(grouper, max_radius=1):
+def find_nearest_neighbour(grouper, **query_kwds):
+    """Find neareast neigbours of medoids of identified peptides within sets of unidentified signals.
+
+    Args:
+        grouper (Grouper): a class implementing '__iter__' of pandas.DataFrames of identified and unidentified singals.
+        query_kwds: arguments for the cKDtree.query methods.
+    Yield:
+        DataFrames of unidentified singal attirbuted to particular peptides.
+    """
     for A_cond, U_cond in grouper:
         tree = kd_tree(U_cond[grouper.freevars])
-        dist, points = tree.query(A_cond, k=1, p=inf, distance_upper_bound=max_radius)
+        dist, points = tree.query(A_cond, **query_kwds)
         out = U_cond.iloc[points[dist < inf]].reset_index()
         if not out.empty:
             out['d'] = dist[dist < inf]
@@ -245,21 +76,9 @@ def find_nearest_neighbour(grouper, max_radius=1):
 
 %%time
 rq_grouper = RunChargeGrouper(A, U)
-NN_rq = find_nearest_neighbour(rq_grouper, max_radius=1)
+NN_rq = find_nearest_neighbour(rq_grouper, k=1, p=inf, distance_upper_bound=1)
 y = list(NN_rq)
-
-
-
-# %%time
-# NN_rq = iter_run_charge_solution(A, runs, variables, max_radius=1)
-# x = list(islice(NN_rq, 5))
-
-
-# 30 s on old computer for query_ball_point, 
-# 20 s for a simple query about 10 neighbors. # this is not bad, provided that we would actually want one point
-
-# Open quesiton: how much faster can this be done?
-# need a rqm iterator for testing
+# 12 secs on old computer
 
 
 
