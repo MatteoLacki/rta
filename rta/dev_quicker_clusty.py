@@ -29,8 +29,8 @@ A['signal2medoid_d'] = np.abs(A[['massa_d', 'rta_d', 'dta_d']]).max(axis=1)
 # AW = A[['id','run','rt']].pivot(index='id', columns='run', values='rt')
 # 100 * AW.isnull().values.sum() / np.prod(AW.shape) # 80% of slots are free!
 # more than one million free slots
-variables = ['rta', 'dta', 'massa']
-runs = np.array(list(set(A.run.unique()) | set(U.run.unique())))
+# variables = ['rta', 'dta', 'massa']
+# runs = np.array(list(set(A.run.unique()) | set(U.run.unique())))
 
 # Aid = A.groupby('id')
 # A_agg = pd.concat([ Aid[variables].median(),
@@ -168,19 +168,6 @@ condvars = ['run', 'charge']
 # the iterators can supply these!
 
 
-import numexpr as ne
-
-%%timeit
-run = U.run.values
-charge = U.charge.values
-ne.evaluate('(run == 1) & (charge == 1)')
-# write this efficientl wtih numexpr
-
-%%time
-U_freevars.loc[U_ind[np.logical_and(U_condvars.run == 1, U_condvars.charge == 1)]]
-U_condvars
-
-
 def find_nearest_neighbour_exp(A_iter, U, freevars, condvars, max_radius=1):
     t0 = time()
     # U_freevars = U.loc[:, freevars]
@@ -226,19 +213,35 @@ def find_nearest_neighbour_exp(A_iter, U, freevars, condvars, max_radius=1):
             print()
             yield out
 
+def get_iter_over_rq(A, runs,
+                     peptID='id',
+                     condvars=['id', 'run'],
+                     freevars=['rta', 'dta', 'massa']):
+    def iter_over_rq_exp():
+        Aid = A.groupby(peptID)
+        A_agg = pd.concat([ Aid[freevars].median(), Aid.charge.first()], axis = 1)
+        A_short = A.loc[:,condvars]
+        for r in runs:
+            d = A_agg.loc[A_short[A_short.run != r][peptID].unique(),:]
+            for q, e in d.groupby('charge'):
+                U_query = "run == {} and charge == {}".format(r, q)
+                Arq = e[freevars]
+                yield U_query, Arq
+    return condvars, freevars, iter_over_rq_exp()
+
 
 class DataGrouper(object):
     def __init__(self, A, U,
                  peptID='id',
                  condvars=['run', 'charge'],
                  freevars=['rta', 'dta', 'massa']):
-        self.runs = np.array(list(set(A.run.unique()) | set(U.run.unique())))
         self._U = U.loc[:, freevars + condvars]
+        self._A = A.loc[:, [peptID] + condvars]
         Aid = A.groupby(peptID)
         self.A_agg = pd.concat([ Aid[freevars].median(), Aid.charge.first()], axis = 1) 
-        self.A_rq = A.loc[:,condvars]
         self.freevars = freevars
         self.peptID = peptID
+        self.rq = A[condvars].drop_duplicates()
 
     def __iter__(self):    
         for r in self.runs:
@@ -249,11 +252,95 @@ class DataGrouper(object):
                 if not U_cond.empty:
                     yield U_cond, A_cond
 
+
+condvars=['run', 'charge']
+freevars=['rta', 'dta', 'massa']
+peptID = 'id'
+
+# only these are important
+rq = A[condvars].drop_duplicates()
+for q, d in rq.groupby('charge'):
+    for r in d['run']:
+        print(r, q)
+
+_U = U.loc[:, freevars + condvars]
+_A = A.loc[:, [peptID] + condvars]
+Aid = A.groupby(peptID)
+A_agg = pd.concat([ Aid[freevars].median(), Aid.charge.first()], axis = 1)
+
+
+%%time
+for q, r_q in rq.groupby('charge'):
+    for r in r_q['run']:
+        _Arq = _A.loc[np.logical_and(_A.charge == q, _A.run == r),:]
+        _Urq = _U.loc[np.logical_and(_U.charge == q, _U.run == r),:]
+        
+%%time
+for (r,q), _Arq in _A.groupby(['run', 'charge']):
+    _Urq = _U.loc[np.logical_and(_U.charge == q, _U.run == r),:]
+
+%%time
+for (r,q), _Arq in _U.groupby(['run', 'charge']):
+    _Arq = _A.loc[np.logical_and(_A.charge == q, _A.run == r),:]
+
+
+_Urq = _U.groupby(['run', 'charge'])
+_Arq = _A.groupby(['run', 'charge'])
+_A_agg_q = A_agg.groupby('charge')
+rq = A[condvars].drop_duplicates()
+
+for q, r_q in rq.groupby('charge'):
+    A_agg_q = _A_agg_q.get_group(q)
+    for r in r_q['run']:
+        Arq = _Arq.get_group((r,q))
+        Urq = _Urq.get_group((r,q))
+        A_agg_rq = A_agg_q.loc[~A_agg_q.index.isin(Arq.id)]
+
+
+
+
 rq_grouper = DataGrouper(A, U)
-rq_grouper._U
+
+%%timeit
+rq_grouper._A.query("run != 1 and charge**2 == 4")
+
+%%timeit
+rq_grouper._A.loc[]
+
+%%timeit
+rq_grouper._A.loc[np.logical_and(rq_grouper._A.run != 1, rq_grouper._A.charge == 2), 'id']
+
+
+
+%%timeit
+peptides_rq = rq_grouper._A.loc[np.logical_and(rq_grouper._A.run == 1, rq_grouper._A.charge == 2), 'id']
+
+%%timeit
+rq_grouper.A_agg.index.difference(peptides_rq)
+
+%%timeit
+rq_grouper.A_agg.loc[~rq_grouper.A_agg.index.isin(peptides_rq)]
+
+# why not first charge then run???
+_A = A.loc[:, freevars + condvars]
+
+[(q,d.shape[0]) for q, d in _A.groupby('charge')]
+
+A_rq = A.loc[:,['id', 'run', 'charge']]
+
+for r in runs:
+    print(r, A_agg.loc[A_rq[A_rq.run != r].id.unique(),:].shape[0])
+
+
+
+
+
 
 # this is wrong! simplify
 r = 1
+A.shape
+rq_grouper.A_rq
+
 rq_grouper.A_agg.loc[ rq_grouper.A_rq[rq_grouper.A_rq.run != r].index  ]
 
 rq_grouper.A_agg
