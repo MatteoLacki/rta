@@ -12,37 +12,93 @@ plt.style.use('dark_background')
 from collections import Counter
 from scipy.spatial import cKDTree as kd_tree
 from plotnine import *
+from itertools import islice
 
 from rta.array_operations.dataframe_ops import get_hyperboxes, conditional_medians, normalize
 from rta.reference import cond_medians
 from rta.parse import threshold as parse_thr
+
+from time import time
 
 data = Path("~/Projects/rta/rta/data").expanduser()
 A = pd.read_msgpack(data/"A.msg")
 D = pd.read_msgpack(data/"D.msg")
 U = pd.read_msgpack(data/"U.msg")
 A['signal2medoid_d'] = np.abs(A[['massa_d', 'rta_d', 'dta_d']]).max(axis=1)
-
-AW = A[['id','run','rt']].pivot(index='id', columns='run', values='rt')
-AW = A[['id','run','rt']].pivot(index='id', columns='run', values='rt')
+# AW = A[['id','run','rt']].pivot(index='id', columns='run', values='rt')
 # 100 * AW.isnull().values.sum() / np.prod(AW.shape) # 80% of slots are free!
 # more than one million free slots
 
-# prepare data for hdbscan
-variables = ['rta', 'dta', 'massa']
+class RunChargeGrouper(object):
+    def __init__(self, A, U,
+                 peptID = 'id',
+                 freevars=['rta', 'dta', 'massa']):
+        self.condvars = ['run', 'charge']
+        self.freevars = freevars
+        self.rq = A[self.condvars].drop_duplicates()
+        self.Urq = U.loc[:, freevars + self.condvars].groupby(['run', 'charge'])
+        self.Arq = A.loc[:, [peptID] + self.condvars].groupby(['run', 'charge'])
+        Aid = A.groupby(peptID)
+        A_agg = pd.concat([ Aid[freevars].median(), Aid.charge.first()], axis = 1)
+        self.A_agg_q = A_agg.groupby('charge')
 
-## simplify to peptide-medoids
-Aid = A.groupby('id')
-A_agg = pd.concat(  [Aid[variables].median(),
-                     pd.DataFrame(Aid.size(), columns=['signal_cnt']),
-                     Aid.run.agg(frozenset)],
-                     axis = 1)
-# counts = Counter(A_agg.signal_cnt)    # number of peptides that occur a given number of times
-# [(k, k*v) for k, v in counts.items()] # number of signals
+    def __iter__(self):
+        """Iterate over medoids of identified peptides and corresponding unindetified signals."""
+        for q, r_q in self.rq.groupby('charge'):
+            # all identified peptides with charge q: medoids
+            A_agg_q = self.A_agg_q.get_group(q)
+            for r in r_q['run']:
+                Arq = self.Arq.get_group((r,q))
+                Urq = self.Urq.get_group((r,q))
+                # get all peptide-medoids not in run r with charge q
+                A_agg_rq = A_agg_q.loc[~A_agg_q.index.isin(Arq.id), self.freevars]
+                if not A_agg_rq.empty:
+                    yield A_agg_rq, Urq
 
-A_agg_no_fulls = A_agg.loc[A_agg.signal_cnt != 10]
-A_agg_no_fulls = A_agg_no_fulls.reset_index()
-runs = np.unique(U.run)
+
+def find_nearest_neighbour(grouper, **query_kwds):
+    """Find neareast neigbours of medoids of identified peptides within sets of unidentified signals.
+
+    Args:
+        grouper (Grouper): a class implementing '__iter__' of pandas.DataFrames of identified and unidentified singals.
+        query_kwds: arguments for the cKDtree.query methods.
+    Yield:
+        DataFrames of unidentified singal attirbuted to particular peptides.
+    """
+    for A_cond, U_cond in grouper:
+        tree = kd_tree(U_cond[grouper.freevars])
+        dist, points = tree.query(A_cond, **query_kwds)
+        out = U_cond.iloc[points[dist < inf]].reset_index()
+        if not out.empty:
+            out['d'] = dist[dist < inf]
+            out.index = A_cond[dist < inf].index
+            yield out
+
+%%time
+rq_grouper = RunChargeGrouper(A, U)
+NN_rq = find_nearest_neighbour(rq_grouper, k=1, p=inf, distance_upper_bound=1)
+y = list(NN_rq)
+# 12 secs on old computer
+
+
+
+
+## classification based on run an charge only:
+mass_ppm_thr = 10
+# mass_ppm_thr = 100
+masses = d.massa.values
+
+%%time
+masses = np.sort(A.massa.values)
+good_diffs = np.diff(masses)/masses[:-1]*1e6 > mass_ppm_thr
+L = masses[np.insert(good_diffs, 0, True)]
+R = masses[np.insert(good_diffs, -1, True)]
+I = pd.IntervalIndex.from_arrays(L, R, closed = 'left')
+x = pd.cut(masses, I)
+
+
+masses
+
 
 
 """Idea here:
@@ -52,9 +108,6 @@ Query for the closest points in U next to the mediods calculated for peptides in
 # maybe, but wait for the CV
 # F = {run: kd_tree(U.loc[U.run == run, variables]) for run in runs}
 # 5.37s on modern computer
-
-a_agg_no_fulls = A_agg_no_fulls.iloc[[0,1,2,3]]
-x = a_agg_no_fulls.iloc[0]
 
 def nn_iter(x):
     peptID, p_rta, p_dta, p_mass, p_run_cnt, p_runs = x
@@ -67,21 +120,6 @@ def nn_iter(x):
 def fill_iter(X):
     for x in X.values:
         yield from nn_iter(x)
-# %%time
-# FILLED = pd.DataFrame(fill_iter(A_agg_no_fulls))
-# variables = ['id', 'run', 'massa', 'rta', 'dta', 'idx', 'd']
-# FILLED.columns = variables
-# FILLED['origin'] = 'U'
-# A_ = A.loc[:,variables[:-2] + ['signal2medoid_d']]
-# A_ = A_.reset_index()
-# names = list(A_.columns)
-# names[0] = 'idx'
-# A_.columns = names
-# A_['origin'] = 'A'
-# ALL = pd.concat([A_, FILLED], axis=0, sort=False)
-# ALL.to_msgpack(data/"nnn_zlib.msg", compress='zlib') # naive nearest neighbours
-# A_agg = A_agg.sort_values('massa')
-# sum(np.diff(A_agg.massa) > .1)
 
 # define few meaningful splits: based on mmu (mili-mass units)
 # thr = '5mmu'
@@ -91,62 +129,63 @@ def fill_iter(X):
 # thr = '5ppm'
 # parse_thr(thr)
 
-# w = A.groupby('id').massa_d.median()
-# w = w[w > 0]
-# sum(np.diff(A_agg.massa) > max(w))
-
-# x = A_agg.massa.values
-# max_allowed = 0.001
-# w = np.arange(len(x)-1)[np.diff(x) > max_allowed]
-
 # res = {}
 # for r in runs:
 #     res[r] = F[r].query(
 #         A_agg.loc[A_agg.run.apply(lambda x: r not in x), variables],
 #         p=inf,
 #         k=1)
-# to do: check for balls instead
-# what is this box-size? Maybe it's precisely the thing I look for?
-# make test
-# also, maybe it is still a good idea to get the closest points in all directions
-# to somehow estimate the noise level? No, this is to vague
-
-from rta.array_operations.dataframe_ops import get_hyperboxes
 
 Did = D.groupby('id')
 HB = pd.concat( [   get_hyperboxes(D, variables),
                     Did[variables].median(),
                     pd.DataFrame(Did.size(), columns=['signal_cnt']),
-                    Did.run.agg(frozenset),
+                    Did.run.agg(frozenset), # as usual, the slowest !!!
                     Did.charge.median(),
                     Did.FWHM.median()     ],
                     axis = 1)
 HB = HB[HB.signal_cnt > 5]
-
-plt.hexbin(HB.rta_min, HB.rta_edge)
-plt.hexbin(np.log(HB.rta_min), np.log(HB.rta_edge))
-plt.show()
-plt.hexbin(HB.dta_min, HB.dta_edge)
-plt.hexbin(np.log(HB.dta_min), np.log(HB.dta_edge))
-plt.show()
-(ggplot(HB, aes(x='dta_min', y='dta_edge')) +
-    geom_density_2d() +
-    facet_wrap('charge'))
-# (ggplot(HB, aes(x='FWHM', y='dta_edge')) +
-#   geom_density_2d() +
-#   facet_wrap('charge'))
-(ggplot(HB, aes(x='massa_min', y='massa_edge')) +
-    geom_density_2d())
-(ggplot(HB, aes(x='massa_min', y='massa_edge')) +
-    geom_density_2d() + facet_wrap('signal_cnt'))
-(ggplot(HB, aes(x='massa_min', y='massa_edge')) +
-    geom_density_2d() +
-    facet_wrap('charge'))
-(ggplot(HB, aes(x='massa_edge', group='charge', color='charge')) +
-    geom_density())
-
 # all values have been filtered so that only one charge state is used for the analysis
-Counter(A.groupby('id').charge.nunique())
+# Counter(A.groupby('id').charge.nunique())
+# use this to divide the data
+
+def in_closed_intervals(mz, left_mz, right_mz):
+    i = np.searchsorted(right_mz, mz, side='left')
+    out = np.full(mz.shape, -1)
+    smaller = mz <= right_mz[-1]
+    out[smaller] = np.where(np.take(left_mz, i[smaller]) <= mz[smaller],
+                            i[smaller], -1)
+    return out
+
+in_closed_intervals(U.massa.values, L, R)
+
+# Alternativ für Zukunft
+# first sort the bloody U and then do calculations on views.
+u_vars = ['run', 'charge', 'massa', 'rta', 'dta']
+
+UU = U.loc[:,u_vars]
+
+# UU = UU.sort_values(['run', 'charge', 'massa'])
+
+%%time
+UU_g = UU.groupby(['run', 'charge'])
+UU_g.describe()
+
+x = list(UU_g)
+
+%%time
+UU = U.loc[:,u_vars]
+UU = UU.sort_values(['run', 'charge'])
+UU = UU.set_index(['run', 'charge'])
+
+UU.loc[(1,1),'massa']
+UU.xs(1, level='run')
+
+x = pd.DataFrame({'a': [10, 20], 'b':['a', 'b']},
+                 index = pd.IntervalIndex.from_tuples([(0, 1), (3, 5)]))
+
+x.loc[[4, 4.5, 5.5]]
+
 
 # %%time
 # F = kd_tree(U[variables])
@@ -158,14 +197,17 @@ Counter(A.groupby('id').charge.nunique())
 
 charges = np.array(list(set(U.charge.unique()) | set(A.charge.unique())))
 
-# %%time
-# F = {}
-# U_var = U.loc[:,variables]
-# for q in charges:
-#     for r in runs:
-#         row_select = np.logical_and(U.run == r, U.charge == q)
-#         F[(r,q)] = U_var.loc[row_select,:] if np.any(row_select) else None
-# # 3.01 sec
+%%time
+F = {}
+U_var = U.loc[:,variables]
+for q in charges:
+    for r in runs:
+        row_select = np.logical_and(U.run == r, U.charge == q)
+        F[(r,q)] = kd_tree(U_var.loc[row_select,:]) if np.any(row_select) else None
+# 3.01 sec / 13 sec old
+
+
+
 
 
 # U.sort_values(['run', 'charge', 'massa']) # this is lenghty.
@@ -200,8 +242,6 @@ plt.show()
 w = w[w > 0]
 sum(np.diff(A_agg.massa) > max(w))
 U.sort_values(['run', 'mass'])
-
-
 
 
 
