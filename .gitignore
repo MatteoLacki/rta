@@ -17,6 +17,7 @@ rta/.ipynb_checkpoints/
 py3/
 
 rta/data/
+data
 
 # VIM
 *.swo
