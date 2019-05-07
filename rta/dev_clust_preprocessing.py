@@ -12,8 +12,11 @@ from plotnine import *
 from itertools import islice
 
 from rta.array_operations.dataframe_ops import get_hyperboxes, conditional_medians, normalize
+from rta.array_operations.non_overlapping_intervals import OpenOpen, OpenClosed
 from rta.reference import cond_medians
 from rta.parse import threshold as parse_thr
+
+
 
 from time import time
 
@@ -66,51 +69,47 @@ def get_intervals_np(X, max_diff):
 	Lidx = np.concatenate((np.array([True]), dXok))
 	Ridx = np.concatenate((dXok, np.array([True])))
 	L, R = X[Lidx], X[Ridx]
-	return L[L < R], R[L < R] # kill lonely lonelers
+	return L[L < R], R[L < R] # kill trivial intervals
 
 # maybe make the intervals slightly bigger?
 # but definately don't make it into a division.
 
-
-
+%%time
 L, R = get_intervals_np(A_massa, massa_diff_999)
-
-x = A.massa.values
-
-L = np.array([1, 10, 100])
-R = np.array([4, 14, 105])
-
-x = 1
-np.searchsorted(L, x)
-
-
-np.searchsorted()
+OO = OpenOpen(L, R)
+iA = OO[A.massa]
+iU = OO[U.massa]
 
 
 %%time
-OI = SpectralIntervals(L, R)
-w = OI[A.massa]
-y = OI[U.massa]
+L, R = get_intervals_np(A_massa, massa_diff_999)
+OC = OpenClosed(L, R)
+iA = OC[A.massa]
+iU = OC[U.massa]
 
 
 
+## FUCK, add back the trivial intervals later on!!!
+Counter(iA)[-1]
+Counter(iU)[-1]/U.shape[0]
+# 45% of points are not within the projections.
+# now, we have to make these intervals a little bit wider
 
 
 
-plt.step(p, np.percentile(massa_edge, p))
-plt.show()
+# plt.step(p, np.percentile(massa_edge, p))
+# plt.show()
+# get_hyperboxes(A, 'mass')
+# Arq = A.groupby(['run', 'charge'])
+# A12 = Arq.get_group((1,2))
 
-get_hyperboxes(A, 'mass')
-Arq = A.groupby(['run', 'charge'])
-A12 = Arq.get_group((1,2))
+# mass = np.sort(A12.mass)
+# mass = np.sort(A.mass)
+# np.percentile(np.diff(np.sort(A_mass)), [50, 90, 99, 100])
 
-mass = np.sort(A12.mass)
-mass = np.sort(A.mass)
-np.percentile(np.diff(np.sort(A_mass)), [50, 90, 99, 100])
+# # plt.step(mass[:-1], np.cumsum(np.diff(mass)))
+# plt.step(mass[:-1], np.diff(mass))
+# plt.show()
 
-# plt.step(mass[:-1], np.cumsum(np.diff(mass)))
-plt.step(mass[:-1], np.diff(mass))
-plt.show()
-
-plt.scatter(mass[:-1], np.diff(mass), s=.5)
-plt.show()
+# plt.scatter(mass[:-1], np.diff(mass), s=.5)
+# plt.show()

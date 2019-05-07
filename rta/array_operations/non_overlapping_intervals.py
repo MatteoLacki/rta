@@ -34,7 +34,7 @@ class OpenOpen(Interval):
     def __getitem__(self, x):
         i = np.searchsorted(self.LR, x, side='left')
         cluster_no, in_clust = np.divmod(i, 2)
-        not_right_end = x < self.R[cluster_no]
+        not_right_end = x < np.take(self.R, cluster_no, mode='clip')
         cluster_no = np.where(np.logical_and(in_clust, not_right_end), cluster_no, -1)
         return cluster_no
 
