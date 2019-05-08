@@ -59,7 +59,7 @@ def get_intervals_np(X, max_diff, sorted=False):
 	Args:
 		X (iterable): points for which we need intervals.
 		max_diff (float): half of the max distance between points in the net.
-	Returns
+	Returns:
 	A tuple of np.arrays with left and right ends of intervals.
 	"""
 	if not sorted:
@@ -84,12 +84,23 @@ len(np.unique(U.i))-1 # there are a lot of groups
 # effectively, iU is the index that replaces part of the tree.
 
 
-A[A.i == 32]
+A[A.i == 0]
 
+# this query is rather costly, to say the least.
+# merge some of the things
+
+A_sizes = []
+U_sizes = []
 for i in range(len(OC.L)):
-	print(A[A.i==i,], U[U.i==i,])
+	A_sizes.append(A[A.i==i].shape[0])
+	U_sizes.append(U[U.i==i].shape[0])
+
+
+U_sizes = U.groupby('i').size()
+# merge these points to make selection easier?
 
 
 
-
+plt.scatter(U_sizes.index, U_sizes)
+plt.show()
 
