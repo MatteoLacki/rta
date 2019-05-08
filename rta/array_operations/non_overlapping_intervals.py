@@ -1,5 +1,13 @@
 import numpy as np
 
+"""
+Here we solve the subproblem:
+
+given nonoverlapping intervals (l1, r1) < .. < (lM, rM)
+and a collection of points on the line X = (x0, x1, x2, .., xN) that
+does not have to be sorted,
+find for each xI the index I s.t. x in (lI, rI), or report -1.
+"""
 
 class Interval(object):
     """This class implements a collection of non-overlapping intervals."""
@@ -28,7 +36,7 @@ class Interval(object):
         Args:
             x (iterable): Point on the line that need to be classified.
         Results:
-            np.array of ints: indices of intervals that the points belong to (intervals are now sorted). inf corresponds to points outside any of the interval.
+            np.array of ints: indices of intervals that the points belong to (intervals are now sorted). -1 corresponds to points outside any of the interval.
         """
         raise NotImplementedError
 

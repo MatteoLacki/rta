@@ -61,7 +61,6 @@ class RunChargeGrouper(object):
                 if not A_agg_rq.empty:
                     yield A_agg_rq, Urq
 
-
 def find_nearest_neighbour(grouper, **query_kwds):
     """Find neareast neigbours of medoids of identified peptides within sets of unidentified signals.
 

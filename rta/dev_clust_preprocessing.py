@@ -16,8 +16,6 @@ from rta.array_operations.non_overlapping_intervals import OpenOpen, OpenClosed
 from rta.reference import cond_medians
 from rta.parse import threshold as parse_thr
 
-
-
 from time import time
 
 data = Path("~/Projects/rta/rta/data").expanduser()
@@ -47,70 +45,51 @@ HB = HB[HB.signal_cnt > 5]
 # getting back to the idea of mass divisions.
 # (ggplot(A, aes(x='massa')) + 
 #     geom_histogram(bins=3000))
-rq_grouper = RunChargeGrouper(A, U)
+# rq_grouper = RunChargeGrouper(A, U)
 
-%%time
-Aid = A.groupby('id')
-A_mass_box = Aid.massa.max() - Aid.massa.min()
-massa_diff_999 = np.percentile(A_mass_box[A_mass_box > 0], 99.9)
+Aid 			= A.groupby('id')
+A_mass_box 		= Aid.massa.max() - Aid.massa.min()
+massa_diff_999  = np.percentile(A_mass_box[A_mass_box > 0], 99.9)
 A_massa = massa = np.sort(A.massa)
 
-def get_intervals(X, max_diff):
-	x = iter(X)
-	L = x_ = next(x)
-	for _x in x:
-		if _x - x_ >= max_diff:
-			yield (L, _x)
-			L = _x
-		x_ = _x
 
-def get_intervals_np(X, max_diff):
-	dXok = np.diff(X) >= max_diff
+def get_intervals_np(X, max_diff, sorted=False):
+	"""Get left and right ends of the max-diff-net around points X.
+
+	Args:
+		X (iterable): points for which we need intervals.
+		max_diff (float): half of the max distance between points in the net.
+	Returns
+	A tuple of np.arrays with left and right ends of intervals.
+	"""
+	if not sorted:
+		X = np.sort(X)
+	dXok = np.diff(X) >= max_diff * 2.0001
 	Lidx = np.concatenate((np.array([True]), dXok))
 	Ridx = np.concatenate((dXok, np.array([True])))
-	L, R = X[Lidx], X[Ridx]
-	return L[L < R], R[L < R] # kill trivial intervals
+	return X[Lidx]-max_diff, X[Ridx]+max_diff
 
-# maybe make the intervals slightly bigger?
-# but definitely don't make a total division of the line
-
-%%time
-L, R = get_intervals_np(A_massa, massa_diff_999)
-OO = OpenOpen(L, R)
-iA = OO[A.massa]
-iU = OO[U.massa]
 
 %%time
 L, R = get_intervals_np(A_massa, massa_diff_999)
 OC = OpenClosed(L, R)
-iA = OC[A.massa]
-iU = OC[U.massa]
+# OO = OpenOpen(L, R)
+A['i'] = OC[A.massa]
+U['i'] = OC[U.massa]
 
-A.massa.values[[0,0,3,5]]
-
-## FUCK, add back the trivial intervals later on!!!
-Counter(iA)[-1]
-Counter(iU)[-1]/U.shape[0]
-# 45% of points are not within the projections.
+# 23% of points are not within the projections.
 # now, we have to make these intervals a little bit wider
+Counter(U.i)[-1] / U.shape[0]
+len(np.unique(U.i))-1 # there are a lot of groups
+# effectively, iU is the index that replaces part of the tree.
+
+
+A[A.i == 32]
+
+for i in range(len(OC.L)):
+	print(A[A.i==i,], U[U.i==i,])
 
 
 
-# plt.step(p, np.percentile(massa_edge, p))
-# plt.show()
-# get_hyperboxes(A, 'mass')
-# Arq = A.groupby(['run', 'charge'])
-# A12 = Arq.get_group((1,2))
-
-# mass = np.sort(A12.mass)
-# mass = np.sort(A.mass)
-# np.percentile(np.diff(np.sort(A_mass)), [50, 90, 99, 100])
-
-# # plt.step(mass[:-1], np.cumsum(np.diff(mass)))
-# plt.step(mass[:-1], np.diff(mass))
-# plt.show()
-
-# plt.scatter(mass[:-1], np.diff(mass), s=.5)
-# plt.show()
 
 
