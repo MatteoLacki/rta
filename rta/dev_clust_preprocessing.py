@@ -98,7 +98,10 @@ for i in range(len(OC.L)):
 
 U_sizes = U.groupby('i').size()
 # merge these points to make selection easier?
-
+%%time
+x = list(U.groupby('i'))
+# 4.22 secs of retrieving the data the fast way.
+# investigate the freaking numpy
 
 
 plt.scatter(U_sizes.index, U_sizes)
