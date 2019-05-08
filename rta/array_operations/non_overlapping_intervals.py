@@ -2,20 +2,43 @@ import numpy as np
 
 
 class Interval(object):
-    def __init__(self, L, R):
+    """This class implements a collection of non-overlapping intervals."""
+    def __init__(self, L, R, sorted=False):
+        """Initialize the class.
+
+        Arguments:
+            L (iterable): the left ends of the intervals.
+            R (iterable): the right end of the intervals.
+            sorted (boolean): Are both L and R sorted?
+        """
+        self.L = np.array(L)
+        self.R = np.array(R)
+        if not sorted:
+            self.L.sort()
+            self.R.sort()
         assert all(L < R)
-        self.LR = np.zeros(dtype=float, shape=(L.shape[0]+R.shape[0],))
+        total_len = self.L.shape[0] + self.R.shape[0]
+        self.LR = np.zeros(dtype=float, shape=(total_len,))
         self.LR[0::2] = L
         self.LR[1::2] = R
-        self.L = L
-        self.R = R
-
+        
     def __getitem__(self, x):
+        """Querry for x belonging to any of the intervals.
+
+        Args:
+            x (iterable): Point on the line that need to be classified.
+        Results:
+            np.array of ints: indices of intervals that the points belong to (intervals are now sorted). inf corresponds to points outside any of the interval.
+        """
         raise NotImplementedError
 
 
 class OpenClosed(Interval):
-    def __getitem__(self, x, idx=True):
+    def __getitem__(self, x):
+        """Querry for x belonging to any of the intervals.
+
+        All intervals exclude the left end and include the right.
+        """
         i = np.searchsorted(self.LR, x, side='left')
         cluster_no, in_clust = np.divmod(i, 2)
         cluster_no = np.where(in_clust, cluster_no, -1)
@@ -24,6 +47,10 @@ class OpenClosed(Interval):
 
 class ClosedOpen(Interval):
     def __getitem__(self, x):
+        """Querry for x belonging to any of the intervals.
+
+        All the intervals include the left end and exclude the right.
+        """
         i = np.searchsorted(self.LR, x, side='right')
         cluster_no, in_clust = np.divmod(i, 2)
         cluster_no = np.where(in_clust, cluster_no, -1)
@@ -32,8 +59,12 @@ class ClosedOpen(Interval):
 
 class OpenOpen(Interval):
     def __getitem__(self, x):
+        """Querry for x belonging to any of the open intervals."""
         i = np.searchsorted(self.LR, x, side='left')
         cluster_no, in_clust = np.divmod(i, 2)
+        # 'clip' fixes the problem with points right to max(R)
+        # by changing the index from 2*len(L) to 2*len(L)-1.
+        # This is ok, because these points have in_clust == 0 anyway.
         not_right_end = x < np.take(self.R, cluster_no, mode='clip')
         cluster_no = np.where(np.logical_and(in_clust, not_right_end), cluster_no, -1)
         return cluster_no

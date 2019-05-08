@@ -72,7 +72,7 @@ def get_intervals_np(X, max_diff):
 	return L[L < R], R[L < R] # kill trivial intervals
 
 # maybe make the intervals slightly bigger?
-# but definately don't make it into a division.
+# but definitely don't make a total division of the line
 
 %%time
 L, R = get_intervals_np(A_massa, massa_diff_999)
@@ -80,14 +80,13 @@ OO = OpenOpen(L, R)
 iA = OO[A.massa]
 iU = OO[U.massa]
 
-
 %%time
 L, R = get_intervals_np(A_massa, massa_diff_999)
 OC = OpenClosed(L, R)
 iA = OC[A.massa]
 iU = OC[U.massa]
 
-
+A.massa.values[[0,0,3,5]]
 
 ## FUCK, add back the trivial intervals later on!!!
 Counter(iA)[-1]
@@ -113,3 +112,5 @@ Counter(iU)[-1]/U.shape[0]
 
 # plt.scatter(mass[:-1], np.diff(mass), s=.5)
 # plt.show()
+
+
