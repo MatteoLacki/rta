@@ -88,3 +88,22 @@ def test_non_overlapping_intervals():
     assert all(CO[x] == [-1, 0, 0,-1,-1, 1, 1,-1,-1])
     OO = OpenOpen(L, R)
     assert all(OO[x] == [-1,-1, 0,-1,-1,-1, 1,-1,-1])
+
+
+
+def get_intervals_np(X, max_diff=0.0, sorted=False):
+    """Get left and right ends of the max-diff-net around points X.
+
+    Args:
+        X (iterable): points for which we need intervals.
+        max_diff (float): half of the max distance between points in the net.
+    Returns:
+    A tuple of np.arrays with left and right ends of intervals.
+    """
+    if not sorted:
+        X = np.sort(X)
+    dXok = np.diff(X) >= max_diff * 2.0001
+    Lidx = np.concatenate((np.array([True]), dXok))
+    Ridx = np.concatenate((dXok, np.array([True])))
+    return X[Lidx]-max_diff, X[Ridx]+max_diff
+

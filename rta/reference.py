@@ -4,7 +4,8 @@ import pandas as pd
 from rta.misc import max_key_val
 
 
-
+#TODO: get rid of this!
+# This is repeated in array_operations.dataframe_ops
 def cond_medians(x, g):
     """Get Me(x|g) cast over all entries of x.
     

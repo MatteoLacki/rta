@@ -61,6 +61,7 @@ class RunChargeGrouper(object):
                 if not A_agg_rq.empty:
                     yield A_agg_rq, Urq
 
+
 def find_nearest_neighbour(grouper, **query_kwds):
     """Find neareast neigbours of medoids of identified peptides within sets of unidentified signals.
 
@@ -84,7 +85,13 @@ def find_nearest_neighbour(grouper, **query_kwds):
 rq_grouper = RunChargeGrouper(A, U)
 NN_rq = find_nearest_neighbour(rq_grouper, k=10, p=inf, distance_upper_bound=1)
 NN = pd.concat(NN_rq, axis=0, sort=False)
-# 12 secs on old computer : 3.56 secs on a new one.
+# 13 secs on old computer : 3.56 secs on a new one.
+
+%%time
+rq_grouper = RunChargeGrouper(A, U)
+NN_rq = find_nearest_neighbour(rq_grouper, k=10, p=inf, distance_upper_bound=.1)
+NN = pd.concat(NN_rq, axis=0, sort=False)
+# 12 secs: little gain
 
 NN.query('id == "AAAAASLR NA"')
 rq_grouper.A_agg.query('id == "AAAAASLR NA"')
