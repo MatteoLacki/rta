@@ -18,22 +18,6 @@ A = pd.read_msgpack(data/"A.msg")
 D = pd.read_msgpack(data/"D.msg")
 U = pd.read_msgpack(data/"U.msg")
 
-seqs_modifications = A.id.str.split(' ', n=1, expand=True)
-seqs_modifications.columns = ['sequence', 'modification']
-seqs_modifications.sequence.unique()
-
-mods = Counter()
-s = 'Carbamidomethyl+C(7), Carbamidomethyl+C(16), Carbamidomethyl+C(17)'
-
-for s in seqs_modifications.modification.unique():
-	for k in s.split(', '):
-		mods[k] += 1	
-MODS = list(mods.keys())
-MODS2 = set([])
-for m in MODS:
-	MODS2.add(m.split('(')[0])
-
-
 
 freevars = ['rta','dta','massa']
 
