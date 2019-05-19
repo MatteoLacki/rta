@@ -31,6 +31,10 @@ min_runs_per_id = 5 # how many times should peptides appear out of 10 times
 annotated_peptides = A
 D, stats, pddra, pepts_per_run = preprocess(A, min_runs_per_id)
 # x = 'dt'
+pd.set_option('display.max_rows', 30)
+
+D.head(20)
+D[['id', 'run', "rt"]]
 
 def align(A, U, D, x):
     """Align A and U based on D.
