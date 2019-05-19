@@ -30,7 +30,6 @@ a = arta.loc[np.logical_and(arta.dta_n > 3200, arta.dta_n < 4200),]
 # (ggplot(A, aes(x='rta', y='dta', xend='rta_med', yend='dta_med')) + 
 # 	geom_segment())
 
-
 # for each peptide find the bordering rectangle
 
 
