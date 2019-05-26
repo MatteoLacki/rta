@@ -20,13 +20,52 @@ A = pd.read_msgpack(data/"A.msg")
 D = pd.read_msgpack(data/"D.msg")
 U = pd.read_msgpack(data/"U.msg")
 
+(ggplot(U.query('run == 1')) +
+	geom_point(aes(x='massa',
+						y='dta',
+						color='charge'),
+				size=.2))
+
+(ggplot(U.query('run == 1')) +
+	geom_point(aes(x='mass',
+						y='dt',
+						color='charge'),
+				size=.2))
+
+(ggplot(U.query('run == 1')) +
+	geom_point(aes(x='mass',
+						y='rt',
+						color='charge'),
+				size=.2))
+
+(ggplot(A.query('(mass > 2000) & (mass < 2100)')) +
+	geom_point(aes(x='massa',
+				y='dta',
+				color='charge'),
+				size=.2))
+
+A_stat = pd.DataFrame(A.groupby(['id']).size()).reset_index()
+A_stat.columns = ['id', 'runs']
+A_stat_10 = A_stat.query('runs == 10')
+A_id = A.set_index('id')
+A_10 = A_id.loc[A_stat_10.id,:]
+(ggplot(A_10) +
+	geom_point(aes(x='massa',
+				y='dta',
+				color='charge'),
+				size=.2))
+
+
 freevars = ['rta','dta','massa']
 grouping = ['id', 'charge']
+
 
 Aid 			= A.groupby('id')
 A_mass_box 		= Aid.massa.max() - Aid.massa.min()
 massa_diff_999  = np.percentile(A_mass_box[A_mass_box > 0], 99.9)
 A_massa = massa = np.sort(A.massa)
+
+# The big question is: will this mass division always work?
 
 # %%time
 L, R = get_intervals_np(A_massa, massa_diff_999)
@@ -49,21 +88,14 @@ K = 51 # Number of clusters
 # this assumes that index is sorted.
 # is that always true? Need a check!
 
-bins = np.linspace(0,1,K)
-
-%%time
-x = pd.qcut(
-	U.i,
-	bins)
-
 %%time
 uu = np.cumsum(U_sizes.values[1:])
 uu = uu/uu[-1]
 bins = np.linspace(0,1,K)
 bins[-1] = inf
 
-Uu = dict(	zip(U_sizes.index[1:], 
-			np.digitize(uu, bins))	)
+Uu = dict(zip(U_sizes.index[1:], 
+		  np.digitize(uu, bins)))
 Uu[-1] = -1
 U['clustered_i'] = U.i.map(Uu) # this is super-fast!
 # not all things here have equivalent A index:

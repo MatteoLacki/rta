@@ -25,6 +25,36 @@ A['signal2medoid_d'] = np.abs(A[['massa_d', 'rta_d', 'dta_d']]).max(axis=1)
 # AW = A[['id','run','rt']].pivot(index='id', columns='run', values='rt')
 # 100 * AW.isnull().values.sum() / np.prod(AW.shape) # 80% of slots are free!
 
+class ChargeGrouper(object):
+    def __init__(self, A, U,
+                 peptID = 'id',
+                 freevars=['rta', 'dta', 'massa']):
+        """Prepare a sequence of subproblems for the nearest neighbours.
+
+        Args:
+            A (pandas.DataFrame): all annotated signals.
+            U (pandas.DataFrame): all unannotated signals.
+            peptID (str): name of the variable that identifies the peptides in A.
+            freevars (list of strings): List of column names that are to be used for finding the nearest neighbours.
+        """
+        self.freevars = freevars
+        self.U_q = U.loc[:, freevars+['charge']].groupby('charge')
+        Aid = A.groupby(peptID)
+        self.A_agg = pd.concat([ Aid[freevars].median(), Aid.charge.first()], axis = 1)
+        self.A_agg_q = self.A_agg.groupby('charge')
+        self.charges = np.sort(A.charge.unique())
+
+    def __iter__(self):
+        """Iterate over medoids of identified peptides and corresponding unindetified signals."""
+        for q in self.charges:
+            a_agg_q = self.A_agg_q.get_group(q)
+            if not a_agg_q.empty:
+                u_q = self.U_q.get_group(q)
+                yield a_agg_q[self.freevars], u_q
+
+
+# %%time
+# RG = list(rg)
 
 class RunChargeGrouper(object):
     """Prepare a sequence of subproblems for the nearest neighbours.
@@ -55,10 +85,10 @@ class RunChargeGrouper(object):
             A_agg_q = self.A_agg_q.get_group(q)
             for r in r_q['run']:
                 Arq = self.Arq.get_group((r,q))
-                Urq = self.Urq.get_group((r,q))
                 # get all peptide-medoids not in run r with charge q
                 A_agg_rq = A_agg_q.loc[~A_agg_q.index.isin(Arq.id), self.freevars]
                 if not A_agg_rq.empty:
+                    Urq = self.Urq.get_group((r,q))
                     yield A_agg_rq, Urq
 
 
@@ -80,6 +110,17 @@ def find_nearest_neighbour(grouper, **query_kwds):
             out['d'] = dist[dist < inf]
             out.index = A_cond[dist < inf].index # maybe better to set it as a column?
             yield out
+
+# grouper = r_grouper
+# A_cond, U_cond = next(iter(grouper))
+# tree = kd_tree(U_cond[grouper.freevars])
+# dist, points = tree.query(A_cond, k=10, p=inf, distance_upper_bound=1)
+
+%%time
+q_grouper = ChargeGrouper(A, U)
+NN_r = find_nearest_neighbour(q_grouper, k=10, p=inf, distance_upper_bound=1)
+NN = pd.concat(NN_r, axis=0, sort=False)
+# 17.5 secs: it does make sense to subdivide the problem!
 
 %%time
 rq_grouper = RunChargeGrouper(A, U)
