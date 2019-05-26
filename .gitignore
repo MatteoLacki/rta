@@ -17,7 +17,6 @@ rta/.ipynb_checkpoints/
 py3/
 
 rta/data/*.{msg,csv}
-rta/observations
 
 # VIM
 *.swo
