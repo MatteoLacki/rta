@@ -8,6 +8,7 @@ from rta.array_operations.iterators import xyg_iter
 from rta.plot.multi import multiplot
 
 
+
 class BigModel(object):
     def __init__(self, models):
         """Constuctor.
@@ -62,4 +63,7 @@ class BigModel(object):
             print('Install matplotlib to use this function.')
             raise ModuleNotFoundError
 
+    #TODO: add plot_residuals
+    def plot_residuals(self):
+        pass
 

@@ -17,6 +17,8 @@ from rta.filter import is_angry
 from rta.plot.runs import plot_distances_to_reference
 from rta.array_operations.dataframe_ops import normalize
 
+#TODO: this will need optimization!
+
 data = Path("~/Projects/rta/rta/data/").expanduser()
 
 A = pd.read_msgpack(data/"annotated_zlib.msg")
@@ -33,8 +35,6 @@ D, stats, pddra, pepts_per_run = preprocess(A, min_runs_per_id)
 # x = 'dt'
 pd.set_option('display.max_rows', 30)
 
-D.head(20)
-D[['id', 'run', "rt"]]
 
 def align(A, U, D, x):
     """Align A and U based on D.
@@ -101,6 +101,10 @@ A, U, D, M_rt = align(A, U, D, 'rt')
 A, A_noise_rt, D, D_noise_rt, U = denoise_cheb(A, U, D, 'rta')
 # OK, and now, reapply the reallignment
 
+# need to get rid of multicharged peptides
+dt_med = cond_medians(A.dt, A.id)
+plot_distances_to_reference(A.dt, dt_med, A.run, s=1)
+
 W = pd.DataFrame(A[['id', 'charge']].set_index('id').groupby('id').charge.nunique())
 W.columns = ['q_cnt']
 A = A.join(W, on='id')
@@ -114,7 +118,6 @@ A, A_noise_dt, D, D_noise_dt, U = denoise_cheb(A, U, D, 'dta')
 A, U, D, M_mass = align(A, U, D, 'mass')
 A, A_noise_m, D, D_noise_m, U = denoise_cheb(A, U, D, 'massa')
 
-
 A, U, D, M_rt = align(A, U, D, 'rt')
 A, U, D, M_dt = align(A, U, D, 'dt')
 A, U, D, M_mass = align(A, U, D, 'mass')
@@ -123,6 +126,10 @@ A, U, D, M_mass = align(A, U, D, 'mass')
 # plot_distances_to_reference(A.rta, A.rta_med, A.run, s=1)
 # plot_distances_to_reference(A.massa, A.massa_med, A.run, s=1)
 # OK, so now, we should perform all that again.
+# M_rt.plot(s=1)
+# M_mass.plot(s=1)
+# M_mass.plot_residuals(s=1)
+
 
 # this will be modified
 def get_normalization(X, var):

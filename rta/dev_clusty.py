@@ -19,8 +19,12 @@ from time import time
 
 data = Path("~/Projects/rta/rta/data").expanduser()
 A = pd.read_msgpack(data/"A.msg")
+# sequenced = A.query('run == 1')
+# sequenced[['id', 'rt','dt','mass','charge','intensity']]
 D = pd.read_msgpack(data/"D.msg")
 U = pd.read_msgpack(data/"U.msg")
+# unlabelled = U.query('run == 1')
+# unlabelled[['rt','dt','mass','charge','intensity']]
 A['signal2medoid_d'] = np.abs(A[['massa_d', 'rta_d', 'dta_d']]).max(axis=1)
 # AW = A[['id','run','rt']].pivot(index='id', columns='run', values='rt')
 # 100 * AW.isnull().values.sum() / np.prod(AW.shape) # 80% of slots are free!

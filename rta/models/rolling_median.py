@@ -30,7 +30,7 @@ class RollingMedian(Interpolant):
     def __repr__(self):
         return "RollingMedian(ws:{} k:{})".format(self.ws, self.k)
 
-    def fit(self, x, y, sort=True):
+    def fit(self, x, y, sort=True, **kwds):
         """Fit the model.
 
         Args:
@@ -44,7 +44,8 @@ class RollingMedian(Interpolant):
         self.interpo = interp1d(x[::self.k],
                                 self.medians[::self.k],
                                 bounds_error=False,
-                                fill_value=0)
+                                fill_value=0,
+                                **kwds)
         self.x = x
         self.y = y
 
@@ -79,7 +80,7 @@ class RollingMedianSpline(Spline):
     def __repr__(self):
         return "RollingMedianSpline(ws:{})".format(self.ws)
 
-    def fit(self, x, y, sort=True, dedup=True):
+    def fit(self, x, y, sort=True, dedup=True, **kwds):
         if sort:
             i = np.argsort(x)
             x, y = x[i], y[i]
@@ -87,4 +88,4 @@ class RollingMedianSpline(Spline):
         self.y = y
         x, y = dedup_np(x, y)
         self.medians = medfilt(y, self.ws)
-        self.spline = beta_spline(x, self.medians, self.n)
+        self.spline = beta_spline(x, self.medians, self.n, **kwds)
